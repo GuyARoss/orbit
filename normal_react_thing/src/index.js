@@ -1,7 +1,10 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import ReactDOM from 'react-dom';
 
-const App = () => {
+
+const App = ({ test }) => {
+    console.log(test)
+
     return (
         <>
             Is dis Working?
@@ -9,6 +12,7 @@ const App = () => {
     )
 }
 
-console.log('loaded', App, document.getElementById('root'))
-
-ReactDOM.render(<App />, document.getElementById('root'));
+ReactDOM.render(
+    <App {...JSON.parse(document.getElementById('xx_orbit_data').textContent)} />,
+    document.getElementById('root')
+);

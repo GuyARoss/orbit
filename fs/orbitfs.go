@@ -26,7 +26,8 @@ func applyLibTooling(dir string) *jsparse.Page {
 	}
 
 	page.Imports = append(page.Imports, "import ReactDOM from 'react-dom'")
-	page.Other = append(page.Other, fmt.Sprintf("ReactDOM.render(<%s />, document.getElementById('root'))", page.Name))
+	// @@todo, could generate this element id, and pass it around.
+	page.Other = append(page.Other, fmt.Sprintf("ReactDOM.render(<%s {...JSON.parse(document.getElementById('orbit_manifest').textContent)}/>, document.getElementById('root'))", page.Name))
 
 	page.WriteFile(dir)
 
@@ -99,6 +100,9 @@ func Pack(baseDir string, bundleOut string) []*PackedPage {
 			if bundleErr != nil {
 				panic(bundleErr)
 			}
+
+			// @@todo(debug)
+			fmt.Printf("successfully packed %s \n", page.Name)
 
 			pages = append(pages, &PackedPage{
 				PageName:  page.Name,

@@ -2,13 +2,13 @@ import React from 'react'
 
 import Test from '../components/test'
 
-const Hello = () => {
+const Hello = ({ name, age }) => {
     return (
         <>
             Hello, this thing working?
 
             <hr />
-            <Test />
+            <Test name={name} age={age} />
         </>
     )
 }

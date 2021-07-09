@@ -11,7 +11,7 @@ var bundleDir string = "../.orbit/dist"
 type PageRender string
 
 const (
-	HelloPage PageRender = "1c7f22a7a12e55948a7c044e4244f5a9"
+	HelloPage PageRender = "af9e40e28f955222b69dfe0f1b729754"
 )
 
 type RuntimeCtx struct {
@@ -37,6 +37,7 @@ func HandlePage(path string, dp DefaultPage) {
 				return
 			}
 
+			// @@todo: look into embeding this
 			html := fmt.Sprintf(`
 			<!doctype html><html lang="en"><head><meta charset="utf-8"><script id="orbit_manifest" type="application/json">%s</script></head>
 			<body><script src="https://unpkg.com/react/umd/react.production.min.js" crossorigin></script><script src="https://unpkg.com/react-dom/umd/react-dom.production.min.js" crossorigin></script><script src="https://unpkg.com/react-bootstrap@next/dist/react-bootstrap.min.js" crossorigin></script>			
@@ -63,8 +64,9 @@ type Test123 struct {
 }
 
 func (t *Test123) Render(c *RuntimeCtx) {
-	d := make(map[string]string)
-	d["test123"] = "dis working"
+	d := make(map[string]interface{})
+	d["name"] = "guy"
+	d["age"] = 22
 
 	c.RenderPage(HelloPage, d)
 }
