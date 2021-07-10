@@ -43,6 +43,11 @@ func copyDir(dir string, baseDir string, outDir string) []string {
 			continue
 		}
 
+		// @@todo: implement a .orbitignore?
+		if entry.Name() == "node_modules" {
+			continue
+		}
+
 		if entry.IsDir() {
 			copied := copyDir(filepath.Join(dir, entry.Name()), baseDir, outDir)
 
@@ -59,7 +64,7 @@ func copyDir(dir string, baseDir string, outDir string) []string {
 		orbitDirPath := filepath.Join(outDir, ns)
 		destPath := filepath.Join(orbitDirPath, entry.Name())
 
-		if !doesDirExist(orbitDirPath) {
+		if !DoesDirExist(orbitDirPath) {
 			os.Mkdir(orbitDirPath, 0755)
 		}
 
@@ -70,25 +75,7 @@ func copyDir(dir string, baseDir string, outDir string) []string {
 	return copiedDirs
 }
 
-func doesDirExist(dir string) bool {
+func DoesDirExist(dir string) bool {
 	_, err := os.Stat(dir)
-	if os.IsNotExist(err) {
-		return false
-	}
-	return true
-}
-
-func appendFile(fileName string, content string) error {
-	f, err := os.OpenFile(fileName, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
-	if err != nil {
-		return err
-	}
-
-	defer f.Close()
-
-	if _, err = f.WriteString(content); err != nil {
-		return err
-	}
-
-	return nil
+	return !os.IsNotExist(err)
 }

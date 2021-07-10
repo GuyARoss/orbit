@@ -1,6 +1,7 @@
 package build
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/GuyARoss/orbit/pkg/fs"
@@ -12,17 +13,17 @@ type AutoGenPages struct {
 	Master     *libgen.LibOut
 }
 
-func (s *AutoGenPages) CreateAndOverwrite() {
-	s.BundleData.WriteFile("example/orbit.go")
-}
-
 type GenPagesSettings struct {
 	PackageName string
+	OutDir      string
+	WebDir      string
 }
 
-func (s *GenPagesSettings) SetupAutoGenPages(pages []*fs.PackedPage) *AutoGenPages {
+func (s *GenPagesSettings) SetupAutoGenPages() *AutoGenPages {
+	pages := fs.Pack(s.WebDir, ".orbit/base/pages")
+
 	lg := &libgen.LibOut{
-		PackageName:   "orbit",
+		PackageName:   s.PackageName,
 		BaseBundleOut: ".orbit/base/pages",
 	}
 
@@ -35,11 +36,28 @@ func (s *GenPagesSettings) SetupAutoGenPages(pages []*fs.PackedPage) *AutoGenPag
 	}
 }
 
+func (s *GenPagesSettings) ApplyPages() {
+	pages := s.SetupAutoGenPages()
+
+	pages.BundleData.WriteFile(fmt.Sprintf("%s/autogen_bundle.go", s.OutDir))
+	pages.Master.WriteFile(fmt.Sprintf("%s/autogen_master", s.OutDir))
+}
+
 func (s *GenPagesSettings) CleanPathing() error {
 	err := os.RemoveAll(".orbit/")
 	if err != nil {
 		return err
 	}
+
+	if fs.DoesDirExist(s.OutDir) {
+		err := os.Mkdir(s.OutDir, os.ModePerm)
+		if err != nil {
+			return err
+		}
+	}
+
+	// @@todo(debug) return err
+	fs.SetupDirs()
 
 	return nil
 }

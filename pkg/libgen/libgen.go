@@ -2,6 +2,7 @@ package libgen
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strings"
 )
@@ -25,8 +26,10 @@ func (l *LibOut) WriteFile(dir string) {
 	out := strings.Builder{}
 	out.WriteString(fmt.Sprintf("package %s\n\n", l.PackageName))
 
-	out.WriteString(fmt.Sprintf(`var bundleDir string = "%s"`, l.BaseBundleOut))
-	out.WriteString("\n\n")
+	if len(l.BaseBundleOut) > 0 {
+		out.WriteString(fmt.Sprintf(`var bundleDir string = "%s"`, l.BaseBundleOut))
+		out.WriteString("\n\n")
+	}
 
 	for idx, p := range l.pages {
 		if idx == 0 {
@@ -46,15 +49,18 @@ func (l *LibOut) WriteFile(dir string) {
 	defer f.Close()
 
 	if err != nil {
-		panic(err)
+		fmt.Println("cannot open file correctly", dir)
+		log.Fatal(err)
 	}
 
 	err = f.Truncate(0)
 	if err != nil {
-		panic(err)
+		fmt.Println("cannot truncate file correctly", dir)
+		log.Fatal(err)
 	}
 	_, err = fmt.Fprintf(f, "%s", out.String())
 	if err != nil {
-		panic(err)
+		fmt.Println("uhh something stupid.", dir)
+		log.Fatal(err)
 	}
 }

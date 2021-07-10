@@ -11,7 +11,7 @@ import (
 )
 
 func SetupDirs() {
-	if !doesDirExist("./.orbit") {
+	if !DoesDirExist("./.orbit") {
 		os.Mkdir(".orbit", 0755)
 		os.Mkdir(".orbit/base", 0755)
 		os.Mkdir(".orbit/dist", 0755)
