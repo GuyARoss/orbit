@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/GuyARoss/orbit/jsparse"
+	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/google/uuid"
 )
 
