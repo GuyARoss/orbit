@@ -30,7 +30,7 @@ var declarationTokens = []JSToken{ImportToken, ExportToken}
 
 func cleanExportDefaultName(line string) string {
 	// @@todo(guy): detect other types of exporting.
-	// @@todo(guy): validate that it is capitalized
+	// @@todo(guy): validate that export type is capitalized
 	exportData := strings.Split(line, "export default")
 	return exportData[1][1:]
 }
@@ -85,11 +85,10 @@ func (p *Page) WriteFile(dir string) {
 
 func ParsePage(pageDir string) (*Page, error) {
 	file, err := os.Open(pageDir)
-	defer file.Close()
-
 	if err != nil {
 		return nil, err
 	}
+	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)

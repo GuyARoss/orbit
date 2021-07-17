@@ -1,7 +1,6 @@
 package build
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/spf13/cobra"
@@ -16,8 +15,6 @@ var CMD = &cobra.Command{
 			OutDir:      viper.GetString("out"),
 			WebDir:      viper.GetString("webdir"),
 		}
-
-		fmt.Println(as.PackageName)
 
 		err := as.CleanPathing()
 		if err != nil {

@@ -22,17 +22,26 @@ type GenPagesSettings struct {
 func (s *GenPagesSettings) SetupAutoGenPages() *AutoGenPages {
 	pages := fs.Pack(s.WebDir, ".orbit/base/pages")
 
-	lg := &libgen.LibOut{
+	lg := &libgen.BundleGroup{
 		PackageName:   s.PackageName,
-		BaseBundleOut: ".orbit/base/pages",
+		BaseBundleOut: ".orbit/base/dist",
 	}
 
 	for _, p := range pages {
-		lg.ApplyPage(p.PageName, p.BundleKey)
+		lg.ApplyBundle(p.PageName, p.BundleKey)
+	}
+
+	libStaticContent, parseErr := libgen.ParseStaticFile(".orbit/base/assets/orbit.go")
+	if parseErr != nil {
+		panic(parseErr)
 	}
 
 	return &AutoGenPages{
-		BundleData: lg,
+		BundleData: lg.CreatePage(),
+		Master: &libgen.LibOut{
+			Body:        libStaticContent,
+			PackageName: s.PackageName,
+		},
 	}
 }
 
@@ -40,7 +49,7 @@ func (s *GenPagesSettings) ApplyPages() {
 	pages := s.SetupAutoGenPages()
 
 	pages.BundleData.WriteFile(fmt.Sprintf("%s/autogen_bundle.go", s.OutDir))
-	// pages.Master.WriteFile(fmt.Sprintf("%s/autogen_master", s.OutDir))
+	pages.Master.WriteFile(fmt.Sprintf("%s/autogen_master.go", s.OutDir))
 }
 
 func (s *GenPagesSettings) CleanPathing() error {

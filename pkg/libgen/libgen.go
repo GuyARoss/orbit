@@ -1,31 +1,61 @@
 package libgen
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"os"
 	"strings"
 )
 
+type LibOut struct {
+	PackageName string
+	Body        string
+}
+
+func (l *LibOut) WriteFile(dir string) {
+	out := strings.Builder{}
+	out.WriteString(fmt.Sprintf("package %s\n\n", l.PackageName))
+	out.WriteString(l.Body)
+
+	f, err := os.OpenFile(dir, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+
+	if err != nil {
+		fmt.Println("cannot open file correctly", dir)
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	err = f.Truncate(0)
+	if err != nil {
+		fmt.Println("cannot truncate file correctly", dir)
+		log.Fatal(err)
+	}
+	_, err = fmt.Fprintf(f, "%s", out.String())
+	if err != nil {
+		fmt.Println("uhh something stupid.", dir)
+		log.Fatal(err)
+	}
+}
+
 type page struct {
 	name      string
 	bundleKey string
 }
 
-type LibOut struct {
-	pages         []*page
+type BundleGroup struct {
 	PackageName   string
 	BaseBundleOut string
+
+	pages []*page
 }
 
-func (l *LibOut) ApplyPage(name string, bundleKey string) {
+func (l *BundleGroup) ApplyBundle(name string, bundleKey string) {
 	l.pages = append(l.pages, &page{name, bundleKey})
 }
 
-func (l *LibOut) WriteFile(dir string) {
+func (l *BundleGroup) CreatePage() *LibOut {
 	out := strings.Builder{}
-	fmt.Println("package name", l.PackageName)
-	out.WriteString(fmt.Sprintf("package %s\n\n", l.PackageName))
 
 	if len(l.BaseBundleOut) > 0 {
 		out.WriteString(fmt.Sprintf(`var bundleDir string = "%s"`, l.BaseBundleOut))
@@ -46,22 +76,58 @@ func (l *LibOut) WriteFile(dir string) {
 		}
 	}
 
-	f, err := os.OpenFile(dir, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	return &LibOut{
+		PackageName: l.PackageName,
+		Body:        out.String(),
+	}
+}
 
-	if err != nil {
-		fmt.Println("cannot open file correctly", dir)
-		log.Fatal(err)
-	}
-	defer f.Close()
+type StaticToken string
 
-	err = f.Truncate(0)
+const (
+	StartToken StaticToken = "// **__START_STATIC__**"
+	EndToken   StaticToken = "// **__END_STATIC__**"
+)
+
+var declarationTokens = []StaticToken{StartToken, EndToken}
+
+func ParseStaticFile(dir string) (string, error) {
+	file, err := os.Open(dir)
 	if err != nil {
-		fmt.Println("cannot truncate file correctly", dir)
-		log.Fatal(err)
+		return "", err
 	}
-	_, err = fmt.Fprintf(f, "%s", out.String())
-	if err != nil {
-		fmt.Println("uhh something stupid.", dir)
-		log.Fatal(err)
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	scanner.Split(bufio.ScanLines)
+
+	out := strings.Builder{}
+	isStatic := false
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		skip := false
+
+		for _, decToken := range declarationTokens {
+			if strings.Contains(line, string(decToken)) {
+				switch decToken {
+				case StartToken:
+					{
+						skip = true
+						isStatic = true
+					}
+				case EndToken:
+					isStatic = false
+				}
+
+				continue
+			}
+		}
+		if isStatic && !skip {
+			out.WriteString(fmt.Sprintf("%s\n", line))
+		}
 	}
+
+	return out.String(), nil
 }

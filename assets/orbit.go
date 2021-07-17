@@ -1,16 +1,19 @@
 package orbit
 
+// **__START_STATIC__**
 import (
 	"encoding/json"
 	"fmt"
 	"net/http"
 )
 
+// **__END_STATIC__**
+
 var bundleDir string = ".orbit/dist"
 
 type PageRender string
 
-// **START_STATIC**
+// **__START_STATIC__**
 type RuntimeCtx struct {
 	RenderPage func(page PageRender, data interface{})
 }
@@ -55,4 +58,4 @@ func Start(port int) {
 	http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }
 
-// **END_STATIC**
+// **__END_STATIC__**
