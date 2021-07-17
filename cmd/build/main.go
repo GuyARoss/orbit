@@ -1,6 +1,7 @@
 package build
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/spf13/cobra"
@@ -16,6 +17,8 @@ var CMD = &cobra.Command{
 			WebDir:      viper.GetString("webdir"),
 		}
 
+		fmt.Println(as.PackageName)
+
 		err := as.CleanPathing()
 		if err != nil {
 			log.Fatal(err)
@@ -28,10 +31,11 @@ var CMD = &cobra.Command{
 func init() {
 	var outDir string
 	var pacname string
+	var webdir string
 
-	CMD.PersistentFlags().StringVar(&outDir, "out", "", "specifies the out directory of the generated code files")
+	CMD.PersistentFlags().StringVar(&outDir, "out", "./orbit", "specifies the out directory of the generated code files")
 	CMD.PersistentFlags().StringVar(&pacname, "pacname", "orbit", "specifies the package name of the generated code files")
-	CMD.PersistentFlags().StringVar(&pacname, "webdir", "/", "specifies the directory of the web pages, leave blank for use of the root dir")
+	CMD.PersistentFlags().StringVar(&webdir, "webdir", "./", "specifies the directory of the web pages, leave blank for use of the root dir")
 
 	CMD.MarkFlagRequired("out")
 

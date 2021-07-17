@@ -9,6 +9,8 @@ import (
 var bundleDir string = ".orbit/dist"
 
 type PageRender string
+
+// **START_STATIC**
 type RuntimeCtx struct {
 	RenderPage func(page PageRender, data interface{})
 }
@@ -52,3 +54,5 @@ func Start(port int) {
 	http.Handle("/p/", http.StripPrefix("/p/", http.FileServer(http.Dir(bundleDir))))
 	http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }
+
+// **END_STATIC**

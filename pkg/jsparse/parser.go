@@ -29,6 +29,8 @@ const (
 var declarationTokens = []JSToken{ImportToken, ExportToken}
 
 func cleanExportDefaultName(line string) string {
+	// @@todo(guy): detect other types of exporting.
+	// @@todo(guy): validate that it is capitalized
 	exportData := strings.Split(line, "export default")
 	return exportData[1][1:]
 }
@@ -64,11 +66,11 @@ func (p *Page) WriteFile(dir string) {
 	}
 
 	f, err := os.OpenFile(dir, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	defer f.Close()
-
 	if err != nil {
 		panic(err)
 	}
+
+	defer f.Close()
 
 	err = f.Truncate(0)
 	if err != nil {

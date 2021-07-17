@@ -40,7 +40,7 @@ func (s *GenPagesSettings) ApplyPages() {
 	pages := s.SetupAutoGenPages()
 
 	pages.BundleData.WriteFile(fmt.Sprintf("%s/autogen_bundle.go", s.OutDir))
-	pages.Master.WriteFile(fmt.Sprintf("%s/autogen_master", s.OutDir))
+	// pages.Master.WriteFile(fmt.Sprintf("%s/autogen_master", s.OutDir))
 }
 
 func (s *GenPagesSettings) CleanPathing() error {
@@ -49,7 +49,7 @@ func (s *GenPagesSettings) CleanPathing() error {
 		return err
 	}
 
-	if fs.DoesDirExist(s.OutDir) {
+	if !fs.DoesDirExist(s.OutDir) {
 		err := os.Mkdir(s.OutDir, os.ModePerm)
 		if err != nil {
 			return err

@@ -24,6 +24,7 @@ func (l *LibOut) ApplyPage(name string, bundleKey string) {
 
 func (l *LibOut) WriteFile(dir string) {
 	out := strings.Builder{}
+	fmt.Println("package name", l.PackageName)
 	out.WriteString(fmt.Sprintf("package %s\n\n", l.PackageName))
 
 	if len(l.BaseBundleOut) > 0 {
@@ -46,12 +47,12 @@ func (l *LibOut) WriteFile(dir string) {
 	}
 
 	f, err := os.OpenFile(dir, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	defer f.Close()
 
 	if err != nil {
 		fmt.Println("cannot open file correctly", dir)
 		log.Fatal(err)
 	}
+	defer f.Close()
 
 	err = f.Truncate(0)
 	if err != nil {

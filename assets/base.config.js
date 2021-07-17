@@ -27,14 +27,30 @@ module.exports = {
                 test: /\.(js|jsx)$/,
                 exclude: /node_modules/,
                 use: {
-                    loader: "babel-loader"
+                    loader: "babel-loader",
+                    options: {
+                        "presets": [
+                            [
+                                "@babel/preset-env",
+                                {
+                                    "useBuiltIns": "entry"
+                                }
+                            ],
+                            "@babel/preset-react"
+                        ],
+                        "plugins": [
+                            "@babel/plugin-proposal-class-properties",
+                            "@babel/plugin-proposal-export-default-from",
+                            "react-hot-loader/babel"
+                        ]
+                    }
                 }
             },
             {
                 test: /\.html$/,
                 use: [
                     {
-                        loader: "html-loader"
+                        loader: "html-loader",
                     }
                 ]
             }

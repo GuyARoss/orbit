@@ -38,12 +38,13 @@ func copyDir(dir string, baseDir string, outDir string) []string {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	for _, entry := range entries {
 		if entry.Name() == ".orbit" {
 			continue
 		}
 
-		// @@todo: implement a .orbitignore?
+		// @@todo(guy): implement a .orbitignore?
 		if entry.Name() == "node_modules" {
 			continue
 		}

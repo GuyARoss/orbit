@@ -42,7 +42,7 @@ type bundlerOut struct {
 func setupPageBundler(dir string, fileName string, name string) *bundlerOut {
 	page := jsparse.Page{}
 	page.Imports = append(page.Imports, "const {merge} = require('webpack-merge')")
-	page.Imports = append(page.Imports, "const baseConfig = require('../../assets/base.config.js')")
+	page.Imports = append(page.Imports, "const baseConfig = require('../assets/base.config.js')")
 
 	outputFileName := fmt.Sprintf("%s.js", name)
 
@@ -97,6 +97,8 @@ func Pack(baseDir string, bundleOut string) []*PackedPage {
 			}
 			buildOut := setupPageBundler(bundleOut, fmt.Sprintf("%s/%s.js", bundleOut, bundleKey), bundleKey)
 			bundleErr := bundle(buildOut.BundlerConfigPath)
+			fmt.Println("bundler Info", bundleOut, buildOut.BundlerConfigPath)
+
 			if bundleErr != nil {
 				panic(bundleErr)
 			}
