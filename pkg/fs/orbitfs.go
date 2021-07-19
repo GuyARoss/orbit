@@ -39,7 +39,18 @@ type bundlerOut struct {
 	BundleName        string
 }
 
-func setupPageBundler(dir string, fileName string, name string) *bundlerOut {
+type BundlerMode string
+
+const (
+	ProductionBundle  BundlerMode = "production"
+	DevelopmentBundle BundlerMode = "development"
+)
+
+type BundlerSettings struct {
+	Mode BundlerMode
+}
+
+func (s *BundlerSettings) setupPageBundler(dir string, fileName string, name string) *bundlerOut {
 	page := jsparse.Page{}
 	page.Imports = append(page.Imports, "const {merge} = require('webpack-merge')")
 	page.Imports = append(page.Imports, "const baseConfig = require('../assets/base.config.js')")
@@ -48,10 +59,11 @@ func setupPageBundler(dir string, fileName string, name string) *bundlerOut {
 
 	page.Other = append(page.Other, fmt.Sprintf(`module.exports = merge(baseConfig, {
 		entry: ['./%s'],
+		mode: '%s',
 		output: {
 			filename: '%s'
 		},
-	})`, fileName, outputFileName))
+	})`, fileName, string(s.Mode), outputFileName))
 	configPath := fmt.Sprintf("%s/%s.config.js", dir, name)
 
 	page.WriteFile(configPath)
@@ -72,6 +84,7 @@ func bundle(bundleFile string) error {
 type PackedPage struct {
 	PageName  string
 	BundleKey string
+	BaseDir   string
 }
 
 func hashKey(idx int, name string) string {
@@ -80,24 +93,29 @@ func hashKey(idx int, name string) string {
 	return strings.ReplaceAll(id.String(), "-", "")
 }
 
-func Pack(baseDir string, bundleOut string) []*PackedPage {
+type PackSettings struct {
+	*BundlerSettings
+}
+
+func (s *PackSettings) Pack(baseDir string, bundleOut string) []*PackedPage {
 	dirs := copyDir(baseDir, baseDir, ".orbit/base")
 	copyDir("assets", "assets", ".orbit/assets")
 
 	pages := make([]*PackedPage, 0)
 	for idx, dir := range dirs {
-		if strings.Contains(dir, "pages") {
-			page := applyLibTooling(dir)
+		if strings.Contains(dir.CopyDir, "pages") {
+			page := applyLibTooling(dir.CopyDir)
 
 			bundleKey := hashKey(idx, page.Name)
-			err := os.Rename(dir, fmt.Sprintf("%s/%s.js", bundleOut, bundleKey))
+			err := os.Rename(dir.CopyDir, fmt.Sprintf("%s/%s.js", bundleOut, bundleKey))
 
 			if err != nil {
 				panic(err)
 			}
-			buildOut := setupPageBundler(bundleOut, fmt.Sprintf("%s/%s.js", bundleOut, bundleKey), bundleKey)
+			buildOut := s.BundlerSettings.setupPageBundler(bundleOut, fmt.Sprintf("%s/%s.js", bundleOut, bundleKey), bundleKey)
 			bundleErr := bundle(buildOut.BundlerConfigPath)
-			fmt.Println("bundler Info", bundleOut, buildOut.BundlerConfigPath)
+
+			fmt.Println(buildOut.BundlerConfigPath)
 
 			if bundleErr != nil {
 				panic(bundleErr)
@@ -109,6 +127,7 @@ func Pack(baseDir string, bundleOut string) []*PackedPage {
 			pages = append(pages, &PackedPage{
 				PageName:  page.Name,
 				BundleKey: bundleKey,
+				BaseDir:   dir.BaseDir,
 			})
 		}
 	}

@@ -1,4 +1,4 @@
-package build
+package internal
 
 import (
 	"fmt"
@@ -11,16 +11,29 @@ import (
 type AutoGenPages struct {
 	BundleData *libgen.LibOut
 	Master     *libgen.LibOut
+
+	Pages []*fs.PackedPage
 }
 
 type GenPagesSettings struct {
 	PackageName string
 	OutDir      string
 	WebDir      string
+	BundlerMode string
+}
+
+func (s *GenPagesSettings) RebuildBundle(dir string) {
+
 }
 
 func (s *GenPagesSettings) SetupAutoGenPages() *AutoGenPages {
-	pages := fs.Pack(s.WebDir, ".orbit/base/pages")
+	settings := &fs.PackSettings{
+		BundlerSettings: &fs.BundlerSettings{
+			Mode: fs.BundlerMode(s.BundlerMode),
+		},
+	}
+
+	pages := settings.Pack(s.WebDir, ".orbit/base/pages")
 
 	lg := &libgen.BundleGroup{
 		PackageName:   s.PackageName,
@@ -42,14 +55,17 @@ func (s *GenPagesSettings) SetupAutoGenPages() *AutoGenPages {
 			Body:        libStaticContent,
 			PackageName: s.PackageName,
 		},
+		Pages: pages,
 	}
 }
 
-func (s *GenPagesSettings) ApplyPages() {
+func (s *GenPagesSettings) ApplyPages() *AutoGenPages {
 	pages := s.SetupAutoGenPages()
 
 	pages.BundleData.WriteFile(fmt.Sprintf("%s/autogen_bundle.go", s.OutDir))
 	pages.Master.WriteFile(fmt.Sprintf("%s/autogen_master.go", s.OutDir))
+
+	return pages
 }
 
 func (s *GenPagesSettings) CleanPathing() error {
