@@ -23,7 +23,7 @@ type GenPagesSettings struct {
 }
 
 func (s *GenPagesSettings) RebuildBundle(dir string) {
-
+	// @@todo
 }
 
 func (s *GenPagesSettings) SetupAutoGenPages() *AutoGenPages {
