@@ -1,6 +1,11 @@
-### Orbit SSR
+## Orbit SSR
 Golang SSR framework featuring native react support with zero setup.
 
+### Contributing
+
+#### Pushing
+- creating release ` /c/Users/guyal/Downloads/goreleaser_Windows_x86_64/goreleaser.exe release --snapshot`
+- publish `npm publish --access=public`
 
 ### todo:
 - dev server with hot reload
