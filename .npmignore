@@ -1,0 +1,6 @@
+*.*
+
+!dist
+!package.json
+!.babelrc
+!package-lock.json
