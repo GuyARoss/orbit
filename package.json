@@ -1,23 +1,17 @@
 {
   "name": "orbit-ssr",
-  "version": "1.0.5",
+  "version": "1.0.10",
   "description": "native server side rendering in golang",
   "main": "index.js",
   "author": "Guy A. Ross",
   "license": "ISC",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "go-npm install",
-    "preuninstall": "go-npm uninstall"
+    "postinstall": "node scripts/manage_target.js"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/GuyARoss/orbit.git"
-  },
-  "goBinary": {
-    "name": "orbit-ssr",
-    "path": "./bin",
-    "url": "https://github.com/GuyARoss/orbit-ssr/releases/download/v{{version}}/orbit-ssr_{{version}}_{{platform}}_{{arch}}.tar.gz"
   },
   "dependencies": {
     "@babel/core": "^7.11.1",
@@ -27,7 +21,6 @@
     "@babel/preset-react": "^7.10.4",
     "babel-loader": "^8.1.0",
     "css-loader": "^4.2.2",
-    "go-npm": "^0.1.9",
     "html-loader": "^1.1.0",
     "html-webpack-plugin": "^4.3.0",
     "react": "^16.13.1",

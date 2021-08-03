@@ -1,6 +1,9 @@
 *.*
 
-!dist
-!package.json
 !.babelrc
+!package.json
 !package-lock.json
+
+!assets/*
+!dist/*
+!scripts/manage_target.js
