@@ -1,6 +1,6 @@
 {
   "name": "orbit-ssr",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "native server side rendering in golang",
   "main": "index.js",
   "author": "Guy A. Ross",
