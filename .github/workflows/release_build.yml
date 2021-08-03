@@ -2,8 +2,9 @@ name: Release Go project
 
 on:
   push:
-    tags:
-      - "*" 
+    branches:
+      - master
+
 jobs:
   build:
     name: GoReleaser build
