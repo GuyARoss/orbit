@@ -1,6 +1,6 @@
 {
   "name": "orbit-ssr",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "native server side rendering in golang",
   "main": "index.js",
   "author": "Guy A. Ross",
@@ -16,7 +16,8 @@
   },
   "goBinary": {
     "name": "orbit-ssr",
-    "path": "./bin"
+    "path": "./bin",
+    "url": "https://github.com/GuyARoss/orbit/releases/download/v{{version}}/orbit-ssr_{{version}}_{{platform}}_{{arch}}.tar.gz"
   },
   "dependencies": {
     "@babel/core": "^7.11.1",
