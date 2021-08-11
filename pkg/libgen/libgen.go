@@ -33,7 +33,6 @@ func (l *LibOut) WriteFile(dir string) {
 	}
 	_, err = fmt.Fprintf(f, "%s", out.String())
 	if err != nil {
-		fmt.Println("uhh something stupid.", dir)
 		log.Fatal(err)
 	}
 }

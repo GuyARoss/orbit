@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/GuyARoss/orbit/internal"
@@ -20,8 +19,6 @@ var buildCMD = &cobra.Command{
 			AssetDir:       viper.GetString("assetdir"),
 			NodeModulePath: viper.GetString("nodemod"),
 		}
-
-		fmt.Println(settings.AssetDir)
 
 		err := settings.CleanPathing()
 		if err != nil {
