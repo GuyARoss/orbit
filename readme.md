@@ -1,23 +1,31 @@
-## Orbit SSR
+# Orbit SSR
 Golang SSR framework featuring native react support with zero setup.
 
-### Contributing
-
-#### Pushing
-- creating release ` /c/Users/guyal/Downloads/goreleaser_Windows_x86_64/goreleaser.exe release --snapshot`
-- publish `npm publish --access=public`
-- update tag `git tag -f -a v1.1.1`
-
-### todo:
-- dev server with hot reload
-- allow interchangeable bundlers rather than explicitly using webpack.
-- make cli pretty
-
-~ build step
-1. build 3 different versions of the application (windows, macOS, linux)
-2. store those in a bin along with the assets + node_modules
+![CLI](./.github/cap.png)
 
 
-~ install step
-1. keep the target version that the system requires, delete the rest? 
+## Installation
+- NPM
+- Brew
+- manual installation
+
+### NPM 
+To install via npm, use the command `npm install orbit-ssr`. 
+
+### Brew
+(coming soon)
+
+### Manual
+To install manually, please download the correct distributable target for your machine. Next, you can either put it directly
+in the directory you wish to use it in (and call it directly) or put it into your bash profile.
+
+## Contributing
+### Running the project
+To run the project, please first download the required tools.
+- nodeJS >= v11
+- golang 1.14
+
+### Building the project
+After golang is installed on your machine, you can build with `go run build`
+
 
