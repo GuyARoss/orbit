@@ -38,14 +38,25 @@ type CopyResults struct {
 	CopyDir string
 }
 
-func copyDir(dir string, baseDir string, outDir string) []*CopyResults {
-	copiedDirs := make([]*CopyResults, 0)
+func condenseFilePath(filePath string) string {
+	spt := strings.Split(filePath, "\\")
 
+	return fmt.Sprintf("%s\\%s", strings.Join(spt[0:2], "\\"), strings.Join(spt[len(spt)-2:], "\\"))
+}
+
+func condenseDirPath(dirPath string) string {
+	spt := strings.Split(dirPath, "\\")
+
+	return fmt.Sprintf("%s\\%s", strings.Join(spt[0:2], "\\"), spt[len(spt)-1])
+}
+
+func copyDir(dir string, baseDir string, outDir string, condense bool) []*CopyResults {
 	entries, err := ioutil.ReadDir(dir)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	copiedDirs := make([]*CopyResults, 0)
 	for _, entry := range entries {
 		if entry.Name() == ".orbit" {
 			continue
@@ -57,7 +68,7 @@ func copyDir(dir string, baseDir string, outDir string) []*CopyResults {
 		}
 
 		if entry.IsDir() {
-			copied := copyDir(filepath.Join(dir, entry.Name()), baseDir, outDir)
+			copied := copyDir(filepath.Join(dir, entry.Name()), baseDir, outDir, condense)
 
 			for p := range copied {
 				copiedDirs = append(copiedDirs, &CopyResults{
@@ -72,11 +83,15 @@ func copyDir(dir string, baseDir string, outDir string) []*CopyResults {
 		sourcePath := filepath.Join(dir, entry.Name())
 		ns := strings.Replace(dir, baseDir, "", 1)
 
-		orbitDirPath := filepath.Join(outDir, ns)
-		destPath := filepath.Join(orbitDirPath, entry.Name())
+		dirPath := filepath.Join(outDir, ns)
+		destPath := filepath.Join(dirPath, entry.Name())
+		if condense {
+			destPath = condenseFilePath(destPath)
+			dirPath = condenseDirPath(dirPath)
+		}
 
-		if !DoesDirExist(orbitDirPath) {
-			os.Mkdir(orbitDirPath, 0755)
+		if !DoesDirExist(dirPath) {
+			os.Mkdir(dirPath, 0755)
 		}
 
 		copiedDirs = append(copiedDirs, &CopyResults{

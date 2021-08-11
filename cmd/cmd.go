@@ -15,6 +15,8 @@ func init() {
 	var webdir string
 	var outDir string
 	var pacname string
+	var assetdir string
+	var nodeModDir string
 
 	buildCmds := [2]*cobra.Command{
 		buildCMD, devCMD,
@@ -36,6 +38,12 @@ func init() {
 
 		cmd.PersistentFlags().StringVar(&pacname, "pacname", "orbit", "specifies the package name of the generated code files")
 		viper.BindPFlag("pacname", cmd.PersistentFlags().Lookup("pacname"))
+
+		cmd.PersistentFlags().StringVar(&assetdir, "assetdir", "./assets", "specifies the directory to find the required assets in")
+		viper.BindPFlag("assetdir", cmd.PersistentFlags().Lookup("assetdir"))
+
+		cmd.PersistentFlags().StringVar(&nodeModDir, "nodemod", "./node_modules", "specifies the directory to find node modules")
+		viper.BindPFlag("nodemod", cmd.PersistentFlags().Lookup("nodemod"))
 	}
 }
 

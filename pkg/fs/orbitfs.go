@@ -47,13 +47,16 @@ const (
 )
 
 type BundlerSettings struct {
-	Mode BundlerMode
+	Mode           BundlerMode
+	NodeModulePath string
 }
 
 func (s *BundlerSettings) setupPageBundler(dir string, fileName string, name string) *bundlerOut {
 	page := jsparse.Page{}
 	page.Imports = append(page.Imports, "const {merge} = require('webpack-merge')")
-	page.Imports = append(page.Imports, "const baseConfig = require('../assets/base.config.js')")
+
+	// will this cause an issue? hmm..
+	page.Imports = append(page.Imports, "const baseConfig = require('../../assets/base.config.js')")
 
 	outputFileName := fmt.Sprintf("%s.js", name)
 
@@ -74,8 +77,8 @@ func (s *BundlerSettings) setupPageBundler(dir string, fileName string, name str
 	}
 }
 
-func bundle(bundleFile string) error {
-	cmd := exec.Command("bash", "node_modules/.bin/webpack", "--config", bundleFile)
+func bundle(bundleFile string, nodeModuleDir string) error {
+	cmd := exec.Command("bash", fmt.Sprintf("%s/.bin/webpack", nodeModuleDir), "--config", bundleFile)
 	_, err := cmd.Output()
 
 	return err
@@ -95,11 +98,12 @@ func hashKey(idx int, name string) string {
 
 type PackSettings struct {
 	*BundlerSettings
+	AssetDir string
 }
 
 func (s *PackSettings) Pack(baseDir string, bundleOut string) []*PackedPage {
-	dirs := copyDir(baseDir, baseDir, ".orbit/base")
-	copyDir("assets", "assets", ".orbit/assets")
+	dirs := copyDir(baseDir, baseDir, ".orbit/base", true)
+	copyDir(s.AssetDir, s.AssetDir, ".orbit/assets", false)
 
 	pages := make([]*PackedPage, 0)
 	for idx, dir := range dirs {
@@ -112,10 +116,9 @@ func (s *PackSettings) Pack(baseDir string, bundleOut string) []*PackedPage {
 			if err != nil {
 				panic(err)
 			}
-			buildOut := s.BundlerSettings.setupPageBundler(bundleOut, fmt.Sprintf("%s/%s.js", bundleOut, bundleKey), bundleKey)
-			bundleErr := bundle(buildOut.BundlerConfigPath)
 
-			fmt.Println(buildOut.BundlerConfigPath)
+			buildOut := s.BundlerSettings.setupPageBundler(bundleOut, fmt.Sprintf("%s/%s.js", bundleOut, bundleKey), bundleKey)
+			bundleErr := bundle(buildOut.BundlerConfigPath, s.NodeModulePath)
 
 			if bundleErr != nil {
 				panic(bundleErr)

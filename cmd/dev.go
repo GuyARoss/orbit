@@ -19,10 +19,12 @@ var devCMD = &cobra.Command{
 	Use: "dev",
 	Run: func(cmd *cobra.Command, args []string) {
 		as := &internal.GenPagesSettings{
-			PackageName: viper.GetString("pacname"),
-			OutDir:      viper.GetString("out"),
-			WebDir:      viper.GetString("webdir"),
-			BundlerMode: viper.GetString("mode"),
+			PackageName:    viper.GetString("pacname"),
+			OutDir:         viper.GetString("out"),
+			WebDir:         viper.GetString("webdir"),
+			BundlerMode:    viper.GetString("mode"),
+			AssetDir:       viper.GetString("assetdir"),
+			NodeModulePath: viper.GetString("nodemod"),
 		}
 
 		s, err := createSession(as)

@@ -16,10 +16,12 @@ type AutoGenPages struct {
 }
 
 type GenPagesSettings struct {
-	PackageName string
-	OutDir      string
-	WebDir      string
-	BundlerMode string
+	PackageName    string
+	OutDir         string
+	WebDir         string
+	BundlerMode    string
+	AssetDir       string
+	NodeModulePath string
 }
 
 func (s *GenPagesSettings) RebuildBundle(dir string) {
@@ -29,8 +31,10 @@ func (s *GenPagesSettings) RebuildBundle(dir string) {
 func (s *GenPagesSettings) SetupAutoGenPages() *AutoGenPages {
 	settings := &fs.PackSettings{
 		BundlerSettings: &fs.BundlerSettings{
-			Mode: fs.BundlerMode(s.BundlerMode),
+			Mode:           fs.BundlerMode(s.BundlerMode),
+			NodeModulePath: s.NodeModulePath,
 		},
+		AssetDir: s.AssetDir,
 	}
 
 	pages := settings.Pack(s.WebDir, ".orbit/base/pages")
@@ -44,7 +48,7 @@ func (s *GenPagesSettings) SetupAutoGenPages() *AutoGenPages {
 		lg.ApplyBundle(p.PageName, p.BundleKey)
 	}
 
-	libStaticContent, parseErr := libgen.ParseStaticFile(".orbit/base/assets/orbit.go")
+	libStaticContent, parseErr := libgen.ParseStaticFile(".orbit/assets/orbit.go")
 	if parseErr != nil {
 		panic(parseErr)
 	}
