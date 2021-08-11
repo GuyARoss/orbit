@@ -51,7 +51,7 @@ var devCMD = &cobra.Command{
 }
 
 func init() {
-	RootCMD.AddCommand(buildCMD)
+	RootCMD.AddCommand(devCMD)
 }
 
 func createSession(settings *internal.GenPagesSettings) (*devSession, error) {
