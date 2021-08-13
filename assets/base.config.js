@@ -1,3 +1,5 @@
+const path = require('path')
+
 const dirName = () => {
     const correct = []
 
@@ -55,5 +57,9 @@ module.exports = {
                 ]
             }
         ]
+    },
+    resolve: {
+        extensions: ['.js', '.jsx'],
+        modules: ['node_modules', path.resolve(__dirname, './')]
     },
 };
