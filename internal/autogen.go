@@ -33,6 +33,7 @@ func (s *GenPagesSettings) SetupAutoGenPages() *AutoGenPages {
 		BundlerSettings: &fs.BundlerSettings{
 			Mode:           fs.BundlerMode(s.BundlerMode),
 			NodeModulePath: s.NodeModulePath,
+			WebDir:         s.WebDir,
 		},
 		AssetDir: s.AssetDir,
 	}
@@ -41,10 +42,10 @@ func (s *GenPagesSettings) SetupAutoGenPages() *AutoGenPages {
 
 	lg := &libgen.BundleGroup{
 		PackageName:   s.PackageName,
-		BaseBundleOut: ".orbit/base/dist",
+		BaseBundleOut: ".orbit/dist",
 	}
 
-	for _, p := range pages {
+	for _, p := range *pages {
 		lg.ApplyBundle(p.PageName, p.BundleKey)
 	}
 
@@ -59,7 +60,7 @@ func (s *GenPagesSettings) SetupAutoGenPages() *AutoGenPages {
 			Body:        libStaticContent,
 			PackageName: s.PackageName,
 		},
-		Pages: pages,
+		Pages: *pages,
 	}
 }
 

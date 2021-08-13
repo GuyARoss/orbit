@@ -17,6 +17,8 @@ type Page struct {
 	Imports []string
 	Name    string
 	Other   []string
+
+	webDir string
 }
 
 type JSToken string
@@ -31,8 +33,56 @@ var declarationTokens = []JSToken{ImportToken, ExportToken}
 func cleanExportDefaultName(line string) string {
 	// @@todo(guy): detect other types of exporting.
 	// @@todo(guy): validate that export type is capitalized
+
 	exportData := strings.Split(line, "export default")
 	return exportData[1][1:]
+}
+
+func (p *Page) formatImportLine(line string) string {
+	relativeImport := strings.Contains(line, "/")
+
+	if !relativeImport {
+		return line
+	}
+
+	// [0] => import, [1] => Name, [2] => from, [3] => path
+	tokens := strings.Split(line, " ")
+	fmt.Sprintln(tokens)
+
+	webDirPaths := strings.Split(p.webDir, "/")
+	cleanWebDirPaths := make([]string, 0)
+
+	for _, dp := range webDirPaths {
+		if len(dp) <= 1 && strings.Contains(dp, ".") {
+			continue
+		}
+
+		cleanWebDirPaths = append(cleanWebDirPaths, dp)
+	}
+
+	tokenPathPaths := strings.Split(strings.ReplaceAll(tokens[3], "'", ""), "/")
+	hasProceedingDirectory := false
+	for _, tk := range tokenPathPaths {
+		if strings.Contains(tk, "..") {
+			if hasProceedingDirectory {
+				// @@ throw error cuz this is out of range
+			}
+			hasProceedingDirectory = true
+			continue
+		}
+
+		cleanWebDirPaths = append(cleanWebDirPaths, tk)
+	}
+
+	finalPath := strings.Join(cleanWebDirPaths, "/")
+	extension := "js"
+
+	_, err := os.Stat(fmt.Sprintf("%s.js", finalPath))
+	if err != nil {
+		extension = "jsx"
+	}
+
+	return fmt.Sprintf("import %s from '../../../%s.%s'", tokens[1], strings.Join(cleanWebDirPaths, "/"), extension)
 }
 
 func (p *Page) tokenizeLine(line string) {
@@ -41,7 +91,8 @@ func (p *Page) tokenizeLine(line string) {
 		if strings.Contains(line, string(decToken)) {
 			switch decToken {
 			case ImportToken:
-				p.Imports = append(p.Imports, line)
+				p.Imports = append(p.Imports, p.formatImportLine(line))
+
 				skip = true
 			case ExportToken:
 				p.Name = cleanExportDefaultName(line)
@@ -83,7 +134,7 @@ func (p *Page) WriteFile(dir string) {
 
 }
 
-func ParsePage(pageDir string) (*Page, error) {
+func ParsePage(pageDir string, webDir string) (*Page, error) {
 	file, err := os.Open(pageDir)
 	if err != nil {
 		return nil, err
@@ -93,7 +144,9 @@ func ParsePage(pageDir string) (*Page, error) {
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
 
-	p := &Page{}
+	p := &Page{
+		webDir: webDir,
+	}
 
 	for scanner.Scan() {
 		p.tokenizeLine(scanner.Text())

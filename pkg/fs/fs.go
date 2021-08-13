@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 )
 
 func copyFile(srcFile, dstFile string) error {
@@ -107,56 +106,4 @@ func copyDir(dir string, baseDir string, outDir string, condense bool) []*CopyRe
 func DoesDirExist(dir string) bool {
 	_, err := os.Stat(dir)
 	return !os.IsNotExist(err)
-}
-
-type DirWatch struct {
-	FileChange chan string
-	Error      chan error
-}
-
-func DirectoryWatch(dir string) (*DirWatch, error) {
-	fChangeChan := make(chan string)
-	errorChan := make(chan error)
-
-	entries, err := ioutil.ReadDir(dir)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, entry := range entries {
-		go func(fChan chan string, eChan chan error, entry os.FileInfo) {
-			path := filepath.Join(dir, entry.Name())
-
-			err := watchFile(path, fChan)
-			if err != nil {
-				eChan <- err
-			}
-		}(fChangeChan, errorChan, entry)
-	}
-
-	return &DirWatch{
-		FileChange: fChangeChan,
-		Error:      errorChan,
-	}, nil
-}
-
-func watchFile(filePath string, fileChange chan string) error {
-	initialStat, err := os.Stat(filePath)
-	if err != nil {
-		return err
-	}
-
-	for {
-		stat, err := os.Stat(filePath)
-		if err != nil {
-			return err
-		}
-
-		if stat.Size() != initialStat.Size() || stat.ModTime() != initialStat.ModTime() {
-			fmt.Println("file changed")
-			fileChange <- filePath
-		}
-
-		time.Sleep(1 * time.Second)
-	}
 }

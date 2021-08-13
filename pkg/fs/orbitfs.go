@@ -19,21 +19,6 @@ func SetupDirs() {
 	}
 }
 
-func applyLibTooling(dir string) *jsparse.Page {
-	page, err := jsparse.ParsePage(dir)
-	if err != nil {
-		panic(err)
-	}
-
-	page.Imports = append(page.Imports, "import ReactDOM from 'react-dom'")
-	// @@todo, could generate this element id, and pass it around.
-	page.Other = append(page.Other, fmt.Sprintf("ReactDOM.render(<%s {...JSON.parse(document.getElementById('orbit_manifest').textContent)}/>, document.getElementById('root'))", page.Name))
-
-	page.WriteFile(dir)
-
-	return page
-}
-
 type bundlerOut struct {
 	BundlerConfigPath string
 	BundleName        string
@@ -49,6 +34,8 @@ const (
 type BundlerSettings struct {
 	Mode           BundlerMode
 	NodeModulePath string
+
+	WebDir string
 }
 
 func (s *BundlerSettings) setupPageBundler(dir string, fileName string, name string) *bundlerOut {
@@ -81,6 +68,8 @@ func bundle(bundleFile string, nodeModuleDir string) error {
 	cmd := exec.Command("bash", fmt.Sprintf("%s/.bin/webpack", nodeModuleDir), "--config", bundleFile)
 	_, err := cmd.Output()
 
+	fmt.Printf("\n\nbash %s --config %s \n\n\n\n", fmt.Sprintf("%s/.bin/webpack", nodeModuleDir), bundleFile)
+
 	return err
 }
 
@@ -101,14 +90,29 @@ type PackSettings struct {
 	AssetDir string
 }
 
-func (s *PackSettings) Pack(baseDir string, bundleOut string) []*PackedPage {
+func (s *PackSettings) applyLibTooling(dir string) *jsparse.Page {
+	page, err := jsparse.ParsePage(dir, s.WebDir)
+	if err != nil {
+		panic(err)
+	}
+
+	page.Imports = append(page.Imports, "import ReactDOM from 'react-dom'")
+	// @@todo, could generate this element id, and pass it around.
+	page.Other = append(page.Other, fmt.Sprintf("ReactDOM.render(<%s {...JSON.parse(document.getElementById('orbit_manifest').textContent)}/>, document.getElementById('root'))", page.Name))
+
+	page.WriteFile(dir)
+
+	return page
+}
+
+func (s *PackSettings) Pack(baseDir string, bundleOut string) *[]*PackedPage {
 	dirs := copyDir(baseDir, baseDir, ".orbit/base", true)
 	copyDir(s.AssetDir, s.AssetDir, ".orbit/assets", false)
 
 	pages := make([]*PackedPage, 0)
 	for idx, dir := range dirs {
 		if strings.Contains(dir.CopyDir, "pages") {
-			page := applyLibTooling(dir.CopyDir)
+			page := s.applyLibTooling(dir.CopyDir)
 
 			bundleKey := hashKey(idx, page.Name)
 			err := os.Rename(dir.CopyDir, fmt.Sprintf("%s/%s.js", bundleOut, bundleKey))
@@ -135,5 +139,5 @@ func (s *PackSettings) Pack(baseDir string, bundleOut string) []*PackedPage {
 		}
 	}
 
-	return pages
+	return &pages
 }

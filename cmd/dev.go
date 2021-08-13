@@ -2,10 +2,13 @@ package cmd
 
 import (
 	"fmt"
-	"log"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/GuyARoss/orbit/internal"
 	"github.com/GuyARoss/orbit/pkg/fs"
+	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -14,6 +17,8 @@ type devSession struct {
 	pageGenSettings *internal.GenPagesSettings
 	sourceMap       map[string]*fs.PackedPage
 }
+
+var watcher *fsnotify.Watcher
 
 var devCMD = &cobra.Command{
 	Use: "dev",
@@ -33,21 +38,34 @@ var devCMD = &cobra.Command{
 			panic(err)
 		}
 
-		watch, err := fs.DirectoryWatch(s.pageGenSettings.WebDir)
-		if err != nil {
-			panic(err)
+		watcher, _ = fsnotify.NewWatcher()
+		defer watcher.Close()
+
+		// starting at the root of the project, walk each file/directory searching for
+		// directories
+		if err := filepath.Walk("./", watchDir); err != nil {
+			fmt.Println("ERROR", err)
 		}
+
+		//
 		done := make(chan bool)
+
+		//
 		go func() {
 			for {
 				select {
-				case event := <-watch.FileChange:
-					s.executeChangeRequest(fmt.Sprintf("%s/%s", s.pageGenSettings.WebDir, event))
-				case err := <-watch.Error:
-					log.Fatal(err)
+				// watch for events
+				case e := <-watcher.Events:
+					if !strings.Contains(e.Name, "node_modules") {
+						s.executeChangeRequest(e.Name)
+					}
+					// watch for errors
+				case err := <-watcher.Errors:
+					fmt.Println("ERROR", err)
 				}
 			}
 		}()
+
 		<-done
 	},
 }
@@ -76,6 +94,17 @@ func createSession(settings *internal.GenPagesSettings) (*devSession, error) {
 
 func (s *devSession) executeChangeRequest(file string) {
 	fmt.Printf("change request for %s", file)
+}
+
+func watchDir(path string, fi os.FileInfo, err error) error {
+
+	// since fsnotify can watch all the files in a directory, watchers only need
+	// to be added to each nested directory
+	if fi.Mode().IsDir() {
+		return watcher.Add(path)
+	}
+
+	return nil
 }
 
 // watcher, err := fsnotify.NewWatcher()
