@@ -129,7 +129,7 @@ func (s *PackSettings) Pack(baseDir string, bundleOut string) *[]*PackedPage {
 			}
 
 			// @@todo(debug)
-			fmt.Printf("successfully packed %s \n", page.Name)
+			fmt.Printf("successfully packed %s %s \n", page.Name, dir.BaseDir)
 
 			pages = append(pages, &PackedPage{
 				PageName:  page.Name,

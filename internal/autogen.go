@@ -24,10 +24,6 @@ type GenPagesSettings struct {
 	NodeModulePath string
 }
 
-func (s *GenPagesSettings) RebuildBundle(dir string) {
-	// @@todo
-}
-
 func (s *GenPagesSettings) SetupAutoGenPages() *AutoGenPages {
 	settings := &fs.PackSettings{
 		BundlerSettings: &fs.BundlerSettings{
