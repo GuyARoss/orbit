@@ -37,16 +37,36 @@ type CopyResults struct {
 	CopyDir string
 }
 
-func condenseFilePath(filePath string) string {
-	spt := strings.Split(filePath, "\\")
+func pathDelimiter(path string) string {
+	if strings.Contains(path, "//") {
+		return "//"
+	}
 
-	return fmt.Sprintf("%s\\%s", strings.Join(spt[0:2], "\\"), strings.Join(spt[len(spt)-2:], "\\"))
+	return "/"
+}
+
+func condenseFilePath(filePath string) string {
+	pathType := pathDelimiter(filePath)
+
+	spt := strings.Split(filePath, pathType)
+
+	// if len(spt) <= 3 {
+	// 	return filePath
+	// }
+
+	return fmt.Sprintf("%s%s%s", strings.Join(spt[0:2], pathType), pathType, strings.Join(spt[len(spt)-2:], pathType))
 }
 
 func condenseDirPath(dirPath string) string {
-	spt := strings.Split(dirPath, "\\")
+	pathType := pathDelimiter(dirPath)
 
-	return fmt.Sprintf("%s\\%s", strings.Join(spt[0:2], "\\"), spt[len(spt)-1])
+	spt := strings.Split(dirPath, pathType)
+
+	// if len(spt) <= 3 {
+	// 	return dirPath
+	// }
+
+	return fmt.Sprintf("%s%s%s", strings.Join(spt[0:2], pathType), pathType, spt[len(spt)-1])
 }
 
 func copyDir(dir string, baseDir string, outDir string, condense bool) []*CopyResults {
