@@ -65,10 +65,10 @@ func (s *BundlerSettings) setupPageBundler(dir string, fileName string, name str
 }
 
 func bundle(bundleFile string, nodeModuleDir string) error {
-	cmd := exec.Command("bash", fmt.Sprintf("%s/.bin/webpack", nodeModuleDir), "--config", bundleFile)
+	cmd := exec.Command("node", fmt.Sprintf("%s/.bin/webpack", nodeModuleDir), "--config", bundleFile)
 	_, err := cmd.Output()
 
-	fmt.Printf("\n\nbash %s --config %s \n\n\n\n", fmt.Sprintf("%s/.bin/webpack", nodeModuleDir), bundleFile)
+	fmt.Printf("\n\nnode %s --config %s \n\n\n\n", fmt.Sprintf("%s/.bin/webpack", nodeModuleDir), bundleFile)
 
 	return err
 }

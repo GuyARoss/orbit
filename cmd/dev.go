@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/GuyARoss/orbit/internal"
 	"github.com/GuyARoss/orbit/pkg/fs"
@@ -26,7 +27,7 @@ func createSession(settings *internal.GenPagesSettings) (*devSession, error) {
 		return nil, err
 	}
 
-	lib := settings.ApplyPages()
+	lib := settings.PackWebDir()
 
 	sourceMap := make(map[string]*fs.PackedPage)
 	for _, p := range lib.Pages {
@@ -39,8 +40,12 @@ func createSession(settings *internal.GenPagesSettings) (*devSession, error) {
 }
 
 func (s *devSession) executeChangeRequest(file string) {
-	fmt.Printf("change request for %s", file)
-	fmt.Println(s.sourceMap[file])
+	source := s.sourceMap[file]
+	if source != nil {
+		s.pageGenSettings.Repack(source)
+	}
+
+	// s.pageGenSettings.PackWebDir()
 }
 
 func watchDir(path string, fi os.FileInfo, err error) error {
@@ -78,19 +83,17 @@ var devCMD = &cobra.Command{
 
 		done := make(chan bool)
 
-		fmt.Println(s.sourceMap)
-
 		go func() {
 			for {
+				time.Sleep(2 * time.Second)
+
 				select {
-				// watch for events
 				case e := <-watcher.Events:
 					if !strings.Contains(e.Name, "node_modules") || !strings.Contains(e.Name, ".orbit") {
 						s.executeChangeRequest(e.Name)
 					}
-					// watch for errors
 				case err := <-watcher.Errors:
-					fmt.Println("ERROR", err)
+					fmt.Println("err", err)
 				}
 			}
 		}()

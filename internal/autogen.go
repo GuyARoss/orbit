@@ -12,7 +12,8 @@ type AutoGenPages struct {
 	BundleData *libgen.LibOut
 	Master     *libgen.LibOut
 
-	Pages []*fs.PackedPage
+	Pages  []*fs.PackedPage
+	OutDir string
 }
 
 type GenPagesSettings struct {
@@ -24,7 +25,7 @@ type GenPagesSettings struct {
 	NodeModulePath string
 }
 
-func (s *GenPagesSettings) SetupAutoGenPages() *AutoGenPages {
+func (s *GenPagesSettings) PackWebDir() *AutoGenPages {
 	settings := &fs.PackSettings{
 		BundlerSettings: &fs.BundlerSettings{
 			Mode:           fs.BundlerMode(s.BundlerMode),
@@ -60,13 +61,17 @@ func (s *GenPagesSettings) SetupAutoGenPages() *AutoGenPages {
 	}
 }
 
-func (s *GenPagesSettings) ApplyPages() *AutoGenPages {
-	pages := s.SetupAutoGenPages()
+func (s *GenPagesSettings) Repack(p *fs.PackedPage) {
+	lg := &libgen.BundleGroup{
+		PackageName:   s.PackageName,
+		BaseBundleOut: ".orbit/dist",
+	}
+	lg.ApplyBundle(p.PageName, p.BundleKey)
+}
 
-	pages.BundleData.WriteFile(fmt.Sprintf("%s/autogen_bundle.go", s.OutDir))
-	pages.Master.WriteFile(fmt.Sprintf("%s/autogen_master.go", s.OutDir))
-
-	return pages
+func (s *AutoGenPages) WriteOut() {
+	s.BundleData.WriteFile(fmt.Sprintf("%s/autogen_bundle.go", s.OutDir))
+	s.Master.WriteFile(fmt.Sprintf("%s/autogen_master.go", s.OutDir))
 }
 
 func (s *GenPagesSettings) CleanPathing() error {

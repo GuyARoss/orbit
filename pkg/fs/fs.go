@@ -47,24 +47,14 @@ func pathDelimiter(path string) string {
 
 func condenseFilePath(filePath string) string {
 	pathType := pathDelimiter(filePath)
-
 	spt := strings.Split(filePath, pathType)
-
-	// if len(spt) <= 3 {
-	// 	return filePath
-	// }
 
 	return fmt.Sprintf("%s%s%s", strings.Join(spt[0:2], pathType), pathType, strings.Join(spt[len(spt)-2:], pathType))
 }
 
 func condenseDirPath(dirPath string) string {
 	pathType := pathDelimiter(dirPath)
-
 	spt := strings.Split(dirPath, pathType)
-
-	// if len(spt) <= 3 {
-	// 	return dirPath
-	// }
 
 	return fmt.Sprintf("%s%s%s", strings.Join(spt[0:2], pathType), pathType, spt[len(spt)-1])
 }
@@ -91,7 +81,7 @@ func copyDir(dir string, baseDir string, outDir string, condense bool) []*CopyRe
 
 			for p := range copied {
 				copiedDirs = append(copiedDirs, &CopyResults{
-					BaseDir: filepath.Join(dir, entry.Name()),
+					BaseDir: copied[p].BaseDir,
 					CopyDir: copied[p].CopyDir,
 				})
 			}
