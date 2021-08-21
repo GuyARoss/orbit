@@ -40,6 +40,7 @@ func (s *GenPagesSettings) PackWebDir() *AutoGenPages {
 	lg := &libgen.BundleGroup{
 		PackageName:   s.PackageName,
 		BaseBundleOut: ".orbit/dist",
+		BundleMode:    string(settings.BundlerSettings.Mode),
 	}
 
 	for _, p := range *pages {
@@ -52,7 +53,7 @@ func (s *GenPagesSettings) PackWebDir() *AutoGenPages {
 	}
 
 	return &AutoGenPages{
-		BundleData: lg.CreatePage(),
+		BundleData: lg.CreateBundleLib(),
 		Master: &libgen.LibOut{
 			Body:        libStaticContent,
 			PackageName: s.PackageName,

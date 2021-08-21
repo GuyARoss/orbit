@@ -13,13 +13,22 @@ var bundleDir string = ".orbit/dist"
 
 type PageRender string
 
+var hotReloadPipePath string = ""
+
 // **__START_STATIC__**
 type RuntimeCtx struct {
 	RenderPage func(page PageRender, data interface{})
+	Request    *http.Request
+	Response   http.ResponseWriter
 }
+
 type DefaultPage interface {
 	Render(c *RuntimeCtx)
-	// @@todo: GET & POST
+}
+
+type ApiPage interface {
+	Render(c *RuntimeCtx)
+	HandleHTTP(c *RuntimeCtx)
 }
 
 type Route struct {
@@ -32,7 +41,7 @@ func HandlePage(path string, dp DefaultPage) {
 		renderPage := func(page PageRender, data interface{}) {
 			d, err := json.Marshal(data)
 			if err != nil {
-				// @@todo: do something
+				// @@todo(debug): do something
 				return
 			}
 
@@ -47,9 +56,18 @@ func HandlePage(path string, dp DefaultPage) {
 			rw.Write([]byte(html))
 		}
 
-		dp.Render(&RuntimeCtx{
+		ctx := &RuntimeCtx{
 			RenderPage: renderPage,
-		})
+			Request:    r,
+			Response:   rw,
+		}
+
+		dp.Render(ctx)
+
+		apiPage, ok := dp.(ApiPage)
+		if ok {
+			apiPage.Render(ctx)
+		}
 	})
 }
 

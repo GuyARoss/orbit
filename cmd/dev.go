@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/GuyARoss/orbit/internal"
@@ -45,7 +46,19 @@ func (s *devSession) executeChangeRequest(file string) {
 		s.pageGenSettings.Repack(source)
 	}
 
+	// @@todo: re-enable me
 	// s.pageGenSettings.PackWebDir()
+
+	if _, err := os.Stat(".orbit/hotreload"); err != nil {
+		syscall.Mkfifo(".orbit/hotreload", 0666)
+	}
+
+	f, err := os.OpenFile(".orbit/hotreload", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0777)
+	if err != nil {
+		fmt.Errorf("error with hotreload")
+	}
+
+	f.WriteString(fmt.Sprintf("cr|%s", source.BaseDir))
 }
 
 func watchDir(path string, fi os.FileInfo, err error) error {

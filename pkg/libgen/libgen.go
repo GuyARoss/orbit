@@ -21,14 +21,12 @@ func (l *LibOut) WriteFile(dir string) {
 	f, err := os.OpenFile(dir, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 
 	if err != nil {
-		fmt.Println("cannot open file correctly", dir)
 		log.Fatal(err)
 	}
 	defer f.Close()
 
 	err = f.Truncate(0)
 	if err != nil {
-		fmt.Println("cannot truncate file correctly", dir)
 		log.Fatal(err)
 	}
 	_, err = fmt.Fprintf(f, "%s", out.String())
@@ -45,6 +43,7 @@ type page struct {
 type BundleGroup struct {
 	PackageName   string
 	BaseBundleOut string
+	BundleMode    string
 
 	pages []*page
 }
@@ -53,8 +52,10 @@ func (l *BundleGroup) ApplyBundle(name string, bundleKey string) {
 	l.pages = append(l.pages, &page{name, bundleKey})
 }
 
-func (l *BundleGroup) CreatePage() *LibOut {
+func (l *BundleGroup) CreateBundleLib() *LibOut {
 	out := strings.Builder{}
+
+	out.WriteString(`var hotReloadPipePath = ".orbit/hotreload"`)
 
 	if len(l.BaseBundleOut) > 0 {
 		out.WriteString(fmt.Sprintf(`var bundleDir string = "%s"`, l.BaseBundleOut))
@@ -73,6 +74,20 @@ func (l *BundleGroup) CreatePage() *LibOut {
 		if idx == len(l.pages)-1 {
 			out.WriteString(")\n")
 		}
+	}
+
+	out.WriteString(`\n
+type BundleMode int32
+
+const (
+	DevBundleMode  BundleMode = 0
+	ProdBundleMode BundleMode = 1
+)`)
+
+	if l.BundleMode == "production" {
+		out.WriteString("var CurrentDevMode BundleMode = ProdBundleMode")
+	} else {
+		out.WriteString("var CurrentDevMode BundleMode = DevBundleMode")
 	}
 
 	return &LibOut{
