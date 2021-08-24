@@ -26,7 +26,10 @@ var buildCMD = &cobra.Command{
 		}
 
 		pages := settings.PackWebDir()
-		pages.WriteOut()
+		writeErr := pages.WriteOut()
+		if writeErr != nil {
+			log.Fatal(writeErr)
+		}
 	},
 }
 

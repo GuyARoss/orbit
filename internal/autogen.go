@@ -53,6 +53,7 @@ func (s *GenPagesSettings) PackWebDir() *AutoGenPages {
 	}
 
 	return &AutoGenPages{
+		OutDir:     s.OutDir,
 		BundleData: lg.CreateBundleLib(),
 		Master: &libgen.LibOut{
 			Body:        libStaticContent,
@@ -70,9 +71,17 @@ func (s *GenPagesSettings) Repack(p *fs.PackedPage) {
 	lg.ApplyBundle(p.PageName, p.BundleKey)
 }
 
-func (s *AutoGenPages) WriteOut() {
-	s.BundleData.WriteFile(fmt.Sprintf("%s/autogen_bundle.go", s.OutDir))
-	s.Master.WriteFile(fmt.Sprintf("%s/autogen_master.go", s.OutDir))
+func (s *AutoGenPages) WriteOut() error {
+	err := s.BundleData.WriteFile(fmt.Sprintf("%s/autogen_bundle.go", s.OutDir))
+	if err != nil {
+		return err
+	}
+	err = s.Master.WriteFile(fmt.Sprintf("%s/autogen_master.go", s.OutDir))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *GenPagesSettings) CleanPathing() error {

@@ -23,12 +23,7 @@ type RuntimeCtx struct {
 }
 
 type DefaultPage interface {
-	Render(c *RuntimeCtx)
-}
-
-type ApiPage interface {
-	Render(c *RuntimeCtx)
-	HandleHTTP(c *RuntimeCtx)
+	Handle(c *RuntimeCtx)
 }
 
 type Route struct {
@@ -62,12 +57,7 @@ func HandlePage(path string, dp DefaultPage) {
 			Response:   rw,
 		}
 
-		dp.Render(ctx)
-
-		apiPage, ok := dp.(ApiPage)
-		if ok {
-			apiPage.Render(ctx)
-		}
+		dp.Handle(ctx)
 	})
 }
 

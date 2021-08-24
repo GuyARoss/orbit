@@ -3,7 +3,6 @@ package libgen
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 )
@@ -13,26 +12,39 @@ type LibOut struct {
 	Body        string
 }
 
-func (l *LibOut) WriteFile(dir string) {
+func (l *LibOut) WriteFile(dir string) error {
 	out := strings.Builder{}
 	out.WriteString(fmt.Sprintf("package %s\n\n", l.PackageName))
 	out.WriteString(l.Body)
 
-	f, err := os.OpenFile(dir, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	fmt.Println(dir)
+	if _, err := os.Stat(dir); err != nil {
+		fmt.Println("does not exist")
+		_, cerr := os.Create(dir)
+		if cerr != nil {
+			fmt.Println("cannot create?")
+
+			return cerr
+		}
+	}
+
+	f, err := os.OpenFile(dir, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0777)
 
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer f.Close()
 
 	err = f.Truncate(0)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	_, err = fmt.Fprintf(f, "%s", out.String())
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+
+	return nil
 }
 
 type page struct {
@@ -55,9 +67,8 @@ func (l *BundleGroup) ApplyBundle(name string, bundleKey string) {
 func (l *BundleGroup) CreateBundleLib() *LibOut {
 	out := strings.Builder{}
 
-	out.WriteString(`var hotReloadPipePath = ".orbit/hotreload"`)
-
 	if len(l.BaseBundleOut) > 0 {
+		out.WriteString("\n")
 		out.WriteString(fmt.Sprintf(`var bundleDir string = "%s"`, l.BaseBundleOut))
 		out.WriteString("\n\n")
 	}
@@ -75,14 +86,17 @@ func (l *BundleGroup) CreateBundleLib() *LibOut {
 			out.WriteString(")\n")
 		}
 	}
+	out.WriteString("\n")
 
-	out.WriteString(`\n
+	out.WriteString(`
 type BundleMode int32
 
 const (
 	DevBundleMode  BundleMode = 0
 	ProdBundleMode BundleMode = 1
-)`)
+)
+
+`)
 
 	if l.BundleMode == "production" {
 		out.WriteString("var CurrentDevMode BundleMode = ProdBundleMode")
