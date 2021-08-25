@@ -10,6 +10,7 @@ import (
 
 	"github.com/GuyARoss/orbit/internal"
 	"github.com/GuyARoss/orbit/pkg/fs"
+	"github.com/GuyARoss/orbit/pkg/log"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -91,7 +92,8 @@ var devCMD = &cobra.Command{
 		defer watcher.Close()
 
 		if err := filepath.Walk("./", watchDir); err != nil {
-			fmt.Println("ERROR", err)
+			log.Error("invalid walk on watchDir")
+			return
 		}
 
 		done := make(chan bool)
@@ -106,7 +108,7 @@ var devCMD = &cobra.Command{
 						s.executeChangeRequest(e.Name)
 					}
 				case err := <-watcher.Errors:
-					fmt.Println("err", err)
+					log.Error(fmt.Sprintf("watcher failed %s", err.Error()))
 				}
 			}
 		}()

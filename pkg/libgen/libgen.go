@@ -17,13 +17,9 @@ func (l *LibOut) WriteFile(dir string) error {
 	out.WriteString(fmt.Sprintf("package %s\n\n", l.PackageName))
 	out.WriteString(l.Body)
 
-	fmt.Println(dir)
 	if _, err := os.Stat(dir); err != nil {
-		fmt.Println("does not exist")
 		_, cerr := os.Create(dir)
 		if cerr != nil {
-			fmt.Println("cannot create?")
-
 			return cerr
 		}
 	}

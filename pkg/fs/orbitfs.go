@@ -5,8 +5,10 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/GuyARoss/orbit/pkg/jsparse"
+	"github.com/GuyARoss/orbit/pkg/log"
 	"github.com/google/uuid"
 )
 
@@ -68,8 +70,6 @@ func bundle(bundleFile string, nodeModuleDir string) error {
 	cmd := exec.Command("node", fmt.Sprintf("%s/.bin/webpack", nodeModuleDir), "--config", bundleFile)
 	_, err := cmd.Output()
 
-	fmt.Printf("\n\nnode %s --config %s \n\n\n\n", fmt.Sprintf("%s/.bin/webpack", nodeModuleDir), bundleFile)
-
 	return err
 }
 
@@ -112,6 +112,9 @@ func (s *PackSettings) Pack(baseDir string, bundleOut string) *[]*PackedPage {
 	pages := make([]*PackedPage, 0)
 	for idx, dir := range dirs {
 		if strings.Contains(dir.CopyDir, "pages") {
+			log.Info(fmt.Sprintf("bundling %s → ...", dir.BaseDir))
+			startTime := time.Now()
+
 			page := s.applyLibTooling(dir.CopyDir)
 
 			bundleKey := hashKey(idx, page.Name)
@@ -128,8 +131,8 @@ func (s *PackSettings) Pack(baseDir string, bundleOut string) *[]*PackedPage {
 				panic(bundleErr)
 			}
 
-			// @@todo(debug)
-			fmt.Printf("successfully packed %s %s \n", page.Name, dir.BaseDir)
+			elaspedTime := time.Since(startTime)
+			log.Success(fmt.Sprintf("completed in %fs", elaspedTime.Seconds()))
 
 			pages = append(pages, &PackedPage{
 				PageName:  page.Name,

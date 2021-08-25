@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/GuyARoss/orbit/pkg/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -48,6 +49,8 @@ func init() {
 }
 
 func Execute() {
+	log.Title("orbit-ssr")
+
 	if err := RootCMD.Execute(); err != nil {
 		panic(err)
 	}
