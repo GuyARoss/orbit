@@ -106,8 +106,8 @@ func (s *PackSettings) applyLibTooling(dir string) *jsparse.Page {
 }
 
 func (s *PackSettings) Pack(baseDir string, bundleOut string) *[]*PackedPage {
-	dirs := copyDir(baseDir, baseDir, ".orbit/base", true)
-	copyDir(s.AssetDir, s.AssetDir, ".orbit/assets", false)
+	dirs := CopyDir(baseDir, baseDir, ".orbit/base", true)
+	CopyDir(s.AssetDir, s.AssetDir, ".orbit/assets", false)
 
 	pages := make([]*PackedPage, 0)
 	for idx, dir := range dirs {

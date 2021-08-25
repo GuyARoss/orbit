@@ -59,7 +59,7 @@ func condenseDirPath(dirPath string) string {
 	return fmt.Sprintf("%s%s%s", strings.Join(spt[0:2], pathType), pathType, spt[len(spt)-1])
 }
 
-func copyDir(dir string, baseDir string, outDir string, condense bool) []*CopyResults {
+func CopyDir(dir string, baseDir string, outDir string, condense bool) []*CopyResults {
 	entries, err := ioutil.ReadDir(dir)
 	if err != nil {
 		log.Fatal(err)
@@ -77,7 +77,7 @@ func copyDir(dir string, baseDir string, outDir string, condense bool) []*CopyRe
 		}
 
 		if entry.IsDir() {
-			copied := copyDir(filepath.Join(dir, entry.Name()), baseDir, outDir, condense)
+			copied := CopyDir(filepath.Join(dir, entry.Name()), baseDir, outDir, condense)
 
 			for p := range copied {
 				copiedDirs = append(copiedDirs, &CopyResults{
@@ -116,4 +116,21 @@ func copyDir(dir string, baseDir string, outDir string, condense bool) []*CopyRe
 func DoesDirExist(dir string) bool {
 	_, err := os.Stat(dir)
 	return !os.IsNotExist(err)
+}
+
+func DirFiles(dir string) []string {
+	files, err := ioutil.ReadDir(dir)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	simpleFiles := make([]string, len(files))
+	for idx, file := range files {
+		// @@todo add support for non-shallow directories
+		if !file.IsDir() {
+			simpleFiles[idx] = file.Name()
+		}
+	}
+
+	return simpleFiles
 }

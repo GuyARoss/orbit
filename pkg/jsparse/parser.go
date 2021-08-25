@@ -106,7 +106,7 @@ func (p *Page) tokenizeLine(line string) {
 	}
 }
 
-func (p *Page) WriteFile(dir string) {
+func (p *Page) WriteFile(dir string) error {
 	out := strings.Builder{}
 	for _, imp := range p.Imports {
 		out.WriteString(fmt.Sprintf("%s\n", imp))
@@ -118,20 +118,21 @@ func (p *Page) WriteFile(dir string) {
 
 	f, err := os.OpenFile(dir, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	defer f.Close()
 
 	err = f.Truncate(0)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	_, err = fmt.Fprintf(f, "%s", out.String())
 	if err != nil {
-		panic(err)
+		return err
 	}
 
+	return nil
 }
 
 func ParsePage(pageDir string, webDir string) (*Page, error) {

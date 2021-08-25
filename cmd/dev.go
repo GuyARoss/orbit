@@ -5,11 +5,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/GuyARoss/orbit/internal"
-	"github.com/GuyARoss/orbit/pkg/fs"
 	"github.com/GuyARoss/orbit/pkg/log"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
@@ -18,7 +16,7 @@ import (
 
 type devSession struct {
 	pageGenSettings *internal.GenPagesSettings
-	sourceMap       map[string]*fs.PackedPage
+	sourceMap       map[string]*internal.PackedComponent
 }
 
 var watcher *fsnotify.Watcher
@@ -31,9 +29,9 @@ func createSession(settings *internal.GenPagesSettings) (*devSession, error) {
 
 	lib := settings.PackWebDir()
 
-	sourceMap := make(map[string]*fs.PackedPage)
+	sourceMap := make(map[string]*internal.PackedComponent)
 	for _, p := range lib.Pages {
-		sourceMap[p.BaseDir] = p
+		sourceMap[p.OriginalFilePath] = p
 	}
 
 	return &devSession{
@@ -50,16 +48,16 @@ func (s *devSession) executeChangeRequest(file string) {
 	// @@todo: re-enable me
 	// s.pageGenSettings.PackWebDir()
 
-	if _, err := os.Stat(".orbit/hotreload"); err != nil {
-		syscall.Mkfifo(".orbit/hotreload", 0666)
-	}
+	// if _, err := os.Stat(".orbit/hotreload"); err != nil {
+	// 	syscall.Mkfifo(".orbit/hotreload", 0666)
+	// }
 
-	f, err := os.OpenFile(".orbit/hotreload", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0777)
-	if err != nil {
-		fmt.Errorf("error with hotreload")
-	}
+	// f, err := os.OpenFile(".orbit/hotreload", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0777)
+	// if err != nil {
+	// 	log.Error("hot-loader failed")
+	// }
 
-	f.WriteString(fmt.Sprintf("cr|%s", source.BaseDir))
+	// f.WriteString(fmt.Sprintf("cr|%s", source.OriginalFilePath))
 }
 
 func watchDir(path string, fi os.FileInfo, err error) error {
