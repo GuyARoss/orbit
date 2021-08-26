@@ -116,6 +116,12 @@ func (p *Page) WriteFile(dir string) error {
 		out.WriteString(fmt.Sprintf("%s\n", other))
 	}
 
+	// if _, err := os.Stat(dir); os.IsNotExist(err) {
+	// 	fmt.Println("uhh file doesn't exist?")
+	// 	err := os.Mkdir(dir, 0755)
+	// 	return err
+	// }
+
 	f, err := os.OpenFile(dir, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return err

@@ -128,7 +128,7 @@ func DirFiles(dir string) []string {
 	for idx, file := range files {
 		// @@todo add support for non-shallow directories
 		if !file.IsDir() {
-			simpleFiles[idx] = file.Name()
+			simpleFiles[idx] = fmt.Sprintf("%s/%s", dir, file.Name())
 		}
 	}
 
