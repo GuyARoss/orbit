@@ -45,19 +45,13 @@ func (s *devSession) executeChangeRequest(file string) {
 		s.pageGenSettings.Repack(source)
 	}
 
-	// @@todo: re-enable me
-	// s.pageGenSettings.PackWebDir()
+	// @@todo(implement .orbitignore?)
+	cleanWebPath := strings.ReplaceAll(s.pageGenSettings.WebDir, "./", "")
+	if !strings.Contains(file, cleanWebPath) {
+		return
+	}
 
-	// if _, err := os.Stat(".orbit/hotreload"); err != nil {
-	// 	syscall.Mkfifo(".orbit/hotreload", 0666)
-	// }
-
-	// f, err := os.OpenFile(".orbit/hotreload", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0777)
-	// if err != nil {
-	// 	log.Error("hot-loader failed")
-	// }
-
-	// f.WriteString(fmt.Sprintf("cr|%s", source.OriginalFilePath))
+	s.pageGenSettings.PackWebDir()
 }
 
 func watchDir(path string, fi os.FileInfo, err error) error {
