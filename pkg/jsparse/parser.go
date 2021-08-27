@@ -38,16 +38,39 @@ func cleanExportDefaultName(line string) string {
 	return exportData[1][1:]
 }
 
-func (p *Page) formatImportLine(line string) string {
-	relativeImport := strings.Contains(line, "/")
+func filterCenter(str string, subStart rune, subEnd rune) string {
+	final := make([]rune, 0)
 
-	if !relativeImport {
+	started := false
+	for _, c := range str {
+		if started && c == subEnd {
+			return string(final)
+		}
+
+		if started {
+			final = append(final, c)
+		}
+
+		if !started && c == subStart {
+			started = true
+		}
+	}
+
+	return string(final)
+}
+
+func (p *Page) formatImportLine(line string) string {
+	// local imports "should" always include path information
+	if !strings.Contains(line, "/") {
 		return line
 	}
 
-	// [0] => import, [1] => Name, [2] => from, [3] => path
-	tokens := strings.Split(line, " ")
-	fmt.Sprintln(tokens)
+	pathChar := '"'
+	path := filterCenter(line, '"', '"')
+	if len(path) == 0 {
+		path = filterCenter(line, '\'', '\'')
+		pathChar = '\''
+	}
 
 	webDirPaths := strings.Split(p.webDir, "/")
 	cleanWebDirPaths := make([]string, 0)
@@ -60,12 +83,12 @@ func (p *Page) formatImportLine(line string) string {
 		cleanWebDirPaths = append(cleanWebDirPaths, dp)
 	}
 
-	tokenPathPaths := strings.Split(strings.ReplaceAll(tokens[3], "'", ""), "/")
+	tokenPathPaths := strings.Split(path, "/")
 	hasProceedingDirectory := false
 	for _, tk := range tokenPathPaths {
 		if strings.Contains(tk, "..") {
 			if hasProceedingDirectory {
-				// @@ throw error cuz this is out of range
+				// @@todo(debug) throw error cuz this is out of range
 			}
 			hasProceedingDirectory = true
 			continue
@@ -82,7 +105,10 @@ func (p *Page) formatImportLine(line string) string {
 		extension = "jsx"
 	}
 
-	return fmt.Sprintf("import %s from '../../../%s.%s'", tokens[1], strings.Join(cleanWebDirPaths, "/"), extension)
+	newPath := fmt.Sprintf("'../../../%s.%s'", strings.Join(cleanWebDirPaths, "/"), extension)
+	statementWithoutPath := strings.Replace(line, fmt.Sprintf("%c%s%c", pathChar, path, pathChar), newPath, 1)
+
+	return statementWithoutPath
 }
 
 func (p *Page) tokenizeLine(line string) {

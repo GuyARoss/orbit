@@ -110,6 +110,8 @@ func (s *DefaultPackHook) Post(elaspedTime float64) {
 // - Bundling the component with the specified javascript bundler.
 func (s *PackSettings) PackMany(pages []string, hooks PackHooks) ([]*PackedComponent, error) {
 	packedPages := make([]*PackedComponent, 0)
+	packMap := make(map[string]bool)
+
 	for _, dir := range pages {
 		if hooks != nil {
 			hooks.Pre(dir)
@@ -117,12 +119,17 @@ func (s *PackSettings) PackMany(pages []string, hooks PackHooks) ([]*PackedCompo
 
 		// @@todo(guy): make this concurrent
 		page, err := s.PackSingle(dir)
+		if packMap[page.PageName] {
+			continue
+		}
 
 		// consider adding a flag for skipping in iteration rather than just returning
 		if err != nil {
 			return packedPages, err
 		}
 		packedPages = append(packedPages, page)
+		packMap[page.PageName] = true
+
 		if hooks != nil {
 			hooks.Post(page.PackDurationSeconds)
 		}

@@ -39,19 +39,20 @@ func createSession(settings *internal.GenPagesSettings) (*devSession, error) {
 	}, nil
 }
 
-func (s *devSession) executeChangeRequest(file string) {
+func (s *devSession) executeChangeRequest(file string) error {
 	source := s.sourceMap[file]
 	if source != nil {
 		s.pageGenSettings.Repack(source)
 	}
 
-	// @@todo(implement .orbitignore?)
 	cleanWebPath := strings.ReplaceAll(s.pageGenSettings.WebDir, "./", "")
 	if !strings.Contains(file, cleanWebPath) {
-		return
+		return nil
 	}
 
-	s.pageGenSettings.PackWebDir()
+	pages := s.pageGenSettings.PackWebDir()
+	writeErr := pages.WriteOut()
+	return writeErr
 }
 
 func watchDir(path string, fi os.FileInfo, err error) error {
@@ -97,7 +98,11 @@ var devCMD = &cobra.Command{
 				select {
 				case e := <-watcher.Events:
 					if !strings.Contains(e.Name, "node_modules") || !strings.Contains(e.Name, ".orbit") {
-						s.executeChangeRequest(e.Name)
+						err := s.executeChangeRequest(e.Name)
+						if err != nil {
+							log.Error(err.Error())
+							os.Exit(1)
+						}
 					}
 				case err := <-watcher.Errors:
 					log.Error(fmt.Sprintf("watcher failed %s", err.Error()))
