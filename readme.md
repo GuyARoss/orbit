@@ -1,19 +1,11 @@
 # Orbit SSR
-Golang SSR framework featuring native react support with zero setup.
+Golang SSR framework featuring native react support with zero boilerplate.
 
 ![CLI](./.github/cap.PNG)
 
 
 ## Installation
-- NPM
-- Brew
 - manual installation
-
-### NPM 
-To install via npm, use the command `npm install orbit-ssr`. 
-
-### Brew
-(coming soon)
 
 ### Manual
 To install manually, please download the correct distributable target for your machine. Next, you can either put it directly
@@ -28,4 +20,5 @@ To run the project, please first download the required tools.
 ### Building the project
 After golang is installed on your machine, you can build with `go run build`
 
-
+### Running tests
+After golang is installed on your machine, you can run tests with `go test`
