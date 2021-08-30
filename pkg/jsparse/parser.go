@@ -59,6 +59,20 @@ func filterCenter(str string, subStart rune, subEnd rune) string {
 	return string(final)
 }
 
+func pageExtension(importPath string) string {
+	split := strings.Split(importPath, ".")
+	if len(split) > 1 {
+		return ""
+	}
+
+	extension := ".js"
+	_, err := os.Stat(fmt.Sprintf("%s.js", importPath))
+	if err != nil {
+		extension = ".jsx"
+	}
+	return extension
+}
+
 func (p *Page) formatImportLine(line string) string {
 	// local imports "should" always include path information
 	if !strings.Contains(line, "/") {
@@ -98,14 +112,9 @@ func (p *Page) formatImportLine(line string) string {
 	}
 
 	finalPath := strings.Join(cleanWebDirPaths, "/")
-	extension := "js"
+	extension := pageExtension(finalPath)
 
-	_, err := os.Stat(fmt.Sprintf("%s.js", finalPath))
-	if err != nil {
-		extension = "jsx"
-	}
-
-	newPath := fmt.Sprintf("'../../../%s.%s'", strings.Join(cleanWebDirPaths, "/"), extension)
+	newPath := fmt.Sprintf("'../../../%s%s'", strings.Join(cleanWebDirPaths, "/"), extension)
 	statementWithoutPath := strings.Replace(line, fmt.Sprintf("%c%s%c", pathChar, path, pathChar), newPath, 1)
 
 	return statementWithoutPath

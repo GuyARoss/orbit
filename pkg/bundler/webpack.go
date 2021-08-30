@@ -16,6 +16,9 @@ type WebPackBundler struct {
 func (b *WebPackBundler) Setup(settings *BundleSetupSettings) (*BundledResource, error) {
 	page := &jsparse.Page{}
 	page.Imports = append(page.Imports, "const {merge} = require('webpack-merge')")
+	// @@todo(guy): this webpack config is currently based off of react, if we want to add support in the future
+	// we will need to update this to apply a type context depending on which of the frontend frameworks are selected.
+	// * we could also parse the file to determine which of the front-end frameworks are attached. then use the correct config *
 	page.Imports = append(page.Imports, "const baseConfig = require('../../assets/base.config.js')")
 
 	outputFileName := fmt.Sprintf("%s.js", settings.BundleKey)
@@ -39,6 +42,10 @@ func (b *WebPackBundler) Setup(settings *BundleSetupSettings) (*BundledResource,
 func (b *WebPackBundler) Bundle(configuratorFilePath string) error {
 	cmd := exec.Command("node", fmt.Sprintf("%s/.bin/webpack", b.NodeModulesDir), "--config", configuratorFilePath)
 	_, err := cmd.Output()
+
+	if err != nil {
+		fmt.Println("node", fmt.Sprintf("%s/.bin/webpack", b.NodeModulesDir), "--config", configuratorFilePath)
+	}
 
 	return err
 }
