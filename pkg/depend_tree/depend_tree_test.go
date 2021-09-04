@@ -1,7 +1,6 @@
 package dependtree
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -23,16 +22,54 @@ func TestCreateDependTree(t *testing.T) {
 	dep["/pages"] = []string{"../components/modal.jsx", "../components/layout.jsx"}
 	dep["../components/modal.jsx"] = []string{"../components/form.jsx"}
 	dep["../components/layout.jsx"] = []string{"../components/header.jsx"}
+	dep["/files"] = []string{"../thing.jsx"}
 
 	f := &MockDependencyTree{
 		Dirs:         []string{"/pages"},
 		Dependencies: dep,
 	}
-	resp, err := Create(f, "/pages")
+
+	s := ManagedDependencyTree{
+		Settings: f,
+	}
+	resp, err := s.Create("/pages")
 	if err != nil {
 		t.FailNow()
 	}
 
-	fmt.Println(resp)
-	t.Log(resp)
+	shallowMap := resp.SourceMap()
+	for f, k := range shallowMap.sourceMap {
+		if f == "/pages" || f == "/files" {
+			continue
+		}
+		switch k {
+		case "/pages":
+			{
+				c := []string{"../components/modal.jsx", "../components/layout.jsx", "../components/form.jsx", "../components/header.jsx"}
+				found := false
+				for _, k := range c {
+					if k == f {
+						found = true
+					}
+				}
+				if !found {
+					t.Errorf("%s does not include %s", k, f)
+				}
+			}
+		case "/files":
+			{
+				c := []string{"../thing.jsx"}
+				found := false
+				for _, k := range c {
+					if k == f {
+						found = true
+					}
+				}
+				if !found {
+					t.Errorf("%s does not include %s", k, f)
+				}
+			}
+		}
+	}
+	// fmt.Println(shallowMap)
 }
