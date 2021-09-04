@@ -26,7 +26,7 @@ type DependencySourceMap struct {
 	sourceMap map[string]string
 }
 
-func (d *DependencySourceMap) PathParent(path string) string {
+func (d *DependencySourceMap) FindRoot(path string) string {
 	return d.sourceMap[path]
 }
 

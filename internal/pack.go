@@ -34,7 +34,7 @@ func hashKey(name string) string {
 }
 
 // PackedComponent
-// Web-Component that has been succesfully ran, and output from a packing method.
+// Web-Component that has been successfully ran, and output from a packing method.
 type PackedComponent struct {
 	PageName            string
 	BundleKey           string
@@ -85,9 +85,7 @@ func (s *PackSettings) PackSingle(pageFilePath string) (*PackedComponent, error)
 }
 
 // PackHooks
-// since the implementation of the generator pattern overly complicated for
-// our usecase, we instead allow the passing of "per" & "post" hooks for our
-// iterative packing method "PackPages".
+// passing of "per" & "post" hooks for our iterative packing method "PackPages".
 type PackHooks interface {
 	Pre(filePath string)      // "pre" runs before each component packing iteration
 	Post(elaspedTime float64) // "post" runs after each component packing iteration

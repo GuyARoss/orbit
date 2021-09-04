@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/GuyARoss/orbit/internal"
+	dependtree "github.com/GuyARoss/orbit/pkg/depend_tree"
 	"github.com/GuyARoss/orbit/pkg/log"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
@@ -16,7 +17,8 @@ import (
 
 type devSession struct {
 	pageGenSettings *internal.GenPagesSettings
-	sourceMap       map[string]*internal.PackedComponent
+	rootComponents  map[string]*internal.PackedComponent
+	sourceMap       *dependtree.DependencySourceMap
 }
 
 var watcher *fsnotify.Watcher
@@ -29,24 +31,35 @@ func createSession(settings *internal.GenPagesSettings) (*devSession, error) {
 
 	lib := settings.PackWebDir()
 
-	sourceMap := make(map[string]*internal.PackedComponent)
+	rootComponents := make(map[string]*internal.PackedComponent)
 	for _, p := range lib.Pages {
-		sourceMap[p.OriginalFilePath] = p
+		rootComponents[p.OriginalFilePath] = p
 	}
 
+	sourceMap, err := internal.CreateSourceMap(settings.WebDir)
+	if err != nil {
+		return nil, err
+	}
+
+	// @@todo: insure that the root components exist in the source map.
+	// could also implement a "DependencySettings" "DirList" func here that JUST selects
+	// the component files for the source path root. Saves some io process..
+
 	return &devSession{
-		settings, sourceMap,
+		pageGenSettings: settings,
+		rootComponents:  rootComponents,
+		sourceMap:       sourceMap,
 	}, nil
 }
 
 func (s *devSession) executeChangeRequest(file string) error {
-	source := s.sourceMap[file]
-	if source != nil {
-		s.pageGenSettings.Repack(source)
+	source := s.sourceMap.FindRoot(file)
+	component := s.rootComponents[source]
+	if component != nil {
+		s.pageGenSettings.Repack(component)
 	}
 
-	cleanWebPath := strings.ReplaceAll(s.pageGenSettings.WebDir, "./", "")
-	if !strings.Contains(file, cleanWebPath) {
+	if strings.Contains(file, "./") {
 		return nil
 	}
 
