@@ -42,7 +42,7 @@ func TestCreateDependTree(t *testing.T) {
 		if f == "/pages" || f == "/files" {
 			continue
 		}
-		switch k {
+		switch f {
 		case "/pages":
 			{
 				c := []string{"../components/modal.jsx", "../components/layout.jsx", "../components/form.jsx", "../components/header.jsx"}
@@ -71,5 +71,4 @@ func TestCreateDependTree(t *testing.T) {
 			}
 		}
 	}
-	// fmt.Println(shallowMap)
 }

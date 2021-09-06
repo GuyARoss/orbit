@@ -36,14 +36,10 @@ func createSession(settings *internal.GenPagesSettings) (*devSession, error) {
 		rootComponents[p.OriginalFilePath] = p
 	}
 
-	sourceMap, err := internal.CreateSourceMap(settings.WebDir)
+	sourceMap, err := internal.CreateSourceMap(settings.WebDir, lib.Pages)
 	if err != nil {
 		return nil, err
 	}
-
-	// @@todo: insure that the root components exist in the source map.
-	// could also implement a "DependencySettings" "DirList" func here that JUST selects
-	// the component files for the source path root. Saves some io process..
 
 	return &devSession{
 		pageGenSettings: settings,
@@ -53,19 +49,26 @@ func createSession(settings *internal.GenPagesSettings) (*devSession, error) {
 }
 
 func (s *devSession) executeChangeRequest(file string) error {
-	source := s.sourceMap.FindRoot(file)
-	component := s.rootComponents[source]
-	if component != nil {
-		s.pageGenSettings.Repack(component)
+	applied := false
+
+	sources := s.sourceMap.FindRoot(file)
+	for _, source := range sources {
+		component := s.rootComponents[source]
+
+		if component != nil {
+			applied = true
+			s.pageGenSettings.Repack(component)
+		}
 	}
 
-	if strings.Contains(file, "./") {
-		return nil
+	if !applied {
+		pages := s.pageGenSettings.PackWebDir()
+		writeErr := pages.WriteOut()
+		return writeErr
+
 	}
 
-	pages := s.pageGenSettings.PackWebDir()
-	writeErr := pages.WriteOut()
-	return writeErr
+	return nil
 }
 
 func watchDir(path string, fi os.FileInfo, err error) error {

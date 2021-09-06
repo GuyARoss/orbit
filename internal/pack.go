@@ -40,6 +40,7 @@ type PackedComponent struct {
 	BundleKey           string
 	OriginalFilePath    string
 	PackDurationSeconds float64
+	Dependencies        []*jsparse.ImportDependency
 }
 
 // PackSingle
@@ -78,6 +79,7 @@ func (s *PackSettings) PackSingle(pageFilePath string) (*PackedComponent, error)
 	bundleErr := s.Bundler.Bundle(resource.ConfiguratorFilePath)
 	return &PackedComponent{
 		PageName:            page.Name,
+		Dependencies:        page.Imports,
 		BundleKey:           bundleKey,
 		OriginalFilePath:    pageFilePath,
 		PackDurationSeconds: time.Since(startTime).Seconds(),

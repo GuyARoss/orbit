@@ -91,7 +91,11 @@ func pageExtension(importPath string) string {
 }
 
 func lineImportType(line string) ImportType {
-	if line[0] == '.' || line[0] == '/' {
+	// @@todo validate that the pathToken is valid
+	pathToken := line[len(line)-1]
+	path := filterCenter(line, rune(pathToken), rune(pathToken))
+
+	if path[1] == '.' || path[1] == '/' {
 		return LocalImportType
 	}
 
@@ -148,7 +152,7 @@ func (p *Page) formatImportLine(line string) *ImportDependency {
 
 	return &ImportDependency{
 		FinalStatement: statementWithoutPath,
-		InitialPath:    fmt.Sprintf(strings.Join(cleanWebDirPaths, "/"), extension),
+		InitialPath:    fmt.Sprintf("%s%s", strings.Join(cleanWebDirPaths, "/"), extension),
 		Type:           importType,
 	}
 }

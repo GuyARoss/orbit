@@ -5,6 +5,7 @@ import (
 	"os/exec"
 
 	"github.com/GuyARoss/orbit/pkg/jsparse"
+	"github.com/GuyARoss/orbit/pkg/log"
 )
 
 type WebPackBundler struct {
@@ -50,7 +51,7 @@ func (b *WebPackBundler) Bundle(configuratorFilePath string) error {
 	_, err := cmd.Output()
 
 	if err != nil {
-		fmt.Println("node", fmt.Sprintf("%s/.bin/webpack", b.NodeModulesDir), "--config", configuratorFilePath)
+		log.Warn(fmt.Sprintf(`invalid pack: "node %s --config %s"`, fmt.Sprintf("%s/.bin/webpack", b.NodeModulesDir), configuratorFilePath))
 	}
 
 	return err

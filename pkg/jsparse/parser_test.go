@@ -41,3 +41,15 @@ func Test_formatImportLine_ConstLocal(t *testing.T) {
 		t.Errorf("got %s, expected %s", got.FinalStatement, expected)
 	}
 }
+
+func Test_lineImportType(t *testing.T) {
+	g := lineImportType(`import { thing } from "@test/util"`)
+	if g != ModuleImportType {
+		t.Error("expected module import type")
+	}
+
+	g = lineImportType(`import cat from "../../utils.jsx"`)
+	if g != LocalImportType {
+		t.Error("expected local import type")
+	}
+}
