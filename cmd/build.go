@@ -25,7 +25,7 @@ var buildCMD = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		pages := settings.PackWebDir()
+		pages := settings.PackWebDir(&internal.DefaultPackHook{})
 		writeErr := pages.WriteOut()
 		if writeErr != nil {
 			log.Fatal(writeErr)

@@ -15,10 +15,17 @@ import (
 	"github.com/spf13/viper"
 )
 
+type proccessedChangeRequest struct {
+	ProcessedAt time.Time
+	FileName    string
+}
+
 type devSession struct {
 	pageGenSettings *internal.GenPagesSettings
 	rootComponents  map[string]*internal.PackedComponent
 	sourceMap       *dependtree.DependencySourceMap
+
+	lastProcessedFile *proccessedChangeRequest
 }
 
 var watcher *fsnotify.Watcher
@@ -29,43 +36,53 @@ func createSession(settings *internal.GenPagesSettings) (*devSession, error) {
 		return nil, err
 	}
 
-	lib := settings.PackWebDir()
+	lib := settings.PackWebDir(nil)
 
 	rootComponents := make(map[string]*internal.PackedComponent)
 	for _, p := range lib.Pages {
 		rootComponents[p.OriginalFilePath] = p
 	}
 
-	sourceMap, err := internal.CreateSourceMap(settings.WebDir, lib.Pages)
+	sourceMap, err := internal.CreateSourceMap(settings.WebDir, lib.Pages, settings.WebDir)
 	if err != nil {
 		return nil, err
 	}
 
 	return &devSession{
-		pageGenSettings: settings,
-		rootComponents:  rootComponents,
-		sourceMap:       sourceMap,
+		pageGenSettings:   settings,
+		rootComponents:    rootComponents,
+		sourceMap:         sourceMap,
+		lastProcessedFile: &proccessedChangeRequest{},
 	}, nil
 }
 
 func (s *devSession) executeChangeRequest(file string) error {
-	applied := false
+	// todo: ability to provide this time from an argv
+	if file == s.lastProcessedFile.FileName &&
+		time.Since(s.lastProcessedFile.ProcessedAt).Seconds() < 20 {
+		return nil
+	}
 
-	sources := s.sourceMap.FindRoot(file)
-	for _, source := range sources {
-		component := s.rootComponents[source]
-
-		if component != nil {
-			applied = true
-			s.pageGenSettings.Repack(component)
+	component := s.rootComponents[fmt.Sprintf("./%s", file)]
+	if component != nil {
+		s.pageGenSettings.Repack(component)
+		s.lastProcessedFile = &proccessedChangeRequest{
+			FileName:    file,
+			ProcessedAt: time.Now(),
 		}
 	}
 
-	if !applied {
-		pages := s.pageGenSettings.PackWebDir()
-		writeErr := pages.WriteOut()
-		return writeErr
+	sources := s.sourceMap.FindRoot(file)
+	for _, source := range sources {
+		component = s.rootComponents[source]
 
+		if component != nil {
+			s.pageGenSettings.Repack(component)
+			s.lastProcessedFile = &proccessedChangeRequest{
+				FileName:    file,
+				ProcessedAt: time.Now(),
+			}
+		}
 	}
 
 	return nil
@@ -82,6 +99,7 @@ func watchDir(path string, fi os.FileInfo, err error) error {
 var devCMD = &cobra.Command{
 	Use: "dev",
 	Run: func(cmd *cobra.Command, args []string) {
+		log.Info("starting dev server...")
 		as := &internal.GenPagesSettings{
 			PackageName:    viper.GetString("pacname"),
 			OutDir:         viper.GetString("out"),
@@ -92,10 +110,11 @@ var devCMD = &cobra.Command{
 		}
 
 		s, err := createSession(as)
-
 		if err != nil {
 			panic(err)
 		}
+
+		log.Success("dev server started successfully")
 
 		watcher, _ = fsnotify.NewWatcher()
 		defer watcher.Close()

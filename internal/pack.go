@@ -41,6 +41,8 @@ type PackedComponent struct {
 	OriginalFilePath    string
 	PackDurationSeconds float64
 	Dependencies        []*jsparse.ImportDependency
+
+	settings *PackSettings
 }
 
 // PackSingle
@@ -83,6 +85,7 @@ func (s *PackSettings) PackSingle(pageFilePath string) (*PackedComponent, error)
 		BundleKey:           bundleKey,
 		OriginalFilePath:    pageFilePath,
 		PackDurationSeconds: time.Since(startTime).Seconds(),
+		settings:            s,
 	}, bundleErr
 }
 
@@ -90,7 +93,7 @@ func (s *PackSettings) PackSingle(pageFilePath string) (*PackedComponent, error)
 // passing of "per" & "post" hooks for our iterative packing method "PackPages".
 type PackHooks interface {
 	Pre(filePath string)      // "pre" runs before each component packing iteration
-	Post(elaspedTime float64) // "post" runs after each component packing iteration
+	Post(elapsedTime float64) // "post" runs after each component packing iteration
 }
 
 type DefaultPackHook struct{}
@@ -99,8 +102,52 @@ func (s *DefaultPackHook) Pre(filePath string) {
 	log.Info(fmt.Sprintf("bundling %s → ...", filePath))
 }
 
-func (s *DefaultPackHook) Post(elaspedTime float64) {
-	log.Success(fmt.Sprintf("completed in %fs\n", elaspedTime))
+func (s *DefaultPackHook) Post(elapsedTime float64) {
+	log.Success(fmt.Sprintf("completed in %fs\n", elapsedTime))
+}
+
+func (s *PackedComponent) Repack(hooks PackHooks) error {
+	if hooks != nil {
+		hooks.Pre(s.OriginalFilePath)
+	}
+	startTime := time.Now()
+
+	page, err := jsparse.ParsePage(s.OriginalFilePath, s.settings.WebDir)
+	if err != nil {
+		return err
+	}
+
+	page = s.settings.WebWrapper.Apply(page, s.OriginalFilePath)
+	resource, err := s.settings.Bundler.Setup(&bundler.BundleSetupSettings{
+		FileName:  s.OriginalFilePath,
+		BundleKey: s.BundleKey,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	bundlePageErr := page.WriteFile(resource.BundleFilePath)
+	if bundlePageErr != nil {
+		return bundlePageErr
+	}
+
+	configErr := resource.ConfiguratorPage.WriteFile(resource.ConfiguratorFilePath)
+	if configErr != nil {
+		return configErr
+	}
+
+	bundleErr := s.settings.Bundler.Bundle(resource.ConfiguratorFilePath)
+	if bundleErr != nil {
+		return bundleErr
+	}
+	s.PackDurationSeconds = time.Since(startTime).Seconds()
+
+	if hooks != nil {
+		hooks.Post(s.PackDurationSeconds)
+	}
+
+	return nil
 }
 
 // PackPages

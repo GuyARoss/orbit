@@ -74,10 +74,6 @@ type ManagedDependencyTree struct {
 func mapNode(s DependencySettings, path string) (*DependencyTreeNode, error) {
 	dependencies, err := s.PathDependencies(path)
 
-	// todo:
-	// this is just a shallow check, if we want to go deep
-	// each of the dependencies need to be resolved.
-
 	if err != nil {
 		return nil, err
 	}
