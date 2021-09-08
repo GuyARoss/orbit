@@ -7,14 +7,31 @@ import (
 	"strings"
 )
 
+// FunctionDefinition
+// light-weight struct to define JS function definition
 type FunctionDefinition struct {
 	Content    string
 	Name       string
 	IsExported bool
 }
 
+// ImportType
+// Defines type of import with binary determination
+type ImportType int32
+
+const (
+	LocalImportType  ImportType = 0
+	ModuleImportType ImportType = 1
+)
+
+type ImportDependency struct {
+	FinalStatement string
+	InitialPath    string
+	Type           ImportType
+}
+
 type Page struct {
-	Imports []string
+	Imports []*ImportDependency
 	Name    string
 	Other   []string
 
@@ -73,10 +90,26 @@ func pageExtension(importPath string) string {
 	return extension
 }
 
-func (p *Page) formatImportLine(line string) string {
-	// local imports "should" always include path information
-	if !strings.Contains(line, "/") {
-		return line
+func lineImportType(line string) ImportType {
+	// @@todo validate that the pathToken is valid
+	pathToken := line[len(line)-1]
+	path := filterCenter(line, rune(pathToken), rune(pathToken))
+
+	if path[1] == '.' || path[1] == '/' {
+		return LocalImportType
+	}
+
+	return ModuleImportType
+}
+
+func (p *Page) formatImportLine(line string) *ImportDependency {
+	importType := lineImportType(line)
+	if importType == ModuleImportType {
+		return &ImportDependency{
+			InitialPath:    line,
+			FinalStatement: line,
+			Type:           ModuleImportType,
+		}
 	}
 
 	pathChar := '"'
@@ -117,7 +150,11 @@ func (p *Page) formatImportLine(line string) string {
 	newPath := fmt.Sprintf("'../../../%s%s'", strings.Join(cleanWebDirPaths, "/"), extension)
 	statementWithoutPath := strings.Replace(line, fmt.Sprintf("%c%s%c", pathChar, path, pathChar), newPath, 1)
 
-	return statementWithoutPath
+	return &ImportDependency{
+		FinalStatement: statementWithoutPath,
+		InitialPath:    fmt.Sprintf("%s%s", strings.Join(cleanWebDirPaths, "/"), extension),
+		Type:           importType,
+	}
 }
 
 func (p *Page) tokenizeLine(line string) {
@@ -144,18 +181,12 @@ func (p *Page) tokenizeLine(line string) {
 func (p *Page) WriteFile(dir string) error {
 	out := strings.Builder{}
 	for _, imp := range p.Imports {
-		out.WriteString(fmt.Sprintf("%s\n", imp))
+		out.WriteString(fmt.Sprintf("%s\n", imp.FinalStatement))
 	}
 
 	for _, other := range p.Other {
 		out.WriteString(fmt.Sprintf("%s\n", other))
 	}
-
-	// if _, err := os.Stat(dir); os.IsNotExist(err) {
-	// 	fmt.Println("uhh file doesn't exist?")
-	// 	err := os.Mkdir(dir, 0755)
-	// 	return err
-	// }
 
 	f, err := os.OpenFile(dir, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {

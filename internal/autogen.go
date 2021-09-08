@@ -47,7 +47,7 @@ func (s *GenPagesSettings) SetupPack() *PackSettings {
 	}
 }
 
-func (s *GenPagesSettings) PackWebDir() *AutoGenPages {
+func (s *GenPagesSettings) PackWebDir(hook PackHooks) *AutoGenPages {
 	settings := s.SetupPack()
 
 	// @@todo: look into making this a go-routine, then lock the resource
@@ -55,7 +55,7 @@ func (s *GenPagesSettings) PackWebDir() *AutoGenPages {
 	settings.CopyAssets()
 
 	pageFiles := fs.DirFiles(fmt.Sprintf("%s/pages", s.WebDir))
-	pages, err := settings.PackMany(pageFiles, &DefaultPackHook{})
+	pages, err := settings.PackMany(pageFiles, hook)
 	if err != nil {
 		log.Error(err.Error())
 	}
@@ -86,12 +86,8 @@ func (s *GenPagesSettings) PackWebDir() *AutoGenPages {
 	}
 }
 
-func (s *GenPagesSettings) Repack(p *PackedComponent) {
-	lg := &libgen.BundleGroup{
-		PackageName:   s.PackageName,
-		BaseBundleOut: ".orbit/dist",
-	}
-	lg.ApplyBundle(p.PageName, p.BundleKey)
+func (s *GenPagesSettings) Repack(p *PackedComponent) error {
+	return p.Repack(&DefaultPackHook{})
 }
 
 func (s *AutoGenPages) WriteOut() error {
