@@ -11,6 +11,8 @@ Golang SSR framework featuring native react support with zero boilerplate.
 To install manually, please download the correct distributable target for your machine. Next, you can either put it directly
 in the directory you wish to use it in (and call it directly) or put it into your bash profile.
 
+## Usage 
+
 ## Contributing
 ### Running the project
 To run the project, please first download the required tools.
