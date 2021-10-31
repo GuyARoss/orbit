@@ -2,6 +2,7 @@ package jsparse
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -35,7 +36,8 @@ type Page struct {
 	Name    string
 	Other   []string
 
-	webDir string
+	webDir  string
+	pageDir string
 }
 
 type JSToken string
@@ -47,12 +49,23 @@ const (
 
 var declarationTokens = []JSToken{ImportToken, ExportToken}
 
-func cleanExportDefaultName(line string) string {
-	// @@todo(guy): detect other types of exporting.
-	// @@todo(guy): validate that export type is capitalized
+var ErrFunctionExport = errors.New("function export cannot be the name of the default export")
 
-	exportData := strings.Split(line, "export default")
-	return exportData[1][1:]
+var ErrExportNotCapitalized = errors.New("default export of component should be capitalized")
+
+func extractDefaultExportName(line string) (string, error) {
+	exportData := strings.Split(line, string(ExportToken))
+	possibleName := exportData[1][1:]
+
+	if string(possibleName[0]) != strings.ToUpper(string(possibleName[0])) {
+		return "", ErrExportNotCapitalized
+	}
+
+	if len(strings.Split(possibleName, " ")) > 1 {
+		return "", ErrFunctionExport
+	}
+
+	return possibleName, nil
 }
 
 func filterCenter(str string, subStart rune, subEnd rune) string {
@@ -157,7 +170,7 @@ func (p *Page) formatImportLine(line string) *ImportDependency {
 	}
 }
 
-func (p *Page) tokenizeLine(line string) {
+func (p *Page) tokenizeLine(line string) error {
 	skip := false
 	for _, decToken := range declarationTokens {
 		if strings.Contains(line, string(decToken)) {
@@ -167,7 +180,12 @@ func (p *Page) tokenizeLine(line string) {
 
 				skip = true
 			case ExportToken:
-				p.Name = cleanExportDefaultName(line)
+				possibleName, err := extractDefaultExportName(line)
+				if err != nil && !errors.Is(ErrFunctionExport, err) {
+					return err
+				}
+
+				p.Name = possibleName
 				skip = true
 			}
 		}
@@ -176,6 +194,7 @@ func (p *Page) tokenizeLine(line string) {
 	if !skip {
 		p.Other = append(p.Other, line)
 	}
+	return nil
 }
 
 func (p *Page) WriteFile(dir string) error {
@@ -207,6 +226,19 @@ func (p *Page) WriteFile(dir string) error {
 	return nil
 }
 
+func defaultPageName(pageDir string) string {
+	basePageDir := strings.Split(pageDir, ".")[0]
+
+	splitPath := strings.FieldsFunc(basePageDir, func(r rune) bool {
+		return r == '_' || r == ' ' || r == '-'
+	})
+	for i, p := range splitPath {
+		splitPath[i] = fmt.Sprintf("%s%s", strings.ToUpper(string(p[0])), p[1:])
+	}
+
+	return strings.Join(splitPath, "")
+}
+
 func ParsePage(pageDir string, webDir string) (*Page, error) {
 	file, err := os.Open(pageDir)
 	if err != nil {
@@ -218,11 +250,21 @@ func ParsePage(pageDir string, webDir string) (*Page, error) {
 	scanner.Split(bufio.ScanLines)
 
 	p := &Page{
-		webDir: webDir,
+		webDir:  webDir,
+		pageDir: pageDir,
 	}
 
 	for scanner.Scan() {
-		p.tokenizeLine(scanner.Text())
+		err := p.tokenizeLine(scanner.Text())
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// @@todo: validate that the page has a valid name,
+	// if not, make one out of the pageDir
+	if p.Name == "" {
+		p.Name = defaultPageName(pageDir)
 	}
 
 	return p, nil
