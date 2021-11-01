@@ -97,7 +97,9 @@ func watchDir(path string, fi os.FileInfo, err error) error {
 }
 
 var devCMD = &cobra.Command{
-	Use: "dev",
+	Use:   "dev",
+	Long:  "hot-reload bundle data given the specified pages in dev mode",
+	Short: "hot-reload bundle data given the specified pages in dev mode",
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Info("starting dev server...")
 		as := &internal.GenPagesSettings{

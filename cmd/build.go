@@ -9,7 +9,9 @@ import (
 )
 
 var buildCMD = &cobra.Command{
-	Use: "build",
+	Use:   "build",
+	Long:  "bundle data given the specified pages in prod mode",
+	Short: "bundle data given the specified pages in prod mode",
 	Run: func(cmd *cobra.Command, args []string) {
 		settings := &internal.GenPagesSettings{
 			PackageName:    viper.GetString("pacname"),
