@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/GuyARoss/orbit/internal"
+	"github.com/GuyARoss/orbit/internal/assets"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -23,6 +24,11 @@ var buildCMD = &cobra.Command{
 		}
 
 		err := settings.CleanPathing()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = assets.WriteAssetsDir(settings.AssetDir)
 		if err != nil {
 			log.Fatal(err)
 		}

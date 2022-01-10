@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/GuyARoss/orbit/internal"
+	"github.com/GuyARoss/orbit/internal/assets"
 	dependtree "github.com/GuyARoss/orbit/pkg/depend_tree"
 	"github.com/GuyARoss/orbit/pkg/log"
 	"github.com/fsnotify/fsnotify"
@@ -32,6 +33,11 @@ var watcher *fsnotify.Watcher
 
 func createSession(settings *internal.GenPagesSettings) (*devSession, error) {
 	err := settings.CleanPathing()
+	if err != nil {
+		return nil, err
+	}
+
+	err = assets.WriteAssetsDir(settings.AssetDir)
 	if err != nil {
 		return nil, err
 	}
