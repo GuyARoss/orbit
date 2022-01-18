@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -116,11 +117,16 @@ func (s *GenPagesSettings) CleanPathing() error {
 		}
 	}
 
-	os.Mkdir(".orbit", 0755)
-	os.Mkdir(".orbit/base", 0755)
-	os.Mkdir(".orbit/base/pages", 0755)
-	os.Mkdir(".orbit/dist", 0755)
-	os.Mkdir(".orbit/assets", 0755)
+	dirs := []string{".orbit", ".orbit/base", ".orbit/base/pages", ".orbit/dist", ".orbit/assets"}
+	for _, dir := range dirs {
+		_, err := os.Stat(dir)
+		if errors.Is(err, os.ErrNotExist) {
+			err := os.Mkdir(dir, 0755)
+			if err != nil {
+				return err
+			}
+		}
+	}
 
 	return nil
 }

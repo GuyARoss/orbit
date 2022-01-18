@@ -2,6 +2,7 @@ package assets
 
 import (
 	"embed"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -16,7 +17,14 @@ func WriteAssetsDir(toDir string) error {
 		return err
 	}
 
-	err = os.Mkdir(toDir, 0755)
+	_, err = os.Stat(toDir)
+	if errors.Is(err, os.ErrNotExist) {
+		err := os.Mkdir(toDir, 0755)
+		if err != nil {
+			return err
+		}
+	}
+
 	if err != nil {
 		return err
 	}
