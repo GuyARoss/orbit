@@ -5,7 +5,6 @@ import (
 	"os/exec"
 
 	"github.com/GuyARoss/orbit/internal"
-	"github.com/GuyARoss/orbit/internal/assets"
 	"github.com/GuyARoss/orbit/pkg/prompt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -20,7 +19,6 @@ var initCMD = &cobra.Command{
 			OutDir:         viper.GetString("out"),
 			WebDir:         viper.GetString("webdir"),
 			BundlerMode:    viper.GetString("mode"),
-			AssetDir:       viper.GetString("assetdir"),
 			NodeModulePath: viper.GetString("nodemod"),
 		}
 
@@ -64,11 +62,6 @@ var initCMD = &cobra.Command{
 		}
 
 		err = settings.CleanPathing()
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		err = assets.WriteAssetsDir(settings.AssetDir)
 		if err != nil {
 			log.Fatal(err)
 		}

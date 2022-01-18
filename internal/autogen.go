@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/GuyARoss/orbit/internal/assets"
 	"github.com/GuyARoss/orbit/pkg/bundler"
 	"github.com/GuyARoss/orbit/pkg/fs"
 	"github.com/GuyARoss/orbit/pkg/libgen"
@@ -24,7 +25,6 @@ type GenPagesSettings struct {
 	OutDir         string
 	WebDir         string
 	BundlerMode    string
-	AssetDir       string
 	NodeModulePath string
 }
 
@@ -38,8 +38,7 @@ func (s *GenPagesSettings) SetupPack() *PackSettings {
 			},
 			NodeModulesDir: s.NodeModulePath,
 		},
-		AssetDir: s.AssetDir,
-		WebDir:   s.WebDir,
+		WebDir: s.WebDir,
 		WebWrapper: &webwrapper.ReactWebWrap{
 			WebWrapSettings: &webwrapper.WebWrapSettings{
 				WebDir: s.WebDir,
@@ -48,12 +47,14 @@ func (s *GenPagesSettings) SetupPack() *PackSettings {
 	}
 }
 
-func (s *GenPagesSettings) PackWebDir(hook PackHooks) *AutoGenPages {
+// @@todo: decouple this mess
+func (s *GenPagesSettings) PackWebDir(hook PackHooks) (*AutoGenPages, error) {
 	settings := s.SetupPack()
 
-	// @@todo: look into making this a go-routine, then lock the resource
-	// for procedures that may use it
-	settings.CopyAssets()
+	err := assets.WriteAssetsDir(".orbit/assets")
+	if err != nil {
+		return nil, err
+	}
 
 	pageFiles := fs.DirFiles(fmt.Sprintf("%s/pages", s.WebDir))
 	pages, err := settings.PackMany(pageFiles, hook)
@@ -73,7 +74,7 @@ func (s *GenPagesSettings) PackWebDir(hook PackHooks) *AutoGenPages {
 
 	libStaticContent, parseErr := libgen.ParseStaticFile(".orbit/assets/orbit.go")
 	if parseErr != nil {
-		panic(parseErr)
+		return nil, parseErr
 	}
 
 	return &AutoGenPages{
@@ -84,7 +85,7 @@ func (s *GenPagesSettings) PackWebDir(hook PackHooks) *AutoGenPages {
 			PackageName: s.PackageName,
 		},
 		Pages: pages,
-	}
+	}, nil
 }
 
 func (s *GenPagesSettings) Repack(p *PackedComponent) error {

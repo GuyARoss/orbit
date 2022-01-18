@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/GuyARoss/orbit/internal"
-	"github.com/GuyARoss/orbit/internal/assets"
 	dependtree "github.com/GuyARoss/orbit/pkg/depend_tree"
 	"github.com/GuyARoss/orbit/pkg/log"
 	"github.com/fsnotify/fsnotify"
@@ -37,12 +36,10 @@ func createSession(settings *internal.GenPagesSettings) (*devSession, error) {
 		return nil, err
 	}
 
-	err = assets.WriteAssetsDir(settings.AssetDir)
+	lib, err := settings.PackWebDir(nil)
 	if err != nil {
 		return nil, err
 	}
-
-	lib := settings.PackWebDir(nil)
 
 	rootComponents := make(map[string]*internal.PackedComponent)
 	for _, p := range lib.Pages {
@@ -113,7 +110,6 @@ var devCMD = &cobra.Command{
 			OutDir:         viper.GetString("out"),
 			WebDir:         viper.GetString("webdir"),
 			BundlerMode:    viper.GetString("mode"),
-			AssetDir:       viper.GetString("assetdir"),
 			NodeModulePath: viper.GetString("nodemod"),
 		}
 

@@ -4,7 +4,6 @@ import (
 	"log"
 
 	"github.com/GuyARoss/orbit/internal"
-	"github.com/GuyARoss/orbit/internal/assets"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -19,7 +18,6 @@ var buildCMD = &cobra.Command{
 			OutDir:         viper.GetString("out"),
 			WebDir:         viper.GetString("webdir"),
 			BundlerMode:    viper.GetString("mode"),
-			AssetDir:       viper.GetString("assetdir"),
 			NodeModulePath: viper.GetString("nodemod"),
 		}
 
@@ -28,12 +26,11 @@ var buildCMD = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		err = assets.WriteAssetsDir(settings.AssetDir)
+		pages, err := settings.PackWebDir(&internal.DefaultPackHook{})
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		pages := settings.PackWebDir(&internal.DefaultPackHook{})
 		writeErr := pages.WriteOut()
 		if writeErr != nil {
 			log.Fatal(writeErr)
