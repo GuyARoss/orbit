@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 // **__END_STATIC__**
@@ -20,6 +21,7 @@ type RuntimeCtx struct {
 	RenderPage func(page PageRender, data interface{})
 	Request    *http.Request
 	Response   http.ResponseWriter
+	Slugs      map[string]string
 }
 
 type DefaultPage interface {
@@ -32,6 +34,25 @@ type Route struct {
 }
 
 func HandlePage(path string, dp DefaultPage) {
+	slugKeys := make(map[int]string, 0)
+
+	validInitial := make([]string, 0)
+	stillValid := true
+	if strings.Contains(path, "{") {
+		paths := strings.Split(path, "/")
+		for idx, p := range paths {
+			if strings.Contains(p, "{") {
+				stillValid = false
+				slugKeys[idx] = p[1 : len(p)-1]
+			}
+
+			if stillValid {
+				validInitial = append(validInitial, p)
+			}
+		}
+		path = fmt.Sprintf("%s/", strings.Join(validInitial, "/"))
+	}
+
 	http.HandleFunc(path, func(rw http.ResponseWriter, r *http.Request) {
 		renderPage := func(page PageRender, data interface{}) {
 			d, err := json.Marshal(data)
@@ -51,10 +72,22 @@ func HandlePage(path string, dp DefaultPage) {
 			rw.Write([]byte(html))
 		}
 
+		slugs := make(map[string]string)
+		if len(slugKeys) > 0 {
+			paths := strings.Split(r.URL.Path, "/")
+			for idx, p := range paths {
+				key := slugKeys[idx]
+				if key != "" {
+					slugs[key] = p
+				}
+			}
+		}
+
 		ctx := &RuntimeCtx{
 			RenderPage: renderPage,
 			Request:    r,
 			Response:   rw,
+			Slugs:      slugs,
 		}
 
 		dp.Handle(ctx)
