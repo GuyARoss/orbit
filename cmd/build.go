@@ -19,6 +19,7 @@ var buildCMD = &cobra.Command{
 			WebDir:         viper.GetString("webdir"),
 			BundlerMode:    viper.GetString("mode"),
 			NodeModulePath: viper.GetString("nodemod"),
+			PublicDir:      viper.GetString("publicdir"),
 		}
 
 		err := settings.CleanPathing()

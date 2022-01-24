@@ -52,6 +52,7 @@ type BundleGroup struct {
 	PackageName   string
 	BaseBundleOut string
 	BundleMode    string
+	PublicDir     string
 
 	pages []*page
 }
@@ -66,6 +67,12 @@ func (l *BundleGroup) CreateBundleLib() *LibOut {
 	if len(l.BaseBundleOut) > 0 {
 		out.WriteString("\n")
 		out.WriteString(fmt.Sprintf(`var bundleDir string = "%s"`, l.BaseBundleOut))
+		out.WriteString("\n\n")
+	}
+
+	if len(l.PublicDir) > 0 {
+		out.WriteString("\n")
+		out.WriteString(fmt.Sprintf(`var publicDir string = "%s"`, l.PublicDir))
 		out.WriteString("\n\n")
 	}
 

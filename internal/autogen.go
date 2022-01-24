@@ -26,6 +26,7 @@ type GenPagesSettings struct {
 	WebDir         string
 	BundlerMode    string
 	NodeModulePath string
+	PublicDir      string
 }
 
 func (s *GenPagesSettings) SetupPack() *PackSettings {
@@ -66,6 +67,7 @@ func (s *GenPagesSettings) PackWebDir(hook PackHooks) (*AutoGenPages, error) {
 		PackageName:   s.PackageName,
 		BaseBundleOut: ".orbit/dist",
 		BundleMode:    string(s.BundlerMode),
+		PublicDir:     s.PublicDir,
 	}
 
 	for _, p := range pages {

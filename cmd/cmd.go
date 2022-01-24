@@ -17,6 +17,7 @@ func init() {
 	var outDir string
 	var pacname string
 	var nodeModDir string
+	var publicDir string
 
 	buildCmds := [2]*cobra.Command{
 		buildCMD, devCMD,
@@ -35,6 +36,9 @@ func init() {
 
 		cmd.PersistentFlags().StringVar(&outDir, "out", "./orbit", "specifies the out directory of the generated code files")
 		viper.BindPFlag("out", cmd.PersistentFlags().Lookup("out"))
+
+		cmd.PersistentFlags().StringVar(&publicDir, "publicdir", "./public/index.html", "specifies the public directory for the base html webpage")
+		viper.BindPFlag("publicdir", cmd.PersistentFlags().Lookup("publicdir"))
 
 		cmd.PersistentFlags().StringVar(&pacname, "pacname", "orbit", "specifies the package name of the generated code files")
 		viper.BindPFlag("pacname", cmd.PersistentFlags().Lookup("pacname"))

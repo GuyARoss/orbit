@@ -4,7 +4,9 @@ package orbit
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 )
 
@@ -15,6 +17,8 @@ var bundleDir string = ".orbit/dist"
 type PageRender string
 
 var hotReloadPipePath string = ""
+
+var publicDir string = "./public/index.html"
 
 // **__START_STATIC__**
 type RuntimeCtx struct {
@@ -31,6 +35,58 @@ type DefaultPage interface {
 type Route struct {
 	Path string
 	Page DefaultPage
+}
+
+type htmlDoc struct {
+	Head []string
+	Body []string
+}
+
+func centerStr(str string, subStart string, subEnd string) string {
+	init := strings.Split(str, subStart)[1:]
+
+	return strings.Split(strings.Join(init, ""), subEnd)[0]
+}
+
+func (s *htmlDoc) build(data []byte, page PageRender) string {
+	return fmt.Sprintf(`
+	<!doctype html>
+	<html lang="en">
+			<head>
+				%s	
+				<script id="orbit_manifest" type="application/json">
+				%s
+				</script>
+			</head>
+		<body>
+			%s
+			<script src="/p/%s.js"></script>				
+		</body>
+	</html>
+	`, strings.Join(s.Head, ""), string(data), strings.Join(s.Body, ""), page)
+}
+
+func initHtmlDoc() (*htmlDoc, error) {
+	base := &htmlDoc{
+		Head: []string{`<meta charset="utf-8" />`},
+		Body: []string{
+			`<script src="https://unpkg.com/react/umd/react.production.min.js" crossorigin></script><script src="https://unpkg.com/react-dom/umd/react-dom.production.min.js" crossorigin></script><script src="https://unpkg.com/react-bootstrap@next/dist/react-bootstrap.min.js" crossorigin></script>`,
+			`<div id="root"></div>`,
+		},
+	}
+
+	_, err := os.Stat(publicDir)
+	if !os.IsNotExist(err) {
+		data, err := ioutil.ReadFile(publicDir)
+		if err != nil {
+			return base, err
+		}
+
+		base.Body = append(base.Body, centerStr(string(data), "<body>", "</body>"))
+		base.Head = append(base.Body, centerStr(string(data), "<head>", "</head>"))
+	}
+
+	return base, nil
 }
 
 func HandlePage(path string, dp DefaultPage) {
@@ -53,6 +109,11 @@ func HandlePage(path string, dp DefaultPage) {
 		path = fmt.Sprintf("%s/", strings.Join(validInitial, "/"))
 	}
 
+	doc, err := initHtmlDoc()
+	if err != nil {
+		return
+	}
+
 	http.HandleFunc(path, func(rw http.ResponseWriter, r *http.Request) {
 		renderPage := func(page PageRender, data interface{}) {
 			d, err := json.Marshal(data)
@@ -61,12 +122,7 @@ func HandlePage(path string, dp DefaultPage) {
 				return
 			}
 
-			html := fmt.Sprintf(`
-			<!doctype html><html lang="en"><head><meta charset="utf-8"><script id="orbit_manifest" type="application/json">%s</script></head>
-			<body><script src="https://unpkg.com/react/umd/react.production.min.js" crossorigin></script><script src="https://unpkg.com/react-dom/umd/react-dom.production.min.js" crossorigin></script><script src="https://unpkg.com/react-bootstrap@next/dist/react-bootstrap.min.js" crossorigin></script>			
-			<div id="root"></div><script src="/p/%s.js"></script>				
-			</body></html>
-			`, string(d), page)
+			html := doc.build(d, page)
 
 			rw.WriteHeader(http.StatusOK)
 			rw.Write([]byte(html))

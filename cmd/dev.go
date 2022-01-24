@@ -111,6 +111,7 @@ var devCMD = &cobra.Command{
 			WebDir:         viper.GetString("webdir"),
 			BundlerMode:    viper.GetString("mode"),
 			NodeModulePath: viper.GetString("nodemod"),
+			PublicDir:      viper.GetString("publicdir"),
 		}
 
 		s, err := createSession(as)
