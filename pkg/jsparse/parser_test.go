@@ -15,6 +15,16 @@ func Test_formatImportLine_DefaultPkg(t *testing.T) {
 	}
 }
 
+func Test_formatImportLine_AlternateEOLChar(t *testing.T) {
+	p := Page{webDir: "test"}
+	got := p.formatImportLine("import { withMemo } from 'video-react';")
+	expected := "import { withMemo } from 'video-react';"
+
+	if got.FinalStatement != expected {
+		t.Errorf("got %s, expected %s", got.FinalStatement, expected)
+	}
+}
+
 func Test_formatImportLine_DefaultLocal(t *testing.T) {
 	p := Page{webDir: "test"}
 	got := p.formatImportLine("import React from '../react'")
@@ -71,6 +81,17 @@ func Test_cleanExportDefaultName(t *testing.T) {
 	_, err = extractDefaultExportName("export default test")
 	if !errors.Is(ErrExportNotCapitalized, err) {
 		t.Error("expected non capitalized component to raise exception")
+	}
+}
+
+func Test_cleanExportDefaultNameExtraSpace(t *testing.T) {
+	name, err := extractDefaultExportName("export default SomethingCool  ")
+	if err != nil {
+		t.Error("error exception should not be thrown", err)
+	}
+
+	if name != "SomethingCool" {
+		t.Errorf("expected %s got %s", "SomethingCool", name)
 	}
 }
 

@@ -55,7 +55,7 @@ var ErrExportNotCapitalized = errors.New("default export of component should be 
 
 func extractDefaultExportName(line string) (string, error) {
 	exportData := strings.Split(line, string(ExportToken))
-	possibleName := exportData[1][1:]
+	possibleName := strings.Trim(exportData[1][1:], " ")
 
 	if string(possibleName[0]) != strings.ToUpper(string(possibleName[0])) {
 		return "", ErrExportNotCapitalized
@@ -103,9 +103,24 @@ func pageExtension(importPath string) string {
 	return extension
 }
 
+func pathToken(line string) rune {
+	for i := len(line) - 1; i > 0; i-- {
+		if string(line[i]) == `'` {
+			return rune('\u0027')
+		}
+
+		if string(line[i]) == `"` {
+			return rune('\u0022')
+		}
+	}
+
+	// @@todo raise an exception here
+	return rune('\u0022')
+}
+
 func lineImportType(line string) ImportType {
-	// @@todo validate that the pathToken is valid
-	pathToken := line[len(line)-1]
+	pathToken := pathToken(line)
+
 	path := filterCenter(line, rune(pathToken), rune(pathToken))
 
 	if path[1] == '.' || path[1] == '/' {
