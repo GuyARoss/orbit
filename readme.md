@@ -19,10 +19,11 @@ in the directory you wish to use it in (and call it directly) or put it into you
 // example_page.jsx
 import React from 'react'
 
-const ExamplePage = () => {
+const ExamplePage = ({name}) => {
     return (
         <>
             <h1> Example! </h1>
+            <p> {name} </p>
         </>
     )
 }
@@ -37,7 +38,8 @@ type ExamplePageHandler struct {}
 
 // orbit is referenced from the golang files that the orbit build command generates
 func (e *ExamplePageHandler) Handle(c *orbit.RuntimeCtx) {
-    propData := make(interface{})
+    propData := make(map[string]interface{})
+    propData["name"] = "Bob"
 
     c.RenderPage(orbit.ExamplePage, propData)
 }
