@@ -82,7 +82,11 @@ func (l *BundleGroup) CreateBundleLib() *LibOut {
 			out.WriteString("const ( \n")
 		}
 
-		out.WriteString(fmt.Sprintf(`	%sPage PageRender = "%s"`, p.name, p.bundleKey))
+		if !strings.Contains(p.name, "Page") {
+			p.name = fmt.Sprintf("%sPage", p.name)
+		}
+
+		out.WriteString(fmt.Sprintf(`	%s PageRender = "%s"`, p.name, p.bundleKey))
 		out.WriteString("\n")
 
 		if idx == len(l.pages)-1 {
