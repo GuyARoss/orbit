@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/GuyARoss/orbit/internal"
+	"github.com/GuyARoss/orbit/pkg/runtimeanalytics"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -21,6 +23,11 @@ var buildCMD = &cobra.Command{
 			NodeModulePath: viper.GetString("nodemod"),
 			PublicDir:      viper.GetString("publicdir"),
 		}
+		analytics := &runtimeanalytics.RuntimeAnalytics{}
+
+		if viper.GetBool("debugduration") {
+			analytics.StartCapture()
+		}
 
 		err := settings.CleanPathing()
 		if err != nil {
@@ -35,6 +42,11 @@ var buildCMD = &cobra.Command{
 		writeErr := pages.WriteOut()
 		if writeErr != nil {
 			log.Fatal(writeErr)
+		}
+
+		if viper.GetBool("debugduration") {
+			end := analytics.StopCapture()
+			fmt.Printf("total build duration: %fms\n", end)
 		}
 	},
 }
