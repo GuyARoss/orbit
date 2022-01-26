@@ -3,6 +3,7 @@ package internal
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/GuyARoss/orbit/pkg/bundler"
@@ -150,37 +151,57 @@ func (s *PackedComponent) Repack(hooks PackHooks) error {
 	return nil
 }
 
+type concPack struct {
+	m           *sync.Mutex
+	settings    *PackSettings
+	packedPages []*PackedComponent
+	packMap     map[string]bool
+}
+
+func (p *concPack) PackSingle(wg *sync.WaitGroup, dir string, hooks PackHooks) {
+	page, err := p.settings.PackSingle(dir)
+	if p.packMap[page.PageName] {
+		return
+	}
+
+	if err != nil {
+		// @@report error with packing via channel
+		return
+	}
+
+	p.m.Lock()
+	p.packedPages = append(p.packedPages, page)
+	p.packMap[page.PageName] = true
+
+	if hooks != nil {
+		hooks.Pre(dir)
+		hooks.Post(page.PackDurationSeconds)
+	}
+	p.m.Unlock()
+
+	wg.Done()
+}
+
 // PackPages
 // Packs the provoided file paths into the orbit root directory
 // Process includes:
 // - Wrapping the component with the specified front-end web framework.
 // - Bundling the component with the specified javascript bundler.
 func (s *PackSettings) PackMany(pages []string, hooks PackHooks) ([]*PackedComponent, error) {
-	packedPages := make([]*PackedComponent, 0)
-	packMap := make(map[string]bool)
-
-	for _, dir := range pages {
-		if hooks != nil {
-			hooks.Pre(dir)
-		}
-
-		// @@todo(guy): make this concurrent
-		page, err := s.PackSingle(dir)
-		if packMap[page.PageName] {
-			continue
-		}
-
-		// consider adding a flag for skipping in iteration rather than just returning
-		if err != nil {
-			return packedPages, err
-		}
-		packedPages = append(packedPages, page)
-		packMap[page.PageName] = true
-
-		if hooks != nil {
-			hooks.Post(page.PackDurationSeconds)
-		}
+	cp := &concPack{
+		m:           &sync.Mutex{},
+		settings:    s,
+		packedPages: make([]*PackedComponent, 0),
+		packMap:     make(map[string]bool),
 	}
 
-	return packedPages, nil
+	wg := &sync.WaitGroup{}
+	for _, dir := range pages {
+		wg.Add(1)
+		go cp.PackSingle(wg, dir, hooks)
+	}
+
+	wg.Wait()
+
+	return cp.packedPages, nil
 }
