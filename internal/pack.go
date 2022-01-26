@@ -159,12 +159,6 @@ type concPack struct {
 }
 
 func (p *concPack) PackSingle(wg *sync.WaitGroup, dir string, hooks PackHooks) {
-	p.m.Lock()
-	if hooks != nil {
-		hooks.Pre(dir)
-	}
-	p.m.Unlock()
-
 	page, err := p.settings.PackSingle(dir)
 	if p.packMap[page.PageName] {
 		return
@@ -180,6 +174,7 @@ func (p *concPack) PackSingle(wg *sync.WaitGroup, dir string, hooks PackHooks) {
 	p.packMap[page.PageName] = true
 
 	if hooks != nil {
+		hooks.Pre(dir)
 		hooks.Post(page.PackDurationSeconds)
 	}
 	p.m.Unlock()
@@ -203,8 +198,10 @@ func (s *PackSettings) PackMany(pages []string, hooks PackHooks) ([]*PackedCompo
 	wg := &sync.WaitGroup{}
 	for _, dir := range pages {
 		wg.Add(1)
-		cp.PackSingle(wg, dir, hooks)
+		go cp.PackSingle(wg, dir, hooks)
 	}
+
+	wg.Wait()
 
 	return cp.packedPages, nil
 }
