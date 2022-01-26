@@ -89,7 +89,7 @@ func initHtmlDoc() (*htmlDoc, error) {
 	return base, nil
 }
 
-func HandlePage(path string, dp DefaultPage) {
+func HandleFunc(path string, handler func(c *RuntimeCtx)) {
 	slugKeys := make(map[int]string, 0)
 
 	validInitial := make([]string, 0)
@@ -146,8 +146,12 @@ func HandlePage(path string, dp DefaultPage) {
 			Slugs:      slugs,
 		}
 
-		dp.Handle(ctx)
+		handler(ctx)
 	})
+}
+
+func HandlePage(path string, dp DefaultPage) {
+	HandleFunc(path, dp.Handle)
 }
 
 func Start(port int) {
