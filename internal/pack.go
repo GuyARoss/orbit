@@ -44,6 +44,7 @@ type PackedComponent struct {
 	Dependencies        []*jsparse.ImportDependency
 
 	settings *PackSettings
+	m        *sync.Mutex
 }
 
 // PackSingle
@@ -87,6 +88,7 @@ func (s *PackSettings) PackSingle(pageFilePath string) (*PackedComponent, error)
 		OriginalFilePath:    pageFilePath,
 		PackDurationSeconds: time.Since(startTime).Seconds(),
 		settings:            s,
+		m:                   &sync.Mutex{},
 	}, bundleErr
 }
 
@@ -108,9 +110,6 @@ func (s *DefaultPackHook) Post(elapsedTime float64) {
 }
 
 func (s *PackedComponent) Repack(hooks PackHooks) error {
-	if hooks != nil {
-		hooks.Pre(s.OriginalFilePath)
-	}
 	startTime := time.Now()
 
 	page, err := jsparse.ParsePage(s.OriginalFilePath, s.settings.WebDir)
@@ -128,12 +127,17 @@ func (s *PackedComponent) Repack(hooks PackHooks) error {
 		return err
 	}
 
+	s.m.Lock()
 	bundlePageErr := page.WriteFile(resource.BundleFilePath)
+	s.m.Unlock()
 	if bundlePageErr != nil {
 		return bundlePageErr
 	}
 
+	s.m.Lock()
 	configErr := resource.ConfiguratorPage.WriteFile(resource.ConfiguratorFilePath)
+	s.m.Unlock()
+
 	if configErr != nil {
 		return configErr
 	}
@@ -144,9 +148,16 @@ func (s *PackedComponent) Repack(hooks PackHooks) error {
 	}
 	s.PackDurationSeconds = time.Since(startTime).Seconds()
 
+	s.m.Lock()
+
+	if hooks != nil {
+		hooks.Pre(s.OriginalFilePath)
+	}
 	if hooks != nil {
 		hooks.Post(s.PackDurationSeconds)
 	}
+
+	s.m.Unlock()
 
 	return nil
 }
