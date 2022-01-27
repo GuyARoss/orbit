@@ -20,6 +20,15 @@ var hotReloadPipePath string = ""
 
 var publicDir string = "./public/index.html"
 
+type BundleMode int32
+
+const (
+	DevBundleMode  BundleMode = 0
+	ProdBundleMode BundleMode = 1
+)
+
+var CurrentDevMode BundleMode
+
 // **__START_STATIC__**
 type RuntimeCtx struct {
 	RenderPage func(page PageRender, data interface{})
@@ -52,12 +61,12 @@ func (s *htmlDoc) build(data []byte, page PageRender) string {
 	return fmt.Sprintf(`
 	<!doctype html>
 	<html lang="en">
-			<head>
-				%s	
-				<script id="orbit_manifest" type="application/json">
-				%s
-				</script>
-			</head>
+		<head>
+			%s	
+			<script id="orbit_manifest" type="application/json">
+			%s
+			</script>
+		</head>
 		<body>
 			%s
 			<script src="/p/%s.js"></script>				
@@ -73,6 +82,10 @@ func initHtmlDoc() (*htmlDoc, error) {
 			`<script src="https://unpkg.com/react/umd/react.production.min.js" crossorigin></script><script src="https://unpkg.com/react-dom/umd/react-dom.production.min.js" crossorigin></script><script src="https://unpkg.com/react-bootstrap@next/dist/react-bootstrap.min.js" crossorigin></script>`,
 			`<div id="root"></div>`,
 		},
+	}
+
+	if CurrentDevMode == DevBundleMode {
+		base.Body = append(base.Body, `<script> const getProps = () => JSON.parse(document.getElementById("orbit_manifest").textContent) </script>`)
 	}
 
 	_, err := os.Stat(publicDir)
