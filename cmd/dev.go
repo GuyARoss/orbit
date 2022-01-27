@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/GuyARoss/orbit/internal"
@@ -26,6 +27,7 @@ type devSession struct {
 	sourceMap       *dependtree.DependencySourceMap
 
 	lastProcessedFile *proccessedChangeRequest
+	m                 *sync.Mutex
 }
 
 var watcher *fsnotify.Watcher
@@ -56,23 +58,26 @@ func createSession(settings *internal.GenPagesSettings) (*devSession, error) {
 		rootComponents:    rootComponents,
 		sourceMap:         sourceMap,
 		lastProcessedFile: &proccessedChangeRequest{},
+		m:                 &sync.Mutex{},
 	}, nil
 }
 
-func (s *devSession) executeChangeRequest(file string) error {
-	// todo: ability to provide this time from an argv
+func (s *devSession) executeChangeRequest(file string, timeoutDuration time.Duration) error {
 	if file == s.lastProcessedFile.FileName &&
-		time.Since(s.lastProcessedFile.ProcessedAt).Seconds() < 20 {
+		time.Since(s.lastProcessedFile.ProcessedAt).Seconds() < timeoutDuration.Seconds() {
 		return nil
 	}
 
 	component := s.rootComponents[fmt.Sprintf("./%s", file)]
 	if component != nil {
-		s.pageGenSettings.Repack(component)
+		s.m.Lock()
 		s.lastProcessedFile = &proccessedChangeRequest{
 			FileName:    file,
 			ProcessedAt: time.Now(),
 		}
+		s.m.Unlock()
+
+		s.pageGenSettings.Repack(component)
 	}
 
 	sources := s.sourceMap.FindRoot(file)
@@ -80,11 +85,14 @@ func (s *devSession) executeChangeRequest(file string) error {
 		component = s.rootComponents[source]
 
 		if component != nil {
-			s.pageGenSettings.Repack(component)
+			s.m.Lock()
 			s.lastProcessedFile = &proccessedChangeRequest{
 				FileName:    file,
 				ProcessedAt: time.Now(),
 			}
+			s.m.Unlock()
+
+			s.pageGenSettings.Repack(component)
 		}
 	}
 
@@ -133,16 +141,12 @@ var devCMD = &cobra.Command{
 
 		go func() {
 			for {
-				time.Sleep(2 * time.Second)
+				time.Sleep(time.Duration(viper.GetInt("timeout")) * time.Second)
 
 				select {
 				case e := <-watcher.Events:
 					if !strings.Contains(e.Name, "node_modules") || !strings.Contains(e.Name, ".orbit") {
-						err := s.executeChangeRequest(e.Name)
-						if err != nil {
-							log.Error(err.Error())
-							os.Exit(1)
-						}
+						go s.executeChangeRequest(e.Name, time.Duration(viper.GetInt("samefiletimeout"))*time.Second)
 					}
 				case err := <-watcher.Errors:
 					log.Error(fmt.Sprintf("watcher failed %s", err.Error()))
@@ -155,5 +159,14 @@ var devCMD = &cobra.Command{
 }
 
 func init() {
+	var timeoutDuration int
+	var samefileTimeout int
+
+	devCMD.PersistentFlags().IntVar(&timeoutDuration, "timeout", 2, "specifies the timeout duration in seconds until a change will be detected")
+	viper.BindPFlag("timeout", devCMD.PersistentFlags().Lookup("timeout"))
+
+	devCMD.PersistentFlags().IntVar(&samefileTimeout, "samefiletimeout", 5, "specifies the timeout duration in seconds until a change will be detected for repeating files")
+	viper.BindPFlag("samefiletimeout", devCMD.PersistentFlags().Lookup("samefiletimeout"))
+
 	RootCMD.AddCommand(devCMD)
 }
