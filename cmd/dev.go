@@ -28,6 +28,7 @@ type devSession struct {
 
 	lastProcessedFile *proccessedChangeRequest
 	m                 *sync.Mutex
+	packSettings      *internal.PackSettings
 }
 
 var watcher *fsnotify.Watcher
@@ -59,6 +60,7 @@ func createSession(settings *internal.GenPagesSettings) (*devSession, error) {
 		sourceMap:         sourceMap,
 		lastProcessedFile: &proccessedChangeRequest{},
 		m:                 &sync.Mutex{},
+		packSettings:      settings.SetupPack(),
 	}, nil
 }
 
@@ -81,22 +83,16 @@ func (s *devSession) executeChangeRequest(file string, timeoutDuration time.Dura
 	}
 
 	sources := s.sourceMap.FindRoot(file)
-	for _, source := range sources {
+
+	acticeNodes := make([]*internal.PackedComponent, len(sources))
+	for idx, source := range sources {
 		component = s.rootComponents[source]
 
-		if component != nil {
-			s.m.Lock()
-			s.lastProcessedFile = &proccessedChangeRequest{
-				FileName:    file,
-				ProcessedAt: time.Now(),
-			}
-			s.m.Unlock()
-
-			s.pageGenSettings.Repack(component)
-		}
+		acticeNodes[idx] = component
 	}
 
-	return nil
+	cl := internal.PackedComponentList(acticeNodes)
+	return cl.RepackMany(&internal.DefaultPackHook{})
 }
 
 func watchDir(path string, fi os.FileInfo, err error) error {

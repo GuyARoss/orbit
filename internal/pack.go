@@ -49,6 +49,7 @@ type PackedComponent struct {
 
 // PackSingle
 // Packs the a single file paths into the orbit root directory
+//
 // Process includes:
 // - Wrapping the component with the specified front-end web framework.
 // - Bundling the component with the specified javascript bundler.
@@ -109,7 +110,7 @@ func (s *DefaultPackHook) Post(elapsedTime float64) {
 	log.Success(fmt.Sprintf("completed in %fs\n", elapsedTime))
 }
 
-func (s *PackedComponent) Repack(hooks PackHooks) error {
+func (s *PackedComponent) Repack() error {
 	startTime := time.Now()
 
 	page, err := jsparse.ParsePage(s.OriginalFilePath, s.settings.WebDir)
@@ -148,16 +149,26 @@ func (s *PackedComponent) Repack(hooks PackHooks) error {
 	}
 	s.PackDurationSeconds = time.Since(startTime).Seconds()
 
-	s.m.Lock()
+	return nil
+}
 
-	if hooks != nil {
-		hooks.Pre(s.OriginalFilePath)
-	}
-	if hooks != nil {
-		hooks.Post(s.PackDurationSeconds)
+func (s *PackedComponent) RepackForWaitGroup(wg *sync.WaitGroup) error {
+	err := s.Repack()
+	wg.Done()
+
+	return err
+}
+
+type PackedComponentList []*PackedComponent
+
+func (l *PackedComponentList) RepackMany(hooks PackHooks) error {
+	wg := &sync.WaitGroup{}
+	for _, comp := range *l {
+		wg.Add(1)
+		go comp.RepackForWaitGroup(wg)
 	}
 
-	s.m.Unlock()
+	wg.Wait()
 
 	return nil
 }

@@ -91,7 +91,14 @@ func (s *GenPagesSettings) PackWebDir(hook PackHooks) (*AutoGenPages, error) {
 }
 
 func (s *GenPagesSettings) Repack(p *PackedComponent) error {
-	return p.Repack(&DefaultPackHook{})
+	h := &DefaultPackHook{}
+	h.Pre(p.OriginalFilePath)
+
+	r := p.Repack()
+
+	h.Post(p.PackDurationSeconds)
+
+	return r
 }
 
 func (s *AutoGenPages) WriteOut() error {
