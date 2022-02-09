@@ -30,4 +30,5 @@ type BundledResource struct {
 type Bundler interface {
 	Setup(settings *BundleSetupSettings) (*BundledResource, error)
 	Bundle(configuratorFilePath string) error
+	NodeDependencies() map[string]string
 }

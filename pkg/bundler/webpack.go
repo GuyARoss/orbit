@@ -57,3 +57,21 @@ func (b *WebPackBundler) Bundle(configuratorFilePath string) error {
 
 	return err
 }
+
+func (b *WebPackBundler) NodeDependencies() map[string]string {
+	return map[string]string{
+		"@babel/core": "^7.11.1",
+		"@babel/plugin-proposal-export-default-from": "^7.12.13",
+		"@babel/polyfill":     "^7.12.1",
+		"@babel/preset-env":   "^7.11.0",
+		"@babel/preset-react": "^7.10.4",
+		"babel-loader":        "^8.1.0",
+		"css-loader":          "^4.2.2",
+		"html-loader":         "^1.1.0",
+		"html-webpack-plugin": "^4.3.0",
+		"style-loader":        "^1.2.1",
+		"webpack":             "^4.44.1",
+		"webpack-cli":         "^3.3.12",
+		"webpack-merge":       "^5.8.0",
+	}
+}

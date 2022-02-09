@@ -23,3 +23,16 @@ func (s *ReactWebWrap) Apply(page jsparse.JSDocument, toFilePath string) jsparse
 
 	return page
 }
+
+func (s *ReactWebWrap) NodeDependencies() map[string]string {
+	return map[string]string{
+		"react":            "^16.13.1",
+		"react-dom":        "^16.13.1",
+		"react-hot-loader": "^4.12.21",
+		"react-router-dom": "^5.2.0",
+	}
+}
+
+func (s *ReactWebWrap) DoesSatisfyConstraints(fileExtension string) bool {
+	return false
+}

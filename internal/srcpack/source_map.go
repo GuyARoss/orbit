@@ -1,9 +1,8 @@
-package srcmap
+package srcpack
 
 import (
 	"sync"
 
-	"github.com/GuyARoss/orbit/internal"
 	dependtree "github.com/GuyARoss/orbit/pkg/depend_tree"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 )
@@ -31,7 +30,7 @@ func flatPackedImports(dependencies []*jsparse.ImportDependency) []string {
 	return finalDependendices
 }
 
-func (s *DependencySettings) cacheRootDirList(c []*internal.PackedComponent, wg *sync.WaitGroup) {
+func (s *DependencySettings) cacheRootDirList(c []*Component, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	lst := make([]string, len(c))
@@ -42,7 +41,7 @@ func (s *DependencySettings) cacheRootDirList(c []*internal.PackedComponent, wg 
 	s.dirList = &lst
 }
 
-func (s *DependencySettings) cacheRootPathDependencyMap(c []*internal.PackedComponent, wg *sync.WaitGroup) {
+func (s *DependencySettings) cacheRootPathDependencyMap(c []*Component, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	m := make(map[string][]string)
@@ -74,7 +73,7 @@ func (s *DependencySettings) PathDependencies(path string) ([]string, error) {
 	return flatPackedImports(page.Imports()), nil
 }
 
-func New(path string, c []*internal.PackedComponent, webDirPath string) (*dependtree.DependencySourceMap, error) {
+func New(path string, c []*Component, webDirPath string) (*dependtree.DependencySourceMap, error) {
 	var wg sync.WaitGroup
 
 	dependSettings := &DependencySettings{
