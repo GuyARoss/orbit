@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/GuyARoss/orbit/internal"
+	"github.com/GuyARoss/orbit/internal/srcmap"
 	dependtree "github.com/GuyARoss/orbit/pkg/depend_tree"
 	"github.com/GuyARoss/orbit/pkg/log"
 	"github.com/fsnotify/fsnotify"
@@ -46,10 +47,10 @@ func createSession(settings *internal.GenPagesSettings) (*devSession, error) {
 
 	rootComponents := make(map[string]*internal.PackedComponent)
 	for _, p := range lib.Pages {
-		rootComponents[p.OriginalFilePath] = p
+		rootComponents[p.OriginalFilePath()] = p
 	}
 
-	sourceMap, err := internal.CreateSourceMap(settings.WebDir, lib.Pages, settings.WebDir)
+	sourceMap, err := srcmap.New(settings.WebDir, lib.Pages, settings.WebDir)
 	if err != nil {
 		return nil, err
 	}
@@ -84,14 +85,14 @@ func (s *devSession) executeChangeRequest(file string, timeoutDuration time.Dura
 
 	sources := s.sourceMap.FindRoot(file)
 
-	acticeNodes := make([]*internal.PackedComponent, len(sources))
+	activeNodes := make([]*internal.PackedComponent, len(sources))
 	for idx, source := range sources {
 		component = s.rootComponents[source]
 
-		acticeNodes[idx] = component
+		activeNodes[idx] = component
 	}
 
-	cl := internal.PackedComponentList(acticeNodes)
+	cl := internal.PackedComponentList(activeNodes)
 	return cl.RepackMany(&internal.DefaultPackHook{})
 }
 

@@ -2,7 +2,6 @@ package internal
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -11,7 +10,6 @@ import (
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/log"
 	webwrapper "github.com/GuyARoss/orbit/pkg/web_wrapper"
-	"github.com/google/uuid"
 )
 
 type PackSettings struct {
@@ -20,6 +18,7 @@ type PackSettings struct {
 
 	AssetDir string
 	WebDir   string
+	JsParser jsparse.JSParser
 }
 
 func (s *PackSettings) CopyAssets() ([]*fs.CopyResults, error) {
@@ -28,44 +27,44 @@ func (s *PackSettings) CopyAssets() ([]*fs.CopyResults, error) {
 	return results, nil
 }
 
-func hashKey(name string) string {
-	id := uuid.NewSHA1(uuid.NameSpaceDNS, []byte(name))
-
-	return strings.ReplaceAll(id.String(), "-", "")
-}
-
 // PackedComponent
 // Web-Component that has been successfully ran, and output from a packing method.
 type PackedComponent struct {
 	PageName            string
 	BundleKey           string
-	OriginalFilePath    string
 	PackDurationSeconds float64
-	Dependencies        []*jsparse.ImportDependency
 
-	settings *PackSettings
-	m        *sync.Mutex
+	dependencies     []*jsparse.ImportDependency
+	originalFilePath string
+	settings         *PackSettings
+	m                *sync.Mutex
 }
 
-// PackSingle
-// Packs the a single file paths into the orbit root directory
-//
+func (s *PackedComponent) OriginalFilePath() string {
+	return s.originalFilePath
+}
+
+func (s *PackedComponent) Dependencies() []*jsparse.ImportDependency {
+	return s.dependencies
+}
+
+// PackSingle Packs the a single file paths into the orbit root directory
 // Process includes:
 // - Wrapping the component with the specified front-end web framework.
 // - Bundling the component with the specified javascript bundler.
 func (s *PackSettings) PackSingle(pageFilePath string) (*PackedComponent, error) {
 	startTime := time.Now()
-	page, err := jsparse.ParsePage(pageFilePath, s.WebDir)
+
+	page, err := s.JsParser.Parse(pageFilePath, s.WebDir)
 	if err != nil {
 		return nil, err
 	}
 
 	page = s.WebWrapper.Apply(page, pageFilePath)
 
-	bundleKey := hashKey(page.Name)
 	resource, err := s.Bundler.Setup(&bundler.BundleSetupSettings{
 		FileName:  pageFilePath,
-		BundleKey: bundleKey,
+		BundleKey: page.Key(),
 	})
 	if err != nil {
 		return nil, err
@@ -83,11 +82,11 @@ func (s *PackSettings) PackSingle(pageFilePath string) (*PackedComponent, error)
 
 	bundleErr := s.Bundler.Bundle(resource.ConfiguratorFilePath)
 	return &PackedComponent{
-		PageName:            page.Name,
-		Dependencies:        page.Imports,
-		BundleKey:           bundleKey,
-		OriginalFilePath:    pageFilePath,
+		PageName:            page.Name(),
+		BundleKey:           page.Key(),
 		PackDurationSeconds: time.Since(startTime).Seconds(),
+		dependencies:        page.Imports(),
+		originalFilePath:    pageFilePath,
 		settings:            s,
 		m:                   &sync.Mutex{},
 	}, bundleErr
@@ -113,14 +112,16 @@ func (s *DefaultPackHook) Post(elapsedTime float64) {
 func (s *PackedComponent) Repack() error {
 	startTime := time.Now()
 
-	page, err := jsparse.ParsePage(s.OriginalFilePath, s.settings.WebDir)
+	// parse original page
+	page, err := s.settings.JsParser.Parse(s.originalFilePath, s.settings.WebDir)
 	if err != nil {
 		return err
 	}
 
-	page = s.settings.WebWrapper.Apply(page, s.OriginalFilePath)
+	// apply the nessasacary requirements for the web framework to the original page
+	page = s.settings.WebWrapper.Apply(page, s.originalFilePath)
 	resource, err := s.settings.Bundler.Setup(&bundler.BundleSetupSettings{
-		FileName:  s.OriginalFilePath,
+		FileName:  s.originalFilePath,
 		BundleKey: s.BundleKey,
 	})
 
@@ -131,6 +132,7 @@ func (s *PackedComponent) Repack() error {
 	s.m.Lock()
 	bundlePageErr := page.WriteFile(resource.BundleFilePath)
 	s.m.Unlock()
+
 	if bundlePageErr != nil {
 		return bundlePageErr
 	}

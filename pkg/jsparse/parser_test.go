@@ -6,7 +6,7 @@ import (
 )
 
 func Test_formatImportLine_DefaultPkg(t *testing.T) {
-	p := Page{webDir: "test"}
+	p := DefaultJSDocument{webDir: "test"}
 	got := p.formatImportLine("import React from 'react'")
 	expected := "import React from 'react'"
 
@@ -16,7 +16,7 @@ func Test_formatImportLine_DefaultPkg(t *testing.T) {
 }
 
 func Test_formatImportLine_AlternateEOLChar(t *testing.T) {
-	p := Page{webDir: "test"}
+	p := DefaultJSDocument{webDir: "test"}
 	got := p.formatImportLine("import { withMemo } from 'video-react';")
 	expected := "import { withMemo } from 'video-react';"
 
@@ -26,7 +26,7 @@ func Test_formatImportLine_AlternateEOLChar(t *testing.T) {
 }
 
 func Test_formatImportLine_DefaultLocal(t *testing.T) {
-	p := Page{webDir: "test"}
+	p := DefaultJSDocument{webDir: "test"}
 	got := p.formatImportLine("import React from '../react'")
 	expected := "import React from '../../../test/react.jsx'"
 
@@ -36,7 +36,7 @@ func Test_formatImportLine_DefaultLocal(t *testing.T) {
 }
 
 func Test_formatImportLine_AlternativeStrChar(t *testing.T) {
-	p := Page{webDir: "test"}
+	p := DefaultJSDocument{webDir: "test"}
 	got := p.formatImportLine("import React from \"../react\"")
 	expected := "import React from '../../../test/react.jsx'"
 
@@ -46,7 +46,7 @@ func Test_formatImportLine_AlternativeStrChar(t *testing.T) {
 }
 
 func Test_formatImportLine_ConstLocal(t *testing.T) {
-	p := Page{webDir: "test"}
+	p := DefaultJSDocument{webDir: "test"}
 	got := p.formatImportLine("import { tool } from '../tools/test'")
 	expected := "import { tool } from '../../../test/tools/test.jsx'"
 

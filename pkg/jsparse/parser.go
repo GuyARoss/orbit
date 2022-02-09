@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 // FunctionDefinition
@@ -31,10 +33,20 @@ type ImportDependency struct {
 	Type           ImportType
 }
 
-type Page struct {
-	Imports []*ImportDependency
-	Name    string
-	Other   []string
+type JSDocument interface {
+	WriteFile(string) error
+	Key() string
+	Name() string
+	Imports() []*ImportDependency
+	AddImport(*ImportDependency) []*ImportDependency
+	Other() []string
+	AddOther(string) []string
+}
+
+type DefaultJSDocument struct {
+	imports []*ImportDependency
+	name    string
+	other   []string
 
 	webDir  string
 	pageDir string
@@ -130,7 +142,7 @@ func lineImportType(line string) ImportType {
 	return ModuleImportType
 }
 
-func (p *Page) formatImportLine(line string) *ImportDependency {
+func (p *DefaultJSDocument) formatImportLine(line string) *ImportDependency {
 	importType := lineImportType(line)
 	if importType == ModuleImportType {
 		return &ImportDependency{
@@ -185,13 +197,13 @@ func (p *Page) formatImportLine(line string) *ImportDependency {
 	}
 }
 
-func (p *Page) tokenizeLine(line string) error {
+func (p *DefaultJSDocument) tokenizeLine(line string) error {
 	skip := false
 	for _, decToken := range declarationTokens {
 		if strings.Contains(line, string(decToken)) {
 			switch decToken {
 			case ImportToken:
-				p.Imports = append(p.Imports, p.formatImportLine(line))
+				p.imports = append(p.imports, p.formatImportLine(line))
 
 				skip = true
 			case ExportToken:
@@ -200,25 +212,25 @@ func (p *Page) tokenizeLine(line string) error {
 					return err
 				}
 
-				p.Name = possibleName
+				p.name = possibleName
 				skip = true
 			}
 		}
 	}
 
 	if !skip {
-		p.Other = append(p.Other, line)
+		p.AddOther(line)
 	}
 	return nil
 }
 
-func (p *Page) WriteFile(dir string) error {
+func (p *DefaultJSDocument) WriteFile(dir string) error {
 	out := strings.Builder{}
-	for _, imp := range p.Imports {
+	for _, imp := range p.imports {
 		out.WriteString(fmt.Sprintf("%s\n", imp.FinalStatement))
 	}
 
-	for _, other := range p.Other {
+	for _, other := range p.Other() {
 		out.WriteString(fmt.Sprintf("%s\n", other))
 	}
 
@@ -242,11 +254,14 @@ func (p *Page) WriteFile(dir string) error {
 }
 
 func defaultPageName(pageDir string) string {
+	// @@todo: validate that the DefaultJSDocument has a valid name,
+	// if not, make one out of the pageDir
 	basePageDir := strings.Split(pageDir, ".")[0]
 
 	splitPath := strings.FieldsFunc(basePageDir, func(r rune) bool {
 		return r == '_' || r == ' ' || r == '-'
 	})
+
 	for i, p := range splitPath {
 		splitPath[i] = fmt.Sprintf("%s%s", strings.ToUpper(string(p[0])), p[1:])
 	}
@@ -254,8 +269,17 @@ func defaultPageName(pageDir string) string {
 	return strings.Join(splitPath, "")
 }
 
-func ParsePage(pageDir string, webDir string) (*Page, error) {
-	file, err := os.Open(pageDir)
+type JSParser interface {
+	Parse(string, string) (JSDocument, error)
+}
+
+type JSFileParser struct {
+	pageDir string
+	webDir  string
+}
+
+func (p *JSFileParser) Parse(pageDir string, webDir string) (JSDocument, error) {
+	file, err := os.Open(p.pageDir)
 	if err != nil {
 		return nil, err
 	}
@@ -264,23 +288,51 @@ func ParsePage(pageDir string, webDir string) (*Page, error) {
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
 
-	p := &Page{
-		webDir:  webDir,
-		pageDir: pageDir,
+	page := &DefaultJSDocument{
+		webDir:  p.webDir,
+		pageDir: p.pageDir,
 	}
 
 	for scanner.Scan() {
-		err := p.tokenizeLine(scanner.Text())
+		err := page.tokenizeLine(scanner.Text())
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	// @@todo: validate that the page has a valid name,
-	// if not, make one out of the pageDir
-	if p.Name == "" {
-		p.Name = defaultPageName(pageDir)
+	if page.name == "" {
+		page.name = defaultPageName(p.pageDir)
 	}
 
-	return p, nil
+	return page, nil
+}
+
+func (p *DefaultJSDocument) Key() string {
+	id := uuid.NewSHA1(uuid.NameSpaceDNS, []byte(p.name))
+
+	return strings.ReplaceAll(id.String(), "-", "")
+}
+
+func (p *DefaultJSDocument) Name() string {
+	return p.name
+}
+
+func (p *DefaultJSDocument) AddImport(dependency *ImportDependency) []*ImportDependency {
+	p.imports = append(p.imports, dependency)
+
+	return p.imports
+}
+
+func (p *DefaultJSDocument) Imports() []*ImportDependency {
+	return p.imports
+}
+
+func (p *DefaultJSDocument) Other() []string {
+	return p.other
+}
+
+func (p *DefaultJSDocument) AddOther(new string) []string {
+	p.other = append(p.other, new)
+
+	return p.other
 }
