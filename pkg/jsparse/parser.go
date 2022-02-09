@@ -274,12 +274,10 @@ type JSParser interface {
 }
 
 type JSFileParser struct {
-	pageDir string
-	webDir  string
 }
 
 func (p *JSFileParser) Parse(pageDir string, webDir string) (JSDocument, error) {
-	file, err := os.Open(p.pageDir)
+	file, err := os.Open(pageDir)
 	if err != nil {
 		return nil, err
 	}
@@ -289,8 +287,8 @@ func (p *JSFileParser) Parse(pageDir string, webDir string) (JSDocument, error) 
 	scanner.Split(bufio.ScanLines)
 
 	page := &DefaultJSDocument{
-		webDir:  p.webDir,
-		pageDir: p.pageDir,
+		webDir:  webDir,
+		pageDir: pageDir,
 	}
 
 	for scanner.Scan() {
@@ -301,7 +299,7 @@ func (p *JSFileParser) Parse(pageDir string, webDir string) (JSDocument, error) 
 	}
 
 	if page.name == "" {
-		page.name = defaultPageName(p.pageDir)
+		page.name = defaultPageName(pageDir)
 	}
 
 	return page, nil
