@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/GuyARoss/orbit/internal"
+	"github.com/GuyARoss/orbit/internal/srcpack"
 	"github.com/GuyARoss/orbit/pkg/runtimeanalytics"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -34,7 +35,7 @@ var buildCMD = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		pages, err := settings.PackWebDir(&internal.DefaultPackHook{})
+		pages, err := settings.PackWebDir(&srcpack.DefaultHook{})
 		if err != nil {
 			log.Fatal(err)
 		}

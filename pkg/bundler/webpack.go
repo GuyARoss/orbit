@@ -15,15 +15,16 @@ type WebPackBundler struct {
 }
 
 func (b *WebPackBundler) Setup(settings *BundleSetupSettings) (*BundledResource, error) {
-	page := &jsparse.Page{}
-	page.Imports = append(page.Imports, &jsparse.ImportDependency{
+	page := &jsparse.DefaultJSDocument{}
+	page.AddImport(&jsparse.ImportDependency{
 		FinalStatement: "const {merge} = require('webpack-merge')",
 		Type:           jsparse.ModuleImportType,
 	})
+
 	// @@todo(guy): this webpack config is currently based off of react, if we want to add support in the future
 	// we will need to update this to apply a type context depending on which of the frontend frameworks are selected.
 	// * we could also parse the file to determine which of the front-end frameworks are attached. then use the correct config *
-	page.Imports = append(page.Imports, &jsparse.ImportDependency{
+	page.AddImport(&jsparse.ImportDependency{
 		FinalStatement: "const baseConfig = require('../../assets/base.config.js')",
 		Type:           jsparse.ModuleImportType,
 	})
@@ -31,7 +32,7 @@ func (b *WebPackBundler) Setup(settings *BundleSetupSettings) (*BundledResource,
 	outputFileName := fmt.Sprintf("%s.js", settings.BundleKey)
 	bundleFilePath := fmt.Sprintf("%s/%s.js", b.PageOutputDir, settings.BundleKey)
 
-	page.Other = append(page.Other, fmt.Sprintf(`module.exports = merge(baseConfig, {
+	page.AddOther(fmt.Sprintf(`module.exports = merge(baseConfig, {
 		entry: ['./%s'],
 		mode: '%s',
 		output: {
@@ -55,4 +56,22 @@ func (b *WebPackBundler) Bundle(configuratorFilePath string) error {
 	}
 
 	return err
+}
+
+func (b *WebPackBundler) NodeDependencies() map[string]string {
+	return map[string]string{
+		"@babel/core": "^7.11.1",
+		"@babel/plugin-proposal-export-default-from": "^7.12.13",
+		"@babel/polyfill":     "^7.12.1",
+		"@babel/preset-env":   "^7.11.0",
+		"@babel/preset-react": "^7.10.4",
+		"babel-loader":        "^8.1.0",
+		"css-loader":          "^4.2.2",
+		"html-loader":         "^1.1.0",
+		"html-webpack-plugin": "^4.3.0",
+		"style-loader":        "^1.2.1",
+		"webpack":             "^4.44.1",
+		"webpack-cli":         "^3.3.12",
+		"webpack-merge":       "^5.8.0",
+	}
 }

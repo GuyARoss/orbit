@@ -1,4 +1,4 @@
-package internal
+package srcpack
 
 import (
 	"sync"
@@ -11,17 +11,13 @@ type DependencySettings struct {
 	WebDir            string
 	dirList           *[]string
 	pathDependencyMap *map[string][]string
+
+	JsParser jsparse.JSParser
 }
 
-func (s *DependencySettings) cacheRootDirList(c []*PackedComponent, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	lst := make([]string, len(c))
-
-	for i, c := range c {
-		lst[i] = c.OriginalFilePath
-	}
-	s.dirList = &lst
+type SrcDependency interface {
+	OriginalFilePath() string
+	Dependencies() []*jsparse.ImportDependency
 }
 
 func flatPackedImports(dependencies []*jsparse.ImportDependency) []string {
@@ -34,13 +30,24 @@ func flatPackedImports(dependencies []*jsparse.ImportDependency) []string {
 	return finalDependendices
 }
 
-func (s *DependencySettings) cacheRootPathDependencyMap(c []*PackedComponent, wg *sync.WaitGroup) {
+func (s *DependencySettings) cacheRootDirList(c []*Component, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	lst := make([]string, len(c))
+
+	for i, c := range c {
+		lst[i] = c.OriginalFilePath()
+	}
+	s.dirList = &lst
+}
+
+func (s *DependencySettings) cacheRootPathDependencyMap(c []*Component, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	m := make(map[string][]string)
 
 	for _, component := range c {
-		m[component.OriginalFilePath] = flatPackedImports(component.Dependencies)
+		m[component.OriginalFilePath()] = flatPackedImports(component.Dependencies())
 	}
 
 	s.pathDependencyMap = &m
@@ -58,15 +65,15 @@ func (s *DependencySettings) PathDependencies(path string) ([]string, error) {
 		return c, nil
 	}
 
-	page, err := jsparse.ParsePage(path, s.WebDir)
+	page, err := s.JsParser.Parse(path, s.WebDir)
 	if err != nil {
 		return nil, err
 	}
 
-	return flatPackedImports(page.Imports), nil
+	return flatPackedImports(page.Imports()), nil
 }
 
-func CreateSourceMap(path string, c []*PackedComponent, webDirPath string) (*dependtree.DependencySourceMap, error) {
+func New(path string, c []*Component, webDirPath string) (*dependtree.DependencySourceMap, error) {
 	var wg sync.WaitGroup
 
 	dependSettings := &DependencySettings{

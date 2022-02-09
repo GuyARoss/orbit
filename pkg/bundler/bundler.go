@@ -24,10 +24,11 @@ type BundleSetupSettings struct {
 type BundledResource struct {
 	BundleFilePath       string
 	ConfiguratorFilePath string
-	ConfiguratorPage     *jsparse.Page
+	ConfiguratorPage     jsparse.JSDocument
 }
 
 type Bundler interface {
 	Setup(settings *BundleSetupSettings) (*BundledResource, error)
 	Bundle(configuratorFilePath string) error
+	NodeDependencies() map[string]string
 }

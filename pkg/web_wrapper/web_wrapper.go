@@ -7,5 +7,7 @@ type WebWrapSettings struct {
 }
 
 type WebWrapper interface {
-	Apply(page *jsparse.Page, toFilePath string) *jsparse.Page
+	Apply(page jsparse.JSDocument, toFilePath string) jsparse.JSDocument
+	NodeDependencies() map[string]string
+	DoesSatisfyConstraints(fileExtension string) bool
 }

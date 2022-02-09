@@ -6,8 +6,10 @@ import (
 	"os"
 
 	"github.com/GuyARoss/orbit/internal/assets"
+	"github.com/GuyARoss/orbit/internal/srcpack"
 	"github.com/GuyARoss/orbit/pkg/bundler"
 	"github.com/GuyARoss/orbit/pkg/fs"
+	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/libgen"
 	"github.com/GuyARoss/orbit/pkg/log"
 	webwrapper "github.com/GuyARoss/orbit/pkg/web_wrapper"
@@ -16,7 +18,7 @@ import (
 type AutoGenPages struct {
 	BundleData *libgen.LibOut
 	Master     *libgen.LibOut
-	Pages      []*PackedComponent
+	Pages      []*srcpack.Component
 	OutDir     string
 }
 
@@ -29,8 +31,8 @@ type GenPagesSettings struct {
 	PublicDir      string
 }
 
-func (s *GenPagesSettings) SetupPack() *PackSettings {
-	return &PackSettings{
+func (s *GenPagesSettings) SetupPack() *srcpack.Packer {
+	return &srcpack.Packer{
 		Bundler: &bundler.WebPackBundler{
 			BundleSettings: &bundler.BundleSettings{
 				Mode:          bundler.BundlerMode(s.BundlerMode),
@@ -45,11 +47,12 @@ func (s *GenPagesSettings) SetupPack() *PackSettings {
 				WebDir: s.WebDir,
 			},
 		},
+		JsParser: &jsparse.JSFileParser{},
 	}
 }
 
-// @@todo: decouple this mess
-func (s *GenPagesSettings) PackWebDir(hook PackHooks) (*AutoGenPages, error) {
+func (s *GenPagesSettings) PackWebDir(hook srcpack.Hooks) (*AutoGenPages, error) {
+	// @@todo: decouple this mess
 	settings := s.SetupPack()
 
 	err := assets.WriteAssetsDir(".orbit/assets")
@@ -90,9 +93,9 @@ func (s *GenPagesSettings) PackWebDir(hook PackHooks) (*AutoGenPages, error) {
 	}, nil
 }
 
-func (s *GenPagesSettings) Repack(p *PackedComponent) error {
-	h := &DefaultPackHook{}
-	h.Pre(p.OriginalFilePath)
+func (s *GenPagesSettings) Repack(p *srcpack.Component) error {
+	h := &srcpack.DefaultHook{}
+	h.Pre(p.OriginalFilePath())
 
 	r := p.Repack()
 

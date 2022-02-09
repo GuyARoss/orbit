@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/GuyARoss/orbit/internal"
+	"github.com/GuyARoss/orbit/internal/srcpack"
 	dependtree "github.com/GuyARoss/orbit/pkg/depend_tree"
 	"github.com/GuyARoss/orbit/pkg/log"
 	"github.com/fsnotify/fsnotify"
@@ -23,12 +24,12 @@ type proccessedChangeRequest struct {
 
 type devSession struct {
 	pageGenSettings *internal.GenPagesSettings
-	rootComponents  map[string]*internal.PackedComponent
+	rootComponents  map[string]*srcpack.Component
 	sourceMap       *dependtree.DependencySourceMap
 
 	lastProcessedFile *proccessedChangeRequest
 	m                 *sync.Mutex
-	packSettings      *internal.PackSettings
+	packSettings      *srcpack.Packer
 }
 
 var watcher *fsnotify.Watcher
@@ -44,12 +45,12 @@ func createSession(settings *internal.GenPagesSettings) (*devSession, error) {
 		return nil, err
 	}
 
-	rootComponents := make(map[string]*internal.PackedComponent)
+	rootComponents := make(map[string]*srcpack.Component)
 	for _, p := range lib.Pages {
-		rootComponents[p.OriginalFilePath] = p
+		rootComponents[p.OriginalFilePath()] = p
 	}
 
-	sourceMap, err := internal.CreateSourceMap(settings.WebDir, lib.Pages, settings.WebDir)
+	sourceMap, err := srcpack.New(settings.WebDir, lib.Pages, settings.WebDir)
 	if err != nil {
 		return nil, err
 	}
@@ -84,15 +85,15 @@ func (s *devSession) executeChangeRequest(file string, timeoutDuration time.Dura
 
 	sources := s.sourceMap.FindRoot(file)
 
-	acticeNodes := make([]*internal.PackedComponent, len(sources))
+	activeNodes := make([]*srcpack.Component, len(sources))
 	for idx, source := range sources {
 		component = s.rootComponents[source]
 
-		acticeNodes[idx] = component
+		activeNodes[idx] = component
 	}
 
-	cl := internal.PackedComponentList(acticeNodes)
-	return cl.RepackMany(&internal.DefaultPackHook{})
+	cl := srcpack.PackedComponentList(activeNodes)
+	return cl.RepackMany(&srcpack.DefaultHook{})
 }
 
 func watchDir(path string, fi os.FileInfo, err error) error {
