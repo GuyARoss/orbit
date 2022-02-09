@@ -1,8 +1,8 @@
 package srcpack
 
 import (
+	"context"
 	"sync"
-	"time"
 
 	"github.com/GuyARoss/orbit/pkg/bundler"
 	"github.com/GuyARoss/orbit/pkg/fs"
@@ -12,7 +12,7 @@ import (
 
 type Packer struct {
 	Bundler    bundler.Bundler
-	WebWrapper webwrapper.WebWrapper
+	WebWrapper webwrapper.JSWebWrapper
 
 	AssetDir string
 	WebDir   string
@@ -25,13 +25,12 @@ func (s *Packer) CopyAssets() ([]*fs.CopyResults, error) {
 	return results, nil
 }
 
-// PackSingle Packs the a single file paths into the orbit root directory
-// Process includes:
-// - Wrapping the component with the specified front-end web framework.
-// - Bundling the component with the specified javascript bundler.
-func (s *Packer) PackSingle(pageFilePath string) (*Component, error) {
-	startTime := time.Now()
-
+// newComponent creates a new component given a page file path, this
+// component will inherit the necessary parameters from the packer.
+// this process involves the following:
+// 1. wrapping the component with the specified front-end web framework.
+// 2. bundling the component with the specified javascript bundler.
+func (s *Packer) NewComponent(pageFilePath string) (*Component, error) {
 	page, err := s.JsParser.Parse(pageFilePath, s.WebDir)
 	if err != nil {
 		return nil, err
@@ -39,7 +38,7 @@ func (s *Packer) PackSingle(pageFilePath string) (*Component, error) {
 
 	page = s.WebWrapper.Apply(page, pageFilePath)
 
-	resource, err := s.Bundler.Setup(&bundler.BundleSetupSettings{
+	resource, err := s.Bundler.Setup(context.TODO(), &bundler.BundleOpts{
 		FileName:  pageFilePath,
 		BundleKey: page.Key(),
 	})
@@ -59,13 +58,14 @@ func (s *Packer) PackSingle(pageFilePath string) (*Component, error) {
 
 	bundleErr := s.Bundler.Bundle(resource.ConfiguratorFilePath)
 	return &Component{
-		Packer:              s,
-		PageName:            page.Name(),
-		BundleKey:           page.Key(),
-		PackDurationSeconds: time.Since(startTime).Seconds(),
-		dependencies:        page.Imports(),
-		originalFilePath:    pageFilePath,
-		m:                   &sync.Mutex{},
+		Name:             page.Name(),
+		BundleKey:        page.Key(),
+		dependencies:     page.Imports(),
+		originalFilePath: pageFilePath,
+		m:                &sync.Mutex{},
+		WebWrapper:       s.WebWrapper,
+		Bundler:          s.Bundler,
+		JsParser:         s.JsParser,
 	}, bundleErr
 }
 
@@ -77,9 +77,9 @@ type concPack struct {
 	packMap     map[string]bool
 }
 
-func (p *concPack) PackSingle(wg *sync.WaitGroup, dir string, hooks Hooks) {
-	page, err := p.settings.PackSingle(dir)
-	if p.packMap[page.PageName] {
+func (p *concPack) PackSingle(wg *sync.WaitGroup, dir string) {
+	page, err := p.settings.NewComponent(dir)
+	if p.packMap[page.Name] {
 		return
 	}
 
@@ -88,27 +88,18 @@ func (p *concPack) PackSingle(wg *sync.WaitGroup, dir string, hooks Hooks) {
 		return
 	}
 
-	p.m.Lock()
 	p.packedPages = append(p.packedPages, page)
-	p.packMap[page.PageName] = true
-
-	if hooks != nil {
-		hooks.Pre(dir)
-		hooks.Post(page.PackDurationSeconds)
-	}
-	p.m.Unlock()
+	p.packMap[page.Name] = true
 
 	wg.Done()
 }
 
-// PackPages
-// Packs the provoided file paths into the orbit root directory
-// Process includes:
-// - Wrapping the component with the specified front-end web framework.
-// - Bundling the component with the specified javascript bundler.
+// packs the provoided file paths into the orbit root directory
+// this process includes the following:
+// 1. wrapping the component with the specified front-end web framework.
+// 2. bundling the component with the specified javascript bundler.
 func (s *Packer) PackMany(pages []string, hooks Hooks) ([]*Component, error) {
 	cp := &concPack{
-		m:           &sync.Mutex{},
 		settings:    s,
 		packedPages: make([]*Component, 0),
 		packMap:     make(map[string]bool),
@@ -117,7 +108,7 @@ func (s *Packer) PackMany(pages []string, hooks Hooks) ([]*Component, error) {
 	wg := &sync.WaitGroup{}
 	for _, dir := range pages {
 		wg.Add(1)
-		go cp.PackSingle(wg, dir, hooks)
+		go cp.PackSingle(wg, dir)
 	}
 
 	wg.Wait()

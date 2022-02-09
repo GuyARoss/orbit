@@ -1,11 +1,12 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
-	"log"
 
 	"github.com/GuyARoss/orbit/internal"
 	"github.com/GuyARoss/orbit/internal/srcpack"
+	"github.com/GuyARoss/orbit/pkg/log"
 	"github.com/GuyARoss/orbit/pkg/runtimeanalytics"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -32,17 +33,17 @@ var buildCMD = &cobra.Command{
 
 		err := settings.CleanPathing()
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 
-		pages, err := settings.PackWebDir(&srcpack.DefaultHook{})
+		pages, err := settings.PackWebDir(context.Background(), srcpack.NewSyncHook(log.NewDefaultLogger()))
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 
 		writeErr := pages.WriteOut()
 		if writeErr != nil {
-			log.Fatal(writeErr)
+			panic(writeErr)
 		}
 
 		if viper.GetBool("debugduration") {

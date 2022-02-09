@@ -1,6 +1,11 @@
 package bundler
 
-import "github.com/GuyARoss/orbit/pkg/jsparse"
+import (
+	"context"
+
+	"github.com/GuyARoss/orbit/pkg/jsparse"
+	"github.com/GuyARoss/orbit/pkg/log"
+)
 
 type BundlerMode string
 
@@ -9,14 +14,16 @@ const (
 	DevelopmentBundle BundlerMode = "development"
 )
 
-type BundleSettings struct {
+type BaseBundler struct {
 	Mode BundlerMode
 
-	WebDir        string
-	PageOutputDir string
+	WebDir         string
+	PageOutputDir  string
+	NodeModulesDir string
+	Logger         log.Logger
 }
 
-type BundleSetupSettings struct {
+type BundleOpts struct {
 	FileName  string
 	BundleKey string
 }
@@ -28,7 +35,11 @@ type BundledResource struct {
 }
 
 type Bundler interface {
-	Setup(settings *BundleSetupSettings) (*BundledResource, error)
-	Bundle(configuratorFilePath string) error
+	Setup(context.Context, *BundleOpts) (*BundledResource, error)
+	Bundle(string) error
 	NodeDependencies() map[string]string
 }
+
+const (
+	BundlerModeKey string = "bundler-mode"
+)

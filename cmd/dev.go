@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -34,13 +35,13 @@ type devSession struct {
 
 var watcher *fsnotify.Watcher
 
-func createSession(settings *internal.GenPagesSettings) (*devSession, error) {
+func createSession(ctx context.Context, settings *internal.GenPagesSettings) (*devSession, error) {
 	err := settings.CleanPathing()
 	if err != nil {
 		return nil, err
 	}
 
-	lib, err := settings.PackWebDir(nil)
+	lib, err := settings.PackWebDir(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -55,13 +56,15 @@ func createSession(settings *internal.GenPagesSettings) (*devSession, error) {
 		return nil, err
 	}
 
+	_, packSettings := settings.SetupPack(ctx)
+
 	return &devSession{
 		pageGenSettings:   settings,
 		rootComponents:    rootComponents,
 		sourceMap:         sourceMap,
 		lastProcessedFile: &proccessedChangeRequest{},
 		m:                 &sync.Mutex{},
-		packSettings:      settings.SetupPack(),
+		packSettings:      packSettings,
 	}, nil
 }
 
@@ -93,7 +96,7 @@ func (s *devSession) executeChangeRequest(file string, timeoutDuration time.Dura
 	}
 
 	cl := srcpack.PackedComponentList(activeNodes)
-	return cl.RepackMany(&srcpack.DefaultHook{})
+	return cl.RepackMany(srcpack.NewSyncHook(log.NewDefaultLogger()))
 }
 
 func watchDir(path string, fi os.FileInfo, err error) error {
@@ -109,7 +112,9 @@ var devCMD = &cobra.Command{
 	Long:  "hot-reload bundle data given the specified pages in dev mode",
 	Short: "hot-reload bundle data given the specified pages in dev mode",
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Info("starting dev server...")
+		logger := log.NewDefaultLogger()
+
+		logger.Info("starting dev server...")
 		as := &internal.GenPagesSettings{
 			PackageName:    viper.GetString("pacname"),
 			OutDir:         viper.GetString("out"),
@@ -119,18 +124,18 @@ var devCMD = &cobra.Command{
 			PublicDir:      viper.GetString("publicdir"),
 		}
 
-		s, err := createSession(as)
+		s, err := createSession(context.Background(), as)
 		if err != nil {
 			panic(err)
 		}
 
-		log.Success("dev server started successfully")
+		logger.Success("dev server started successfully")
 
 		watcher, _ = fsnotify.NewWatcher()
 		defer watcher.Close()
 
 		if err := filepath.Walk("./", watchDir); err != nil {
-			log.Error("invalid walk on watchDir")
+			panic("invalid walk on watchDir")
 			return
 		}
 
@@ -146,7 +151,7 @@ var devCMD = &cobra.Command{
 						go s.executeChangeRequest(e.Name, time.Duration(viper.GetInt("samefiletimeout"))*time.Second)
 					}
 				case err := <-watcher.Errors:
-					log.Error(fmt.Sprintf("watcher failed %s", err.Error()))
+					panic(fmt.Sprintf("watcher failed %s", err.Error()))
 				}
 			}
 		}()

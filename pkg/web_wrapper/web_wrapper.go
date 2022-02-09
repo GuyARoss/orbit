@@ -2,12 +2,20 @@ package webwrapper
 
 import "github.com/GuyARoss/orbit/pkg/jsparse"
 
-type WebWrapSettings struct {
+type BaseWebWrapper struct {
 	WebDir string
 }
 
-type WebWrapper interface {
+type JSWebWrapper interface {
 	Apply(page jsparse.JSDocument, toFilePath string) jsparse.JSDocument
 	NodeDependencies() map[string]string
 	DoesSatisfyConstraints(fileExtension string) bool
+}
+
+type JSWebWrapperMap []JSWebWrapper
+
+func NewMap() JSWebWrapperMap {
+	return []JSWebWrapper{
+		&ReactWebWrapper{},
+	}
 }

@@ -1,21 +1,25 @@
 package srcpack
 
 import (
+	"context"
 	"sync"
-	"time"
 
 	"github.com/GuyARoss/orbit/pkg/bundler"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
+	webwrapper "github.com/GuyARoss/orbit/pkg/web_wrapper"
 )
 
 // PackedComponent
 // Web-Component that has been successfully ran, and output from a packing method.
 type Component struct {
-	*Packer
+	WebDir string
 
-	PageName            string
-	BundleKey           string
-	PackDurationSeconds float64
+	Name      string
+	BundleKey string
+
+	WebWrapper webwrapper.JSWebWrapper
+	Bundler    bundler.Bundler
+	JsParser   jsparse.JSParser
 
 	dependencies     []*jsparse.ImportDependency
 	originalFilePath string
@@ -31,8 +35,6 @@ func (s *Component) Dependencies() []*jsparse.ImportDependency {
 }
 
 func (s *Component) Repack() error {
-	startTime := time.Now()
-
 	// parse original page
 	page, err := s.JsParser.Parse(s.originalFilePath, s.WebDir)
 	if err != nil {
@@ -41,7 +43,7 @@ func (s *Component) Repack() error {
 
 	// apply the nessasacary requirements for the web framework to the original page
 	page = s.WebWrapper.Apply(page, s.originalFilePath)
-	resource, err := s.Bundler.Setup(&bundler.BundleSetupSettings{
+	resource, err := s.Bundler.Setup(context.TODO(), &bundler.BundleOpts{
 		FileName:  s.originalFilePath,
 		BundleKey: s.BundleKey,
 	})
@@ -70,7 +72,6 @@ func (s *Component) Repack() error {
 	if bundleErr != nil {
 		return bundleErr
 	}
-	s.PackDurationSeconds = time.Since(startTime).Seconds()
 
 	return nil
 }

@@ -142,6 +142,10 @@ func lineImportType(line string) ImportType {
 	return ModuleImportType
 }
 
+func NewEmptyDocument() *DefaultJSDocument {
+	return &DefaultJSDocument{}
+}
+
 func (p *DefaultJSDocument) formatImportLine(line string) *ImportDependency {
 	importType := lineImportType(line)
 	if importType == ModuleImportType {

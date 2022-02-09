@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -11,8 +12,6 @@ import (
 	"github.com/GuyARoss/orbit/pkg/fs"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/libgen"
-	"github.com/GuyARoss/orbit/pkg/log"
-	webwrapper "github.com/GuyARoss/orbit/pkg/web_wrapper"
 )
 
 type AutoGenPages struct {
@@ -31,29 +30,25 @@ type GenPagesSettings struct {
 	PublicDir      string
 }
 
-func (s *GenPagesSettings) SetupPack() *srcpack.Packer {
-	return &srcpack.Packer{
-		Bundler: &bundler.WebPackBundler{
-			BundleSettings: &bundler.BundleSettings{
-				Mode:          bundler.BundlerMode(s.BundlerMode),
-				WebDir:        s.WebDir,
-				PageOutputDir: ".orbit/base/pages",
-			},
-			NodeModulesDir: s.NodeModulePath,
-		},
-		WebDir: s.WebDir,
-		WebWrapper: &webwrapper.ReactWebWrap{
-			WebWrapSettings: &webwrapper.WebWrapSettings{
-				WebDir: s.WebDir,
-			},
-		},
+func (s *GenPagesSettings) SetupPack(ctx context.Context) (context.Context, *srcpack.Packer) {
+	ctx = context.WithValue(ctx, bundler.BundlerModeKey, bundler.BundlerMode(s.BundlerMode))
+
+	return ctx, &srcpack.Packer{
+		// Bundler: &bundler.WebPackBundler{
+		// BundleSettings: &bundler.BundleSettings{
+		// 	Mode:          bundler.BundlerMode(s.BundlerMode),
+		// 	WebDir:        s.WebDir,
+		// 	PageOutputDir: ".orbit/base/pages",
+		// },
+		// NodeModulesDir: s.NodeModulePath,
+		// },
+		WebDir:   s.WebDir,
 		JsParser: &jsparse.JSFileParser{},
 	}
 }
 
-func (s *GenPagesSettings) PackWebDir(hook srcpack.Hooks) (*AutoGenPages, error) {
-	// @@todo: decouple this mess
-	settings := s.SetupPack()
+func (s *GenPagesSettings) PackWebDir(ctx context.Context, hook srcpack.Hooks) (*AutoGenPages, error) {
+	ctx, settings := s.SetupPack(ctx)
 
 	err := assets.WriteAssetsDir(".orbit/assets")
 	if err != nil {
@@ -63,7 +58,7 @@ func (s *GenPagesSettings) PackWebDir(hook srcpack.Hooks) (*AutoGenPages, error)
 	pageFiles := fs.DirFiles(fmt.Sprintf("%s/pages", s.WebDir))
 	pages, err := settings.PackMany(pageFiles, hook)
 	if err != nil {
-		log.Error(err.Error())
+		return nil, err
 	}
 
 	lg := &libgen.BundleGroup{
@@ -74,7 +69,7 @@ func (s *GenPagesSettings) PackWebDir(hook srcpack.Hooks) (*AutoGenPages, error)
 	}
 
 	for _, p := range pages {
-		lg.ApplyBundle(p.PageName, p.BundleKey)
+		lg.ApplyBundle(p.Name, p.BundleKey)
 	}
 
 	libStaticContent, parseErr := libgen.ParseStaticFile(".orbit/assets/orbit.go")
@@ -94,12 +89,10 @@ func (s *GenPagesSettings) PackWebDir(hook srcpack.Hooks) (*AutoGenPages, error)
 }
 
 func (s *GenPagesSettings) Repack(p *srcpack.Component) error {
-	h := &srcpack.DefaultHook{}
+	h := &srcpack.SyncHook{}
 	h.Pre(p.OriginalFilePath())
 
 	r := p.Repack()
-
-	h.Post(p.PackDurationSeconds)
 
 	return r
 }
