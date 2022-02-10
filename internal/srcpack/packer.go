@@ -8,6 +8,7 @@ import (
 	"github.com/GuyARoss/orbit/pkg/bundler"
 	"github.com/GuyARoss/orbit/pkg/fs"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
+	"github.com/GuyARoss/orbit/pkg/log"
 	webwrapper "github.com/GuyARoss/orbit/pkg/web_wrapper"
 )
 
@@ -17,6 +18,7 @@ type Packer struct {
 	Bundler          bundler.Bundler
 	JsParser         jsparse.JSParser
 	ValidWebWrappers webwrapper.JSWebWrapperMap
+	Logger           log.Logger
 
 	AssetDir string
 	WebDir   string
@@ -87,14 +89,15 @@ func (s *Packer) PackMany(pages []string, hooks Hooks) ([]*Component, error) {
 
 	go func() {
 		err := <-errchan
+		// @@todo: do something more with this error?
 		fmt.Println("error occurred", err.Error())
 	}()
 
+	sh := NewSyncHook(s.Logger)
 	for _, dir := range pages {
-		fmt.Println(dir)
-		// currently using a go routine to pack every page found in the pages directory
-		// @@todo: this should be wrapped with a routine to measure & log time deltas.
-		go cp.PackSingle(errchan, wg, dir)
+		// go routine to pack every page found in the pages directory
+		// we wrap this a routine with the sync hook to measure & log time deltas.
+		go sh.WrapFunc(dir, func() { cp.PackSingle(errchan, wg, dir) })
 	}
 
 	wg.Wait()

@@ -12,6 +12,7 @@ import (
 	"github.com/GuyARoss/orbit/pkg/fs"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/libgen"
+	"github.com/GuyARoss/orbit/pkg/log"
 	webwrapper "github.com/GuyARoss/orbit/pkg/web_wrapper"
 )
 
@@ -45,6 +46,7 @@ func (s *GenPagesSettings) SetupPack(ctx context.Context) (context.Context, *src
 		WebDir:           s.WebDir,
 		JsParser:         &jsparse.JSFileParser{},
 		ValidWebWrappers: webwrapper.NewActiveMap(),
+		Logger:           log.NewDefaultLogger(),
 	}
 }
 
