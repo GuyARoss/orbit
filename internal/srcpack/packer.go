@@ -10,75 +10,47 @@ import (
 	webwrapper "github.com/GuyARoss/orbit/pkg/web_wrapper"
 )
 
+// packer is the primary struct used for packing a directory of javascript files into
+// valid web components.
 type Packer struct {
-	Bundler    bundler.Bundler
-	WebWrapper webwrapper.JSWebWrapper
+	Bundler          bundler.Bundler
+	JsParser         jsparse.JSParser
+	ValidWebWrappers webwrapper.JSWebWrapperMap
 
 	AssetDir string
 	WebDir   string
-	JsParser jsparse.JSParser
 }
 
+// copies the required assets to the asset directory
 func (s *Packer) CopyAssets() ([]*fs.CopyResults, error) {
 	results := fs.CopyDir(s.AssetDir, s.AssetDir, ".orbit/assets", false)
 
 	return results, nil
 }
 
-// newComponent creates a new component given a page file path, this
-// component will inherit the necessary parameters from the packer.
-// this process involves the following:
-// 1. wrapping the component with the specified front-end web framework.
-// 2. bundling the component with the specified javascript bundler.
-func (s *Packer) NewComponent(pageFilePath string) (*Component, error) {
-	page, err := s.JsParser.Parse(pageFilePath, s.WebDir)
-	if err != nil {
-		return nil, err
-	}
-
-	page = s.WebWrapper.Apply(page, pageFilePath)
-
-	resource, err := s.Bundler.Setup(context.TODO(), &bundler.BundleOpts{
-		FileName:  pageFilePath,
-		BundleKey: page.Key(),
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	bundlePageErr := page.WriteFile(resource.BundleFilePath)
-	if bundlePageErr != nil {
-		return nil, bundlePageErr
-	}
-
-	configErr := resource.ConfiguratorPage.WriteFile(resource.ConfiguratorFilePath)
-	if configErr != nil {
-		return nil, configErr
-	}
-
-	bundleErr := s.Bundler.Bundle(resource.ConfiguratorFilePath)
-	return &Component{
-		Name:             page.Name(),
-		BundleKey:        page.Key(),
-		dependencies:     page.Imports(),
-		originalFilePath: pageFilePath,
-		m:                &sync.Mutex{},
-		WebWrapper:       s.WebWrapper,
-		Bundler:          s.Bundler,
-		JsParser:         s.JsParser,
-	}, bundleErr
-}
-
+// concpack is a private packing mechanism embedding the packer to pack a set of files concurrently.
 type concPack struct {
-	m        *sync.Mutex
-	settings *Packer
+	*Packer
 
 	packedPages []*Component
 	packMap     map[string]bool
 }
 
-func (p *concPack) PackSingle(wg *sync.WaitGroup, dir string) {
-	page, err := p.settings.NewComponent(dir)
+// pack single packs a single file path into a usable web component
+// this process includes the following:
+// 1. wrapping the component with the specified front-end web framework.
+// 2. bundling the component with the specified javascript bundler.
+func (p *concPack) PackSingle(wg *sync.WaitGroup, path string) {
+	// @@todo: we should validate if these components exist on our source map yet, if so we should
+	// inherit the metadata, rather than generate new metadata.
+	page, err := NewComponent(context.TODO(), &NewComponentOpts{
+		FilePath:      path,
+		WebDir:        p.WebDir,
+		JSWebWrappers: p.ValidWebWrappers,
+		Bundler:       p.Bundler,
+		JSParser:      p.JsParser,
+	})
+
 	if p.packMap[page.Name] {
 		return
 	}
@@ -95,19 +67,19 @@ func (p *concPack) PackSingle(wg *sync.WaitGroup, dir string) {
 }
 
 // packs the provoided file paths into the orbit root directory
-// this process includes the following:
-// 1. wrapping the component with the specified front-end web framework.
-// 2. bundling the component with the specified javascript bundler.
 func (s *Packer) PackMany(pages []string, hooks Hooks) ([]*Component, error) {
 	cp := &concPack{
-		settings:    s,
+		Packer:      s,
 		packedPages: make([]*Component, 0),
 		packMap:     make(map[string]bool),
 	}
 
 	wg := &sync.WaitGroup{}
+	wg.Add(len(pages))
+
 	for _, dir := range pages {
-		wg.Add(1)
+		// currently using a go routine to pack every page found in the pages directory
+		// in the future, this should be wrapped with a routine to measure & log time deltas.
 		go cp.PackSingle(wg, dir)
 	}
 

@@ -9,8 +9,7 @@ import (
 	webwrapper "github.com/GuyARoss/orbit/pkg/web_wrapper"
 )
 
-// PackedComponent
-// Web-Component that has been successfully ran, and output from a packing method.
+// component that has been successfully ran, and output from a packing method.
 type Component struct {
 	WebDir string
 
@@ -26,6 +25,61 @@ type Component struct {
 	m                *sync.Mutex
 }
 
+type NewComponentOpts struct {
+	FilePath string
+	WebDir   string
+
+	JSParser      jsparse.JSParser
+	Bundler       bundler.Bundler
+	JSWebWrappers webwrapper.JSWebWrapperMap
+}
+
+func NewComponent(ctx context.Context, opts *NewComponentOpts) (*Component, error) {
+	page, err := opts.JSParser.Parse(opts.FilePath, opts.WebDir)
+	if err != nil {
+		return nil, err
+	}
+
+	// we attempt to find the first web wrapper that satisfies the extension requirements
+	// this same js wrapper will be used when we go to repack.
+	webwrap := opts.JSWebWrappers.FirstMatch(page.Extension())
+	page = webwrap.Apply(page, opts.FilePath)
+
+	resource, err := opts.Bundler.Setup(ctx, &bundler.BundleOpts{
+		FileName:  opts.FilePath,
+		BundleKey: page.Key(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	bundlePageErr := page.WriteFile(resource.BundleFilePath)
+	if bundlePageErr != nil {
+		return nil, bundlePageErr
+	}
+
+	configErr := resource.ConfiguratorPage.WriteFile(resource.ConfiguratorFilePath)
+	if configErr != nil {
+		return nil, configErr
+	}
+
+	bundleErr := opts.Bundler.Bundle(resource.ConfiguratorFilePath)
+	if bundleErr != nil {
+		return nil, bundleErr
+	}
+
+	return &Component{
+		Name:             page.Name(),
+		BundleKey:        page.Key(),
+		dependencies:     page.Imports(),
+		originalFilePath: opts.FilePath,
+		m:                &sync.Mutex{},
+		WebWrapper:       webwrap,
+		Bundler:          opts.Bundler,
+		JsParser:         opts.JSParser,
+	}, nil
+}
+
 func (s *Component) OriginalFilePath() string {
 	return s.originalFilePath
 }
@@ -35,7 +89,8 @@ func (s *Component) Dependencies() []*jsparse.ImportDependency {
 }
 
 func (s *Component) Repack() error {
-	// parse original page
+	// parse the original javascript page, provided our javascript parser.
+	// we later mutate this page to apply the rest of the required web wrapper
 	page, err := s.JsParser.Parse(s.originalFilePath, s.WebDir)
 	if err != nil {
 		return err

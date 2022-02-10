@@ -19,3 +19,13 @@ func NewMap() JSWebWrapperMap {
 		&ReactWebWrapper{},
 	}
 }
+
+func (j *JSWebWrapperMap) FirstMatch(fileExtension string) JSWebWrapper {
+	for _, f := range *j {
+		if f.DoesSatisfyConstraints(fileExtension) {
+			return f
+		}
+	}
+
+	return nil
+}
