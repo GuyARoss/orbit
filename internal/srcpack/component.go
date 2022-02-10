@@ -3,7 +3,6 @@ package srcpack
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 
 	"github.com/GuyARoss/orbit/pkg/bundler"
@@ -47,8 +46,6 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (*Component, erro
 	// we attempt to find the first web wrapper that satisfies the extension requirements
 	// this same js wrapper will be used when we go to repack.
 	webwrap := opts.JSWebWrappers.FirstMatch(page.Extension())
-
-	fmt.Println("extension", page.Extension())
 
 	if webwrap == nil {
 		return nil, ErrInvalidComponentType

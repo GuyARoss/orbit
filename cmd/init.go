@@ -54,19 +54,16 @@ var initCMD = &cobra.Command{
 
 		err := pkgJson.Write(fmt.Sprintf("%s/package.json", settings.OutDir))
 		if err != nil {
-			fmt.Println("here1")
 			log.Fatal(err)
 		}
 
 		execcmd := exec.Command("npm", "install")
 		if err := execcmd.Run(); err != nil {
-			fmt.Println("here2")
 			log.Fatal(err)
 		}
 
 		err = settings.CleanPathing()
 		if err != nil {
-			fmt.Println("here3")
 			log.Fatal(err)
 		}
 	},
