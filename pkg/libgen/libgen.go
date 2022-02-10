@@ -76,9 +76,10 @@ func (l *BundleGroup) CreateBundleLib() *LibOut {
 		out.WriteString("\n\n")
 	}
 
+	out.WriteString("type PageRender string\n\n")
+
 	for idx, p := range l.pages {
 		if idx == 0 {
-			out.WriteString("type PageRender string\n\n")
 			out.WriteString("const ( \n")
 		}
 

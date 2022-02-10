@@ -136,7 +136,6 @@ var devCMD = &cobra.Command{
 
 		if err := filepath.Walk("./", watchDir); err != nil {
 			panic("invalid walk on watchDir")
-			return
 		}
 
 		done := make(chan bool)

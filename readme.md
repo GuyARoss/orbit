@@ -10,9 +10,11 @@ Golang SSR framework featuring native react support with zero boilerplate.
 To install manually, please download the correct distributable target for your machine. Next, you can either put it directly
 in the directory you wish to use it in (and call it directly) or put it into your bash profile.
 
-## Usage 
 
-### Simple Example
+### Examples
+For more examples, visit the ./examples directory.
+
+#### Simple Example
 1. Create a /pages directory in your root directory
 2. Build out your react page(s) in the /pages directory.
 ```js

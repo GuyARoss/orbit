@@ -2,6 +2,7 @@ package srcpack
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/GuyARoss/orbit/pkg/bundler"
@@ -40,7 +41,7 @@ type concPack struct {
 // this process includes the following:
 // 1. wrapping the component with the specified front-end web framework.
 // 2. bundling the component with the specified javascript bundler.
-func (p *concPack) PackSingle(wg *sync.WaitGroup, path string) {
+func (p *concPack) PackSingle(errchan chan error, wg *sync.WaitGroup, path string) {
 	// @@todo: we should validate if these components exist on our source map yet, if so we should
 	// inherit the metadata, rather than generate new metadata.
 	page, err := NewComponent(context.TODO(), &NewComponentOpts{
@@ -51,12 +52,17 @@ func (p *concPack) PackSingle(wg *sync.WaitGroup, path string) {
 		JSParser:      p.JsParser,
 	})
 
-	if p.packMap[page.Name] {
+	if err != nil {
+		errchan <- err
+
+		wg.Done()
 		return
 	}
 
-	if err != nil {
-		// @@report error with packing via channel
+	if p.packMap[page.Name] {
+		// this page has already been packed before
+		// and does not need to be repacked.
+		wg.Done()
 		return
 	}
 
@@ -77,10 +83,18 @@ func (s *Packer) PackMany(pages []string, hooks Hooks) ([]*Component, error) {
 	wg := &sync.WaitGroup{}
 	wg.Add(len(pages))
 
+	errchan := make(chan error)
+
+	go func() {
+		err := <-errchan
+		fmt.Println("error occurred", err.Error())
+	}()
+
 	for _, dir := range pages {
+		fmt.Println(dir)
 		// currently using a go routine to pack every page found in the pages directory
-		// in the future, this should be wrapped with a routine to measure & log time deltas.
-		go cp.PackSingle(wg, dir)
+		// @@todo: this should be wrapped with a routine to measure & log time deltas.
+		go cp.PackSingle(errchan, wg, dir)
 	}
 
 	wg.Wait()

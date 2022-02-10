@@ -35,5 +35,5 @@ func (s *ReactWebWrapper) NodeDependencies() map[string]string {
 }
 
 func (s *ReactWebWrapper) DoesSatisfyConstraints(fileExtension string) bool {
-	return strings.Contains(fileExtension, ".jsx")
+	return strings.Contains(fileExtension, "jsx")
 }

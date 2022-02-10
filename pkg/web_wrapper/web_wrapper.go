@@ -14,7 +14,7 @@ type JSWebWrapper interface {
 
 type JSWebWrapperMap []JSWebWrapper
 
-func NewMap() JSWebWrapperMap {
+func NewActiveMap() JSWebWrapperMap {
 	return []JSWebWrapper{
 		&ReactWebWrapper{},
 	}

@@ -25,6 +25,7 @@ var buildCMD = &cobra.Command{
 			NodeModulePath: viper.GetString("nodemod"),
 			PublicDir:      viper.GetString("publicdir"),
 		}
+
 		analytics := &runtimeanalytics.RuntimeAnalytics{}
 
 		if viper.GetBool("debugduration") {
@@ -41,9 +42,9 @@ var buildCMD = &cobra.Command{
 			panic(err)
 		}
 
-		writeErr := pages.WriteOut()
-		if writeErr != nil {
-			panic(writeErr)
+		err = pages.WriteOut()
+		if err != nil {
+			panic(err)
 		}
 
 		if viper.GetBool("debugduration") {

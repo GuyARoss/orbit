@@ -12,13 +12,15 @@ import (
 	"github.com/GuyARoss/orbit/pkg/fs"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/libgen"
+	webwrapper "github.com/GuyARoss/orbit/pkg/web_wrapper"
 )
 
 type AutoGenPages struct {
-	BundleData *libgen.LibOut
-	Master     *libgen.LibOut
-	Pages      []*srcpack.Component
-	OutDir     string
+	BundleData  *libgen.LibOut
+	Master      *libgen.LibOut
+	Pages       []*srcpack.Component
+	OutDir      string
+	PackageName string
 }
 
 type GenPagesSettings struct {
@@ -31,24 +33,23 @@ type GenPagesSettings struct {
 }
 
 func (s *GenPagesSettings) SetupPack(ctx context.Context) (context.Context, *srcpack.Packer) {
-	ctx = context.WithValue(ctx, bundler.BundlerModeKey, bundler.BundlerMode(s.BundlerMode))
-
 	return ctx, &srcpack.Packer{
-		// Bundler: &bundler.WebPackBundler{
-		// BundleSettings: &bundler.BundleSettings{
-		// 	Mode:          bundler.BundlerMode(s.BundlerMode),
-		// 	WebDir:        s.WebDir,
-		// 	PageOutputDir: ".orbit/base/pages",
-		// },
-		// NodeModulesDir: s.NodeModulePath,
-		// },
-		WebDir:   s.WebDir,
-		JsParser: &jsparse.JSFileParser{},
+		Bundler: &bundler.WebPackBundler{
+			BaseBundler: &bundler.BaseBundler{
+				Mode:           bundler.BundlerMode(s.BundlerMode),
+				WebDir:         s.WebDir,
+				PageOutputDir:  ".orbit/base/pages",
+				NodeModulesDir: s.NodeModulePath,
+			},
+		},
+		WebDir:           s.WebDir,
+		JsParser:         &jsparse.JSFileParser{},
+		ValidWebWrappers: webwrapper.NewActiveMap(),
 	}
 }
 
 func (s *GenPagesSettings) PackWebDir(ctx context.Context, hook srcpack.Hooks) (*AutoGenPages, error) {
-	ctx, settings := s.SetupPack(ctx)
+	_, settings := s.SetupPack(ctx)
 
 	err := assets.WriteAssetsDir(".orbit/assets")
 	if err != nil {
@@ -84,7 +85,8 @@ func (s *GenPagesSettings) PackWebDir(ctx context.Context, hook srcpack.Hooks) (
 			Body:        libStaticContent,
 			PackageName: s.PackageName,
 		},
-		Pages: pages,
+		Pages:       pages,
+		PackageName: s.PackageName,
 	}, nil
 }
 
@@ -98,11 +100,11 @@ func (s *GenPagesSettings) Repack(p *srcpack.Component) error {
 }
 
 func (s *AutoGenPages) WriteOut() error {
-	err := s.BundleData.WriteFile(fmt.Sprintf("%s/autogen_bundle.go", s.OutDir))
+	err := s.BundleData.WriteFile(fmt.Sprintf("%s/%s/autogen_bundle.go", s.OutDir, s.PackageName))
 	if err != nil {
 		return err
 	}
-	err = s.Master.WriteFile(fmt.Sprintf("%s/autogen_master.go", s.OutDir))
+	err = s.Master.WriteFile(fmt.Sprintf("%s/%s/autogen_master.go", s.OutDir, s.PackageName))
 	if err != nil {
 		return err
 	}
@@ -116,8 +118,8 @@ func (s *GenPagesSettings) CleanPathing() error {
 		return err
 	}
 
-	if !fs.DoesDirExist(s.OutDir) {
-		err := os.Mkdir(s.OutDir, os.ModePerm)
+	if !fs.DoesDirExist(fmt.Sprintf("%s/%s", s.OutDir, s.PackageName)) {
+		err := os.Mkdir(fmt.Sprintf("%s/%s", s.OutDir, s.PackageName), os.ModePerm)
 		if err != nil {
 			return err
 		}
