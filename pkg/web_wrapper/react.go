@@ -2,15 +2,16 @@ package webwrapper
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 )
 
-type ReactWebWrap struct {
-	*WebWrapSettings
+type ReactWebWrapper struct {
+	*BaseWebWrapper
 }
 
-func (s *ReactWebWrap) Apply(page jsparse.JSDocument, toFilePath string) jsparse.JSDocument {
+func (s *ReactWebWrapper) Apply(page jsparse.JSDocument, toFilePath string) jsparse.JSDocument {
 	page.AddImport(&jsparse.ImportDependency{
 		FinalStatement: "import ReactDOM from 'react-dom'",
 		Type:           jsparse.ModuleImportType,
@@ -24,7 +25,7 @@ func (s *ReactWebWrap) Apply(page jsparse.JSDocument, toFilePath string) jsparse
 	return page
 }
 
-func (s *ReactWebWrap) NodeDependencies() map[string]string {
+func (s *ReactWebWrapper) NodeDependencies() map[string]string {
 	return map[string]string{
 		"react":            "^16.13.1",
 		"react-dom":        "^16.13.1",
@@ -33,6 +34,6 @@ func (s *ReactWebWrap) NodeDependencies() map[string]string {
 	}
 }
 
-func (s *ReactWebWrap) DoesSatisfyConstraints(fileExtension string) bool {
-	return false
+func (s *ReactWebWrapper) DoesSatisfyConstraints(fileExtension string) bool {
+	return strings.Contains(fileExtension, "jsx")
 }

@@ -1,21 +1,20 @@
 package bundler
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 
 	"github.com/GuyARoss/orbit/pkg/jsparse"
-	"github.com/GuyARoss/orbit/pkg/log"
 )
 
 type WebPackBundler struct {
-	*BundleSettings
-
-	NodeModulesDir string
+	*BaseBundler
 }
 
-func (b *WebPackBundler) Setup(settings *BundleSetupSettings) (*BundledResource, error) {
-	page := &jsparse.DefaultJSDocument{}
+func (b *WebPackBundler) Setup(ctx context.Context, settings *BundleOpts) (*BundledResource, error) {
+	page := jsparse.NewEmptyDocument()
+
 	page.AddImport(&jsparse.ImportDependency{
 		FinalStatement: "const {merge} = require('webpack-merge')",
 		Type:           jsparse.ModuleImportType,
@@ -52,7 +51,7 @@ func (b *WebPackBundler) Bundle(configuratorFilePath string) error {
 	_, err := cmd.Output()
 
 	if err != nil {
-		log.Warn(fmt.Sprintf(`invalid pack: "node %s --config %s"`, fmt.Sprintf("%s/.bin/webpack", b.NodeModulesDir), configuratorFilePath))
+		b.Logger.Warn(fmt.Sprintf(`invalid pack: "node %s --config %s"`, fmt.Sprintf("%s/.bin/webpack", b.NodeModulesDir), configuratorFilePath))
 	}
 
 	return err

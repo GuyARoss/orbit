@@ -106,3 +106,13 @@ func Test_defaultPageName(t *testing.T) {
 		t.Error("default page name mismatch")
 	}
 }
+
+func Test_extension(t *testing.T) {
+	pn := &DefaultJSDocument{
+		pageDir: "thing.png",
+	}
+
+	if pn.Extension() != "png" {
+		t.Errorf("got %s expected png", pn.Extension())
+	}
+}

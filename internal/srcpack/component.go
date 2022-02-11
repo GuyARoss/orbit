@@ -1,25 +1,91 @@
 package srcpack
 
 import (
+	"context"
+	"errors"
 	"sync"
-	"time"
 
 	"github.com/GuyARoss/orbit/pkg/bundler"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
+	webwrapper "github.com/GuyARoss/orbit/pkg/web_wrapper"
 )
 
-// PackedComponent
-// Web-Component that has been successfully ran, and output from a packing method.
+// component that has been successfully ran, and output from a packing method.
 type Component struct {
-	*Packer
+	WebDir string
 
-	PageName            string
-	BundleKey           string
-	PackDurationSeconds float64
+	Name      string
+	BundleKey string
+
+	WebWrapper webwrapper.JSWebWrapper
+	Bundler    bundler.Bundler
+	JsParser   jsparse.JSParser
 
 	dependencies     []*jsparse.ImportDependency
 	originalFilePath string
 	m                *sync.Mutex
+}
+
+type NewComponentOpts struct {
+	FilePath string
+	WebDir   string
+
+	JSParser      jsparse.JSParser
+	Bundler       bundler.Bundler
+	JSWebWrappers webwrapper.JSWebWrapperMap
+}
+
+var ErrInvalidComponentType = errors.New("invalid component type")
+
+func NewComponent(ctx context.Context, opts *NewComponentOpts) (*Component, error) {
+	page, err := opts.JSParser.Parse(opts.FilePath, opts.WebDir)
+	if err != nil {
+		return nil, err
+	}
+
+	// we attempt to find the first web wrapper that satisfies the extension requirements
+	// this same js wrapper will be used when we go to repack.
+	webwrap := opts.JSWebWrappers.FirstMatch(page.Extension())
+
+	if webwrap == nil {
+		return nil, ErrInvalidComponentType
+	}
+
+	page = webwrap.Apply(page, opts.FilePath)
+
+	resource, err := opts.Bundler.Setup(ctx, &bundler.BundleOpts{
+		FileName:  opts.FilePath,
+		BundleKey: page.Key(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	bundlePageErr := page.WriteFile(resource.BundleFilePath)
+	if bundlePageErr != nil {
+		return nil, bundlePageErr
+	}
+
+	configErr := resource.ConfiguratorPage.WriteFile(resource.ConfiguratorFilePath)
+	if configErr != nil {
+		return nil, configErr
+	}
+
+	bundleErr := opts.Bundler.Bundle(resource.ConfiguratorFilePath)
+	if bundleErr != nil {
+		return nil, bundleErr
+	}
+
+	return &Component{
+		Name:             page.Name(),
+		BundleKey:        page.Key(),
+		dependencies:     page.Imports(),
+		originalFilePath: opts.FilePath,
+		m:                &sync.Mutex{},
+		WebWrapper:       webwrap,
+		Bundler:          opts.Bundler,
+		JsParser:         opts.JSParser,
+	}, nil
 }
 
 func (s *Component) OriginalFilePath() string {
@@ -31,9 +97,8 @@ func (s *Component) Dependencies() []*jsparse.ImportDependency {
 }
 
 func (s *Component) Repack() error {
-	startTime := time.Now()
-
-	// parse original page
+	// parse the original javascript page, provided our javascript parser.
+	// we later mutate this page to apply the rest of the required web wrapper
 	page, err := s.JsParser.Parse(s.originalFilePath, s.WebDir)
 	if err != nil {
 		return err
@@ -41,7 +106,7 @@ func (s *Component) Repack() error {
 
 	// apply the nessasacary requirements for the web framework to the original page
 	page = s.WebWrapper.Apply(page, s.originalFilePath)
-	resource, err := s.Bundler.Setup(&bundler.BundleSetupSettings{
+	resource, err := s.Bundler.Setup(context.TODO(), &bundler.BundleOpts{
 		FileName:  s.originalFilePath,
 		BundleKey: s.BundleKey,
 	})
@@ -70,7 +135,6 @@ func (s *Component) Repack() error {
 	if bundleErr != nil {
 		return bundleErr
 	}
-	s.PackDurationSeconds = time.Since(startTime).Seconds()
 
 	return nil
 }

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
 	"os/exec"
 
@@ -15,12 +16,11 @@ var initCMD = &cobra.Command{
 	Long: "initializes the project directory",
 	Run: func(cmd *cobra.Command, args []string) {
 		settings := &internal.GenPagesSettings{
-			PackageName:    viper.GetString("pacname"),
-			OutDir:         viper.GetString("out"),
-			WebDir:         viper.GetString("webdir"),
-			BundlerMode:    viper.GetString("mode"),
-			NodeModulePath: viper.GetString("nodemod"),
-			PublicDir:      viper.GetString("publicdir"),
+			PackageName: viper.GetString("pacname"),
+			OutDir:      viper.GetString("out"),
+			WebDir:      viper.GetString("webdir"),
+			BundlerMode: viper.GetString("mode"),
+			PublicDir:   viper.GetString("publicdir"),
 		}
 
 		nodeDependencies := map[string]string{
@@ -52,7 +52,7 @@ var initCMD = &cobra.Command{
 			Dependencies: nodeDependencies,
 		}
 
-		err := pkgJson.Write("package.json")
+		err := pkgJson.Write(fmt.Sprintf("%s/package.json", settings.OutDir))
 		if err != nil {
 			log.Fatal(err)
 		}

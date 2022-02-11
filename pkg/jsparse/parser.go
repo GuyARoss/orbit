@@ -41,6 +41,7 @@ type JSDocument interface {
 	AddImport(*ImportDependency) []*ImportDependency
 	Other() []string
 	AddOther(string) []string
+	Extension() string
 }
 
 type DefaultJSDocument struct {
@@ -140,6 +141,10 @@ func lineImportType(line string) ImportType {
 	}
 
 	return ModuleImportType
+}
+
+func NewEmptyDocument() *DefaultJSDocument {
+	return &DefaultJSDocument{}
 }
 
 func (p *DefaultJSDocument) formatImportLine(line string) *ImportDependency {
@@ -333,4 +338,14 @@ func (p *DefaultJSDocument) AddOther(new string) []string {
 	p.other = append(p.other, new)
 
 	return p.other
+}
+
+func (p *DefaultJSDocument) Extension() string {
+	f := strings.Split(p.pageDir, ".")
+
+	if len(f) == 0 {
+		return ""
+	}
+
+	return f[len(f)-1]
 }
