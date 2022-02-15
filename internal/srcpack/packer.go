@@ -34,6 +34,7 @@ func (s *Packer) CopyAssets() ([]*fs.CopyResults, error) {
 // concpack is a private packing mechanism embedding the packer to pack a set of files concurrently.
 type concPack struct {
 	*Packer
+	m sync.Mutex
 
 	packedPages []*Component
 	packMap     map[string]bool
@@ -56,6 +57,7 @@ func (p *concPack) PackSingle(errchan chan error, wg *sync.WaitGroup, path strin
 
 	if err != nil {
 		errchan <- err
+		fmt.Println(err)
 
 		wg.Done()
 		return
@@ -68,14 +70,16 @@ func (p *concPack) PackSingle(errchan chan error, wg *sync.WaitGroup, path strin
 		return
 	}
 
+	p.m.Lock()
 	p.packedPages = append(p.packedPages, page)
 	p.packMap[page.Name] = true
+	p.m.Unlock()
 
 	wg.Done()
 }
 
 // packs the provoided file paths into the orbit root directory
-func (s *Packer) PackMany(pages []string, hooks Hooks) ([]*Component, error) {
+func (s *Packer) PackMany(pages []string) ([]*Component, error) {
 	cp := &concPack{
 		Packer:      s,
 		packedPages: make([]*Component, 0),
@@ -95,9 +99,11 @@ func (s *Packer) PackMany(pages []string, hooks Hooks) ([]*Component, error) {
 
 	sh := NewSyncHook(s.Logger)
 	for _, dir := range pages {
+		// we copy dir here to avoid the pointer of dir being passed to our wrap func.
+		t := dir
 		// go routine to pack every page found in the pages directory
-		// we wrap this a routine with the sync hook to measure & log time deltas.
-		go sh.WrapFunc(dir, func() { cp.PackSingle(errchan, wg, dir) })
+		// we wrap this routine with the sync hook to measure & log time deltas.
+		go sh.WrapFunc(dir, func() { cp.PackSingle(errchan, wg, t) })
 	}
 
 	wg.Wait()

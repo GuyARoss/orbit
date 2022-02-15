@@ -23,6 +23,14 @@ type DefaultLogger struct {
 	outf func(string, ...interface{}) (int, error)
 }
 
+func NewEmptyLogger() *DefaultLogger {
+	return &DefaultLogger{
+		outf: func(s string, i ...interface{}) (int, error) {
+			return 0, nil
+		},
+	}
+}
+
 func NewDefaultLogger() *DefaultLogger {
 	return &DefaultLogger{
 		outf: fmt.Printf,

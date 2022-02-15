@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/GuyARoss/orbit/internal"
-	"github.com/GuyARoss/orbit/internal/srcpack"
 	"github.com/GuyARoss/orbit/pkg/log"
 	"github.com/GuyARoss/orbit/pkg/runtimeanalytics"
 	"github.com/spf13/cobra"
@@ -37,7 +36,7 @@ var buildCMD = &cobra.Command{
 			panic(err)
 		}
 
-		pages, err := settings.PackWebDir(context.Background(), srcpack.NewSyncHook(log.NewDefaultLogger()))
+		pages, err := settings.PackWebDir(context.Background(), log.NewDefaultLogger())
 		if err != nil {
 			panic(err)
 		}

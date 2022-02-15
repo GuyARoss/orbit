@@ -33,7 +33,7 @@ type GenPagesSettings struct {
 	PublicDir      string
 }
 
-func (s *GenPagesSettings) SetupPack(ctx context.Context) (context.Context, *srcpack.Packer) {
+func (s *GenPagesSettings) SetupPack(ctx context.Context, logger log.Logger) (context.Context, *srcpack.Packer) {
 	return ctx, &srcpack.Packer{
 		Bundler: &bundler.WebPackBundler{
 			BaseBundler: &bundler.BaseBundler{
@@ -46,12 +46,12 @@ func (s *GenPagesSettings) SetupPack(ctx context.Context) (context.Context, *src
 		WebDir:           s.WebDir,
 		JsParser:         &jsparse.JSFileParser{},
 		ValidWebWrappers: webwrapper.NewActiveMap(),
-		Logger:           log.NewDefaultLogger(),
+		Logger:           logger,
 	}
 }
 
-func (s *GenPagesSettings) PackWebDir(ctx context.Context, hook srcpack.Hooks) (*AutoGenPages, error) {
-	_, settings := s.SetupPack(ctx)
+func (s *GenPagesSettings) PackWebDir(ctx context.Context, logger log.Logger) (*AutoGenPages, error) {
+	_, settings := s.SetupPack(ctx, logger)
 
 	err := assets.WriteAssetsDir(".orbit/assets")
 	if err != nil {
@@ -59,7 +59,8 @@ func (s *GenPagesSettings) PackWebDir(ctx context.Context, hook srcpack.Hooks) (
 	}
 
 	pageFiles := fs.DirFiles(fmt.Sprintf("%s/pages", s.WebDir))
-	pages, err := settings.PackMany(pageFiles, hook)
+
+	pages, err := settings.PackMany(pageFiles)
 	if err != nil {
 		return nil, err
 	}

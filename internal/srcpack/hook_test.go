@@ -12,11 +12,11 @@ func TestSyncHook(t *testing.T) {
 
 	sh := NewSyncHook(logger)
 
+	defer sh.Close()
+
 	for i := 0; i < 4; i++ {
 		sh.WrapFunc(fmt.Sprintf("thing_%d", i), func() {
 
 		})
-
-		sh.Finalize()
 	}
 }

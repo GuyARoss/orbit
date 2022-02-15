@@ -41,7 +41,7 @@ func createSession(ctx context.Context, settings *internal.GenPagesSettings) (*d
 		return nil, err
 	}
 
-	lib, err := settings.PackWebDir(ctx, nil)
+	lib, err := settings.PackWebDir(ctx, log.NewEmptyLogger())
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func createSession(ctx context.Context, settings *internal.GenPagesSettings) (*d
 		return nil, err
 	}
 
-	_, packSettings := settings.SetupPack(ctx)
+	_, packSettings := settings.SetupPack(ctx, log.NewEmptyLogger())
 
 	return &devSession{
 		pageGenSettings:   settings,
@@ -69,6 +69,7 @@ func createSession(ctx context.Context, settings *internal.GenPagesSettings) (*d
 }
 
 func (s *devSession) executeChangeRequest(file string, timeoutDuration time.Duration) error {
+	// if this file has been recently processed (specificed by the timeout flag), do not process it.
 	if file == s.lastProcessedFile.FileName &&
 		time.Since(s.lastProcessedFile.ProcessedAt).Seconds() < timeoutDuration.Seconds() {
 		return nil
@@ -115,6 +116,7 @@ var devCMD = &cobra.Command{
 		logger := log.NewDefaultLogger()
 
 		logger.Info("starting dev server...")
+
 		as := &internal.GenPagesSettings{
 			PackageName:    viper.GetString("pacname"),
 			OutDir:         viper.GetString("out"),

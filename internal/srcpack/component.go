@@ -104,7 +104,7 @@ func (s *Component) Repack() error {
 		return err
 	}
 
-	// apply the nessasacary requirements for the web framework to the original page
+	// apply the necessary requirements for the web framework to the original page
 	page = s.WebWrapper.Apply(page, s.originalFilePath)
 	resource, err := s.Bundler.Setup(context.TODO(), &bundler.BundleOpts{
 		FileName:  s.originalFilePath,

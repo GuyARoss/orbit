@@ -9,12 +9,11 @@ import (
 	"github.com/GuyARoss/orbit/pkg/log"
 )
 
-// PackHooks
-// passing of "per" & "post" hooks for our iterative packing method "PackPages".
+// hooks for logging the pre & post operations of the packing process.
 type Hooks interface {
 	Pre(filePath string)                       // "pre" runs before each component packing iteration
 	Post(filepath string, elapsedTime float64) // "post" runs after each component packing iteration
-	Finalize()
+	Close()
 }
 
 type SyncHook struct {
@@ -76,7 +75,7 @@ func (s *SyncHook) WrapFunc(filepath string, do func()) {
 	m.Unlock()
 }
 
-func (s *SyncHook) Finalize() {
+func (s *SyncHook) Close() {
 	for s.l.Len() > 0 {
 		c := s.l.Front()
 		s.l.Remove(c)
