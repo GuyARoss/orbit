@@ -281,8 +281,8 @@ type JSParser interface {
 type JSFileParser struct{}
 
 func (p *JSFileParser) Parse(pageDir string, webDir string) (JSDocument, error) {
-	if pageDir[0] != '.' {
-		pageDir = fmt.Sprintf(".%s", pageDir)
+	if pageDir[0:2] != "./" {
+		pageDir = fmt.Sprintf("./%s", pageDir)
 	}
 
 	file, err := os.Open(pageDir)

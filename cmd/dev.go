@@ -84,7 +84,7 @@ func (s *devSession) executeChangeRequest(file string, timeoutDuration time.Dura
 		}
 		s.m.Unlock()
 
-		s.pageGenSettings.Repack(component)
+		s.pageGenSettings.Repack(component, srcpack.NewSyncHook(log.NewDefaultLogger()))
 	}
 
 	sources := s.sourceMap.FindRoot(file)

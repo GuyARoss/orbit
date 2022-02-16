@@ -13,6 +13,7 @@ import (
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/libgen"
 	"github.com/GuyARoss/orbit/pkg/log"
+	"github.com/GuyARoss/orbit/pkg/runtimeanalytics"
 	webwrapper "github.com/GuyARoss/orbit/pkg/web_wrapper"
 )
 
@@ -93,11 +94,15 @@ func (s *GenPagesSettings) PackWebDir(ctx context.Context, logger log.Logger) (*
 	}, nil
 }
 
-func (s *GenPagesSettings) Repack(p *srcpack.Component) error {
-	h := &srcpack.SyncHook{}
-	h.Pre(p.OriginalFilePath())
+func (s *GenPagesSettings) Repack(p *srcpack.Component, hooks srcpack.Hooks) error {
+	ra := &runtimeanalytics.RuntimeAnalytics{}
+	ra.StartCapture()
+
+	hooks.Pre(p.OriginalFilePath())
 
 	r := p.Repack()
+
+	hooks.Post(p.OriginalFilePath(), ra.StopCapture())
 
 	return r
 }
