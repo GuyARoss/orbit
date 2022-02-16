@@ -68,15 +68,29 @@ func createSession(ctx context.Context, settings *internal.GenPagesSettings) (*d
 	}, nil
 }
 
+// executeChangeRequest attempts to find the file in the component tree, if found it w
+// ill repack each of the branches that dependens on it.
 func (s *devSession) executeChangeRequest(file string, timeoutDuration time.Duration) error {
+	s.packSettings.Logger.Info(fmt.Sprintf("change detected → %s", file))
+
 	// if this file has been recently processed (specificed by the timeout flag), do not process it.
 	if file == s.lastProcessedFile.FileName &&
 		time.Since(s.lastProcessedFile.ProcessedAt).Seconds() < timeoutDuration.Seconds() {
+		s.packSettings.Logger.Info(fmt.Sprintf("change not excepted → %s (too recently processed)", file))
 		return nil
 	}
 
 	component := s.rootComponents[fmt.Sprintf("./%s", file)]
+
+	// if component is one of the root components, we will just repack that component
 	if component != nil {
+		s.packSettings.Logger.Info("change excepted → as root")
+
+		err := s.pageGenSettings.Repack(component, srcpack.NewSyncHook(log.NewDefaultLogger()))
+		if err != nil {
+			return err
+		}
+
 		s.m.Lock()
 		s.lastProcessedFile = &proccessedChangeRequest{
 			FileName:    file,
@@ -84,13 +98,17 @@ func (s *devSession) executeChangeRequest(file string, timeoutDuration time.Dura
 		}
 		s.m.Unlock()
 
-		s.pageGenSettings.Repack(component, srcpack.NewSyncHook(log.NewDefaultLogger()))
+		return nil
 	}
 
+	// component is not root, we need to find in which tree(s) the component exists & execute
+	// a repack for each of those components & their dependent branches.
 	sources := s.sourceMap.FindRoot(file)
 
 	activeNodes := make([]*srcpack.Component, len(sources))
 	for idx, source := range sources {
+		s.packSettings.Logger.Info(fmt.Sprintf("change found → %s (branch)", source))
+
 		component = s.rootComponents[source]
 
 		activeNodes[idx] = component

@@ -17,30 +17,38 @@ type Hooks interface {
 }
 
 type SyncHook struct {
-	keys    []string
 	postmap map[string]float64
+	premap  map[string]bool
 	logger  log.Logger
 
-	l *list.List
+	order *list.List
 }
 
 func NewSyncHook(logger log.Logger) *SyncHook {
 	return &SyncHook{
 		logger:  logger,
 		postmap: make(map[string]float64),
-		keys:    make([]string, 0),
-		l:       list.New(),
+		premap:  make(map[string]bool),
+		order:   list.New(),
 	}
 }
 
 func (s *SyncHook) Pre(filePath string) {
-	s.logger.Info(fmt.Sprintf("bundling %s → ...", filePath))
+	// if nothing is in queue, then we can write.
+	if s.order.Front() == nil {
+		s.premap[filePath] = true
+		s.logger.Info(fmt.Sprintf("bundling %s → ...", filePath))
+	}
 
-	s.l.PushBack(filePath)
+	s.order.PushBack(filePath)
 }
 
 func (s *SyncHook) Post(filePath string, elapsedTime float64) {
-	current := s.l.Front()
+	current := s.order.Front()
+
+	if !s.premap[filePath] {
+		s.logger.Info(fmt.Sprintf("bundling %s → ...", filePath))
+	}
 
 	if s.postmap[filePath] != 0 {
 		s.logger.Success(fmt.Sprintf("completed in %fs\n", elapsedTime))
@@ -51,7 +59,7 @@ func (s *SyncHook) Post(filePath string, elapsedTime float64) {
 	}
 
 	if current != nil {
-		s.l.Remove(current)
+		s.order.Remove(current)
 	}
 
 	s.postmap[filePath] = elapsedTime
@@ -62,7 +70,6 @@ func (s *SyncHook) WrapFunc(filepath string, do func()) {
 	m := sync.Mutex{}
 
 	m.Lock()
-	s.keys = append(s.keys, filepath)
 	s.Pre(filepath)
 	m.Unlock()
 
@@ -76,9 +83,9 @@ func (s *SyncHook) WrapFunc(filepath string, do func()) {
 }
 
 func (s *SyncHook) Close() {
-	for s.l.Len() > 0 {
-		c := s.l.Front()
-		s.l.Remove(c)
+	for s.order.Len() > 0 {
+		c := s.order.Front()
+		s.order.Remove(c)
 
 		valStr := c.Value.(string)
 		s.Post(valStr, s.postmap[valStr])
