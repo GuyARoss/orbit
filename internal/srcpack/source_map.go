@@ -7,7 +7,9 @@ import (
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 )
 
-type DependencySettings struct {
+// javascript dependency tree, used to create a dependency tree from javascript files
+// this struct should salsify the requirements for "DependencyTree" interface
+type JSDependencyTree struct {
 	WebDir            string
 	dirList           *[]string
 	pathDependencyMap *map[string][]string
@@ -20,7 +22,8 @@ type SrcDependency interface {
 	Dependencies() []*jsparse.ImportDependency
 }
 
-func flatPackedImports(dependencies []*jsparse.ImportDependency) []string {
+// given a slice of import dependencies, returns a string of local import paths
+func localDependencies(dependencies []*jsparse.ImportDependency) []string {
 	finalDependendices := make([]string, 0)
 	for _, d := range dependencies {
 		if d.Type == jsparse.LocalImportType {
@@ -30,7 +33,7 @@ func flatPackedImports(dependencies []*jsparse.ImportDependency) []string {
 	return finalDependendices
 }
 
-func (s *DependencySettings) cacheRootDirList(c []*Component, wg *sync.WaitGroup) {
+func (s *JSDependencyTree) cacheRootDirList(c []*Component, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	lst := make([]string, len(c))
@@ -41,27 +44,27 @@ func (s *DependencySettings) cacheRootDirList(c []*Component, wg *sync.WaitGroup
 	s.dirList = &lst
 }
 
-func (s *DependencySettings) cacheRootPathDependencyMap(c []*Component, wg *sync.WaitGroup) {
+func (s *JSDependencyTree) cacheRootPathDependencyMap(c []*Component, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	m := make(map[string][]string)
 
 	for _, component := range c {
-		m[component.OriginalFilePath()] = flatPackedImports(component.Dependencies())
+		m[component.OriginalFilePath()] = localDependencies(component.Dependencies())
 	}
 
 	s.pathDependencyMap = &m
 }
 
-func (s *DependencySettings) DirList(path string) ([]string, error) {
+func (s *JSDependencyTree) DirList(path string) ([]string, error) {
 	return *s.dirList, nil
 }
 
-func (s *DependencySettings) PathDependencies(path string) ([]string, error) {
-	derefMap := *s.pathDependencyMap
-	c := derefMap[path]
+// uses the js parser to get all of the dependencies for the specified file.
+func (s *JSDependencyTree) PathDependencies(path string) ([]string, error) {
+	pdm := *s.pathDependencyMap
 
-	if c != nil {
+	if c := pdm[path]; c != nil {
 		return c, nil
 	}
 
@@ -70,14 +73,16 @@ func (s *DependencySettings) PathDependencies(path string) ([]string, error) {
 		return nil, err
 	}
 
-	return flatPackedImports(page.Imports()), nil
+	return localDependencies(page.Imports()), nil
 }
 
 func New(path string, c []*Component, webDirPath string) (*dependtree.DependencySourceMap, error) {
 	var wg sync.WaitGroup
 
-	dependSettings := &DependencySettings{
+	dependSettings := &JSDependencyTree{
 		WebDir: webDirPath,
+		// @@todo: do not use default logger here, should instead refer to an arg.
+		JsParser: &jsparse.JSFileParser{},
 	}
 
 	m := &dependtree.ManagedDependencyTree{
