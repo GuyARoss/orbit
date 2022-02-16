@@ -58,7 +58,7 @@ func (d *DependencyTreeNode) SourceMap() *DependencySourceMap {
 	return &DependencySourceMap{m}
 }
 
-type DependencySettings interface {
+type DependencyTree interface {
 	// DirList fetches the current paths within a directory
 	DirList(path string) ([]string, error)
 
@@ -68,10 +68,10 @@ type DependencySettings interface {
 
 type ManagedDependencyTree struct {
 	rootNode *DependencyTreeNode
-	Settings DependencySettings
+	Settings DependencyTree
 }
 
-func mapNode(s DependencySettings, path string) (*DependencyTreeNode, error) {
+func mapNode(s DependencyTree, path string) (*DependencyTreeNode, error) {
 	dependencies, err := s.PathDependencies(path)
 
 	if err != nil {
