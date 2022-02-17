@@ -3,6 +3,7 @@ package srcpack
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/GuyARoss/orbit/pkg/bundler"
@@ -47,6 +48,7 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (*Component, erro
 	// this same js wrapper will be used when we go to repack.
 	webwrap := opts.JSWebWrappers.FirstMatch(page.Extension())
 
+	// no webwrapper is available
 	if webwrap == nil {
 		return nil, ErrInvalidComponentType
 	}
@@ -151,6 +153,11 @@ type PackedComponentList []*Component
 func (l *PackedComponentList) RepackMany(hooks Hooks) error {
 	wg := &sync.WaitGroup{}
 	for _, comp := range *l {
+		if comp == nil {
+			fmt.Println("empty comp!", *l)
+			continue
+		}
+
 		wg.Add(1)
 		go comp.RepackForWaitGroup(wg)
 	}

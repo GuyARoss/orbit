@@ -32,6 +32,7 @@ type GenPagesSettings struct {
 	BundlerMode    string
 	NodeModulePath string
 	PublicDir      string
+	UseDebug       bool
 }
 
 func (s *GenPagesSettings) SetupPack(ctx context.Context, logger log.Logger) (context.Context, *srcpack.Packer) {
@@ -42,6 +43,7 @@ func (s *GenPagesSettings) SetupPack(ctx context.Context, logger log.Logger) (co
 				WebDir:         s.WebDir,
 				PageOutputDir:  ".orbit/base/pages",
 				NodeModulesDir: s.NodeModulePath,
+				Logger:         logger,
 			},
 		},
 		WebDir:           s.WebDir,
@@ -73,6 +75,7 @@ func (s *GenPagesSettings) PackWebDir(ctx context.Context, logger log.Logger) (*
 		PublicDir:     s.PublicDir,
 	}
 
+	// create & build bundle files for each of the root pages
 	for _, p := range pages {
 		lg.ApplyBundle(p.Name, p.BundleKey)
 	}

@@ -1,7 +1,7 @@
 export default Thing = () => {
     return (
         <>
-        THING
+            THING!
         </>
     )
 }

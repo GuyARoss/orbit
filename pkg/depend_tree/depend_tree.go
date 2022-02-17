@@ -1,5 +1,7 @@
 package dependtree
 
+import "fmt"
+
 type DependencyTreeNode struct {
 	Value  string
 	Right  *DependencyTreeNode
@@ -12,6 +14,10 @@ type DependencySourceMap struct {
 }
 
 func (d *DependencySourceMap) FindRoot(path string) []string {
+	if path[0] != '/' {
+		path = fmt.Sprintf("/%s", path)
+	}
+
 	return d.sourceMap[path]
 }
 

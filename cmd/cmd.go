@@ -19,6 +19,7 @@ func init() {
 	var nodeModDir string
 	var publicDir string
 	var recordBuildDuration bool
+	var debug bool
 
 	buildCmds := [3]*cobra.Command{
 		buildCMD, devCMD, initCMD,
@@ -49,6 +50,9 @@ func init() {
 
 		cmd.PersistentFlags().BoolVar(&recordBuildDuration, "debugduration", false, "capture the duration for the entire bundle")
 		viper.BindPFlag("debugduration", cmd.PersistentFlags().Lookup("debugduration"))
+
+		cmd.PersistentFlags().BoolVar(&debug, "usedebug", false, "enables the debug mode")
+		viper.BindPFlag("usedebug", cmd.PersistentFlags().Lookup("usedebug"))
 	}
 }
 

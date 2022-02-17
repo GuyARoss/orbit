@@ -21,7 +21,8 @@ type SyncHook struct {
 	premap  map[string]bool
 	logger  log.Logger
 
-	order *list.List
+	order       *list.List
+	initialized bool
 }
 
 func NewSyncHook(logger log.Logger) *SyncHook {
@@ -34,34 +35,33 @@ func NewSyncHook(logger log.Logger) *SyncHook {
 }
 
 func (s *SyncHook) Pre(filePath string) {
-	// if nothing is in queue, then we can write.
-	if s.order.Front() == nil {
-		s.premap[filePath] = true
-		s.logger.Info(fmt.Sprintf("bundling %s → ...", filePath))
-	}
+	f := s.order.Front()
 
 	s.order.PushBack(filePath)
+
+	// if nothing is in queue, then we can write.
+	if f == nil && !s.initialized {
+		s.premap[filePath] = true
+		s.logger.Info(fmt.Sprintf("(1) bundling %s → ...", filePath))
+	}
+
+	s.initialized = true
 }
 
 func (s *SyncHook) Post(filePath string, elapsedTime float64) {
 	current := s.order.Front()
 
-	if !s.premap[filePath] {
-		s.logger.Info(fmt.Sprintf("bundling %s → ...", filePath))
-	}
-
-	if s.postmap[filePath] != 0 {
+	// if the filepath is the current queued filepath
+	// we write the output & remove the item from the queue.
+	if current == nil && !s.premap[filePath] && current.Value == filePath {
+		s.premap[filePath] = true
+		s.logger.Info(fmt.Sprintf("(2) bundling %s → ...", filePath))
 		s.logger.Success(fmt.Sprintf("completed in %fs\n", elapsedTime))
-	} else {
-		if current != nil && current.Value == filePath {
-			s.logger.Success(fmt.Sprintf("completed in %fs\n", elapsedTime))
-		}
-	}
-
-	if current != nil {
 		s.order.Remove(current)
 	}
 
+	// this can either be referenced later for metrics or be used in the case that
+	// the queue does not resolve all of the items.
 	s.postmap[filePath] = elapsedTime
 }
 
@@ -87,7 +87,12 @@ func (s *SyncHook) Close() {
 		c := s.order.Front()
 		s.order.Remove(c)
 
-		valStr := c.Value.(string)
-		s.Post(valStr, s.postmap[valStr])
+		filename := c.Value.(string)
+
+		// if we have not yet proccessed the filename then do it
+		if !s.premap[filename] {
+			s.logger.Info(fmt.Sprintf("(1) bundling %s → ...", filename))
+		}
+		s.logger.Success(fmt.Sprintf("completed in %fs\n", s.postmap[filename]))
 	}
 }

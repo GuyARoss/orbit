@@ -35,12 +35,28 @@ type devSession struct {
 
 var watcher *fsnotify.Watcher
 
+func verifyComponentPath(in string) string {
+	skip := 0
+	for _, c := range in {
+		if c == '.' || c == '/' {
+			skip += 1
+			continue
+		}
+
+		break
+	}
+
+	return in[skip:]
+}
+
 func createSession(ctx context.Context, settings *internal.GenPagesSettings) (*devSession, error) {
 	err := settings.CleanPathing()
 	if err != nil {
 		return nil, err
 	}
 
+	// we use the empty logger here to to prevent the initial build from being shown
+	// during the creation of the dev session
 	lib, err := settings.PackWebDir(ctx, log.NewEmptyLogger())
 	if err != nil {
 		return nil, err
@@ -48,7 +64,10 @@ func createSession(ctx context.Context, settings *internal.GenPagesSettings) (*d
 
 	rootComponents := make(map[string]*srcpack.Component)
 	for _, p := range lib.Pages {
-		rootComponents[p.OriginalFilePath()] = p
+		// verify that the path is clean before we apply it to the root component map
+		path := verifyComponentPath(p.OriginalFilePath())
+
+		rootComponents[path] = p
 	}
 
 	sourceMap, err := srcpack.New(settings.WebDir, lib.Pages, settings.WebDir)
@@ -56,7 +75,8 @@ func createSession(ctx context.Context, settings *internal.GenPagesSettings) (*d
 		return nil, err
 	}
 
-	_, packSettings := settings.SetupPack(ctx, log.NewEmptyLogger())
+	// we use the default logger here to log the dev build events
+	_, packSettings := settings.SetupPack(ctx, log.NewDefaultLogger())
 
 	return &devSession{
 		pageGenSettings:   settings,
@@ -68,23 +88,30 @@ func createSession(ctx context.Context, settings *internal.GenPagesSettings) (*d
 	}, nil
 }
 
-// executeChangeRequest attempts to find the file in the component tree, if found it w
-// ill repack each of the branches that dependens on it.
+// executeChangeRequest attempts to find the file in the component tree, if found it
+// will repack each of the branches that dependens on it.
 func (s *devSession) executeChangeRequest(file string, timeoutDuration time.Duration) error {
-	s.packSettings.Logger.Info(fmt.Sprintf("change detected → %s", file))
+	if s.pageGenSettings.UseDebug {
+		s.packSettings.Logger.Info(fmt.Sprintf("change detected → %s", file))
+	}
 
 	// if this file has been recently processed (specificed by the timeout flag), do not process it.
 	if file == s.lastProcessedFile.FileName &&
 		time.Since(s.lastProcessedFile.ProcessedAt).Seconds() < timeoutDuration.Seconds() {
-		s.packSettings.Logger.Info(fmt.Sprintf("change not excepted → %s (too recently processed)", file))
+
+		if s.pageGenSettings.UseDebug {
+			s.packSettings.Logger.Info(fmt.Sprintf("change not excepted → %s (too recently processed)", file))
+		}
 		return nil
 	}
 
-	component := s.rootComponents[fmt.Sprintf("./%s", file)]
+	component := s.rootComponents[file]
 
 	// if component is one of the root components, we will just repack that component
 	if component != nil {
-		s.packSettings.Logger.Info("change excepted → as root")
+		if s.pageGenSettings.UseDebug {
+			s.packSettings.Logger.Info(fmt.Sprintf("change found → %s (root)", file))
+		}
 
 		err := s.pageGenSettings.Repack(component, srcpack.NewSyncHook(log.NewDefaultLogger()))
 		if err != nil {
@@ -105,13 +132,21 @@ func (s *devSession) executeChangeRequest(file string, timeoutDuration time.Dura
 	// a repack for each of those components & their dependent branches.
 	sources := s.sourceMap.FindRoot(file)
 
-	activeNodes := make([]*srcpack.Component, len(sources))
-	for idx, source := range sources {
-		s.packSettings.Logger.Info(fmt.Sprintf("change found → %s (branch)", source))
+	if s.pageGenSettings.UseDebug {
+		s.packSettings.Logger.Info(fmt.Sprintf("%d branch(s) found", len(sources)))
+	}
 
+	// we iterate through each of the root sources for the source
+	activeNodes := make([]*srcpack.Component, 0)
+	for _, source := range sources {
+		if s.pageGenSettings.UseDebug {
+			s.packSettings.Logger.Info(fmt.Sprintf("change found → %s (branch)", source))
+		}
+
+		source = verifyComponentPath(source)
 		component = s.rootComponents[source]
 
-		activeNodes[idx] = component
+		activeNodes = append(activeNodes, component)
 	}
 
 	cl := srcpack.PackedComponentList(activeNodes)
@@ -133,6 +168,10 @@ var devCMD = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		logger := log.NewDefaultLogger()
 
+		if viper.GetBool("usedebug") {
+			logger.Warn("debug mode enabled")
+		}
+
 		logger.Info("starting dev server...")
 
 		as := &internal.GenPagesSettings{
@@ -142,6 +181,7 @@ var devCMD = &cobra.Command{
 			BundlerMode:    viper.GetString("mode"),
 			NodeModulePath: viper.GetString("nodemod"),
 			PublicDir:      viper.GetString("publicdir"),
+			UseDebug:       viper.GetBool("usedebug"),
 		}
 
 		s, err := createSession(context.Background(), as)
@@ -149,7 +189,7 @@ var devCMD = &cobra.Command{
 			panic(err)
 		}
 
-		logger.Success("dev server started successfully")
+		logger.Success("dev server started successfully\n")
 
 		watcher, _ = fsnotify.NewWatcher()
 		defer watcher.Close()
@@ -162,12 +202,12 @@ var devCMD = &cobra.Command{
 
 		go func() {
 			for {
-				time.Sleep(time.Duration(viper.GetInt("timeout")) * time.Second)
+				time.Sleep(time.Duration(viper.GetInt("timeout")) * time.Millisecond)
 
 				select {
 				case e := <-watcher.Events:
-					if !strings.Contains(e.Name, "node_modules") || !strings.Contains(e.Name, ".orbit") {
-						go s.executeChangeRequest(e.Name, time.Duration(viper.GetInt("samefiletimeout"))*time.Second)
+					if !strings.Contains(e.Name, "node_modules") && !strings.Contains(e.Name, ".orbit") {
+						go s.executeChangeRequest(e.Name, time.Duration(viper.GetInt("samefiletimeout"))*time.Millisecond)
 					}
 				case err := <-watcher.Errors:
 					panic(fmt.Sprintf("watcher failed %s", err.Error()))
@@ -183,10 +223,10 @@ func init() {
 	var timeoutDuration int
 	var samefileTimeout int
 
-	devCMD.PersistentFlags().IntVar(&timeoutDuration, "timeout", 2, "specifies the timeout duration in seconds until a change will be detected")
+	devCMD.PersistentFlags().IntVar(&timeoutDuration, "timeout", 2000, "specifies the timeout duration in milliseconds until a change will be detected")
 	viper.BindPFlag("timeout", devCMD.PersistentFlags().Lookup("timeout"))
 
-	devCMD.PersistentFlags().IntVar(&samefileTimeout, "samefiletimeout", 5, "specifies the timeout duration in seconds until a change will be detected for repeating files")
+	devCMD.PersistentFlags().IntVar(&samefileTimeout, "samefiletimeout", 2000, "specifies the timeout duration in milliseconds until a change will be detected for repeating files")
 	viper.BindPFlag("samefiletimeout", devCMD.PersistentFlags().Lookup("samefiletimeout"))
 
 	RootCMD.AddCommand(devCMD)

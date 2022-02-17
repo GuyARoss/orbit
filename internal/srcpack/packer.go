@@ -98,6 +98,9 @@ func (s *Packer) PackMany(pages []string) ([]*Component, error) {
 	}()
 
 	sh := NewSyncHook(s.Logger)
+
+	defer sh.Close()
+
 	for _, dir := range pages {
 		// we copy dir here to avoid the pointer of dir being passed to our wrap func.
 		t := dir
