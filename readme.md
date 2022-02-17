@@ -1,7 +1,7 @@
 # Orbit SSR
 Golang SSR framework featuring native react support with zero boilerplate.
 
-__ATTENTION__: The current state of master is a WIP to a stable build; While the API is still being developed. 
+__ATTENTION__: The current state of master is a WIP to a stable build while the API is still being developed. 
 
 ![CLI](./.github/cap.png)
 
