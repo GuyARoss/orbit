@@ -97,7 +97,7 @@ func (s *GenPagesSettings) PackWebDir(ctx context.Context, logger log.Logger) (*
 	}, nil
 }
 
-func (s *GenPagesSettings) Repack(p *srcpack.Component, hooks srcpack.Hooks) error {
+func (s *GenPagesSettings) Repack(p *srcpack.Component, hooks srcpack.PackHook) error {
 	ra := &runtimeanalytics.RuntimeAnalytics{}
 	ra.StartCapture()
 

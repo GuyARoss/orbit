@@ -150,7 +150,8 @@ func (s *devSession) executeChangeRequest(file string, timeoutDuration time.Dura
 	}
 
 	cl := srcpack.PackedComponentList(activeNodes)
-	return cl.RepackMany(srcpack.NewSyncHook(log.NewDefaultLogger()))
+
+	return cl.RepackMany(log.NewDefaultLogger())
 }
 
 func watchDir(path string, fi os.FileInfo, err error) error {

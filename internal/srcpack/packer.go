@@ -78,7 +78,7 @@ func (p *concPack) PackSingle(errchan chan error, wg *sync.WaitGroup, path strin
 	wg.Done()
 }
 
-// packs the provoided file paths into the orbit root directory
+// packs the provided file paths into the orbit root directory
 func (s *Packer) PackMany(pages []string) ([]*Component, error) {
 	cp := &concPack{
 		Packer:      s,
@@ -112,4 +112,35 @@ func (s *Packer) PackMany(pages []string) ([]*Component, error) {
 	wg.Wait()
 
 	return cp.packedPages, nil
+}
+
+type PackedComponentList []*Component
+
+func (l *PackedComponentList) RepackMany(logger log.Logger) error {
+	wg := &sync.WaitGroup{}
+	wg.Add(len(*l))
+
+	errchan := make(chan error)
+
+	go func() {
+		err := <-errchan
+		// @@todo: do something more with this error?
+		fmt.Println("error occurred", err.Error())
+	}()
+
+	sh := NewSyncHook(logger)
+
+	defer sh.Close()
+
+	for _, comp := range *l {
+		// we copy dir here to avoid the pointer of dir being passed to our wrap func.
+		t := comp
+		// go routine to pack every page found in the pages directory
+		// we wrap this routine with the sync hook to measure & log time deltas.
+		go sh.WrapFunc(t.originalFilePath, func() { comp.RepackForWaitGroup(wg, errchan) })
+	}
+
+	wg.Wait()
+
+	return nil
 }

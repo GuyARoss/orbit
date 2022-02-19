@@ -9,8 +9,8 @@ var publicDir string = "./public/index.html"
 type PageRender string
 
 const ( 
-	ExampleTwoPage PageRender = "fe9faa2750e8559c8c213c2c25c4ce73"
 	ExamplePage PageRender = "496a05464c3f5aa89e1d8bed7afe59d4"
+	ExampleTwoPage PageRender = "fe9faa2750e8559c8c213c2c25c4ce73"
 )
 
 

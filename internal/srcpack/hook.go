@@ -10,7 +10,7 @@ import (
 )
 
 // hooks for logging the pre & post operations of the packing process.
-type Hooks interface {
+type PackHook interface {
 	Pre(filePath string)                       // "pre" runs before each component packing iteration
 	Post(filepath string, elapsedTime float64) // "post" runs after each component packing iteration
 	Close()

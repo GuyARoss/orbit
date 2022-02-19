@@ -27,7 +27,15 @@ func localDependencies(dependencies []*jsparse.ImportDependency) []string {
 	finalDependendices := make([]string, 0)
 	for _, d := range dependencies {
 		if d.Type == jsparse.LocalImportType {
-			finalDependendices = append(finalDependendices, d.InitialPath)
+			path := d.InitialPath
+
+			// common issue with parsed paths is that they could be formatted differently
+			// no resolve this, we normalize the process
+			if path[0] == '/' {
+				path = path[1:]
+			}
+
+			finalDependendices = append(finalDependendices, path)
 		}
 	}
 	return finalDependendices
