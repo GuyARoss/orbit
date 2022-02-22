@@ -16,8 +16,6 @@ var bundleDir string = ".orbit/dist"
 
 type PageRender string
 
-var hotReloadPipePath string = ""
-
 var publicDir string = "./public/index.html"
 
 type BundleMode int32
@@ -28,6 +26,13 @@ const (
 )
 
 var CurrentDevMode BundleMode
+
+var reactDefault = []string{
+	`<script src="https://unpkg.com/react/umd/react.production.min.js" crossorigin></script><script src="https://unpkg.com/react-dom/umd/react-dom.production.min.js" crossorigin></script><script src="https://unpkg.com/react-bootstrap@next/dist/react-bootstrap.min.js" crossorigin></script>`,
+	`<div id="root"></div>`,
+}
+
+var wrapBody = map[PageRender][]string{}
 
 // **__START_STATIC__**
 type RuntimeCtx struct {
@@ -58,6 +63,8 @@ func centerStr(str string, subStart string, subEnd string) string {
 }
 
 func (s *htmlDoc) build(data []byte, page PageRender) string {
+	body := append(s.Body, wrapBody[page]...)
+
 	return fmt.Sprintf(`
 	<!doctype html>
 	<html lang="en">
@@ -72,16 +79,13 @@ func (s *htmlDoc) build(data []byte, page PageRender) string {
 			<script src="/p/%s.js"></script>				
 		</body>
 	</html>
-	`, strings.Join(s.Head, ""), string(data), strings.Join(s.Body, ""), page)
+	`, strings.Join(s.Head, ""), string(data), strings.Join(body, ""), page)
 }
 
 func initHtmlDoc() (*htmlDoc, error) {
 	base := &htmlDoc{
 		Head: []string{`<meta charset="utf-8" />`},
-		Body: []string{
-			`<script src="https://unpkg.com/react/umd/react.production.min.js" crossorigin></script><script src="https://unpkg.com/react-dom/umd/react-dom.production.min.js" crossorigin></script><script src="https://unpkg.com/react-bootstrap@next/dist/react-bootstrap.min.js" crossorigin></script>`,
-			`<div id="root"></div>`,
-		},
+		Body: []string{},
 	}
 
 	if CurrentDevMode == DevBundleMode {
@@ -100,6 +104,21 @@ func initHtmlDoc() (*htmlDoc, error) {
 	}
 
 	return base, nil
+}
+
+func parseSlug(slugKeys map[int]string, path string) map[string]string {
+	slugs := make(map[string]string)
+	if len(slugKeys) > 0 {
+		paths := strings.Split(path, "/")
+		for idx, p := range paths {
+			key := slugKeys[idx]
+			if key != "" {
+				slugs[key] = p
+			}
+		}
+	}
+
+	return slugs
 }
 
 func HandleFunc(path string, handler func(c *RuntimeCtx)) {
@@ -131,7 +150,7 @@ func HandleFunc(path string, handler func(c *RuntimeCtx)) {
 		renderPage := func(page PageRender, data interface{}) {
 			d, err := json.Marshal(data)
 			if err != nil {
-				// @@todo(debug): do something
+				rw.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 
@@ -141,22 +160,11 @@ func HandleFunc(path string, handler func(c *RuntimeCtx)) {
 			rw.Write([]byte(html))
 		}
 
-		slugs := make(map[string]string)
-		if len(slugKeys) > 0 {
-			paths := strings.Split(r.URL.Path, "/")
-			for idx, p := range paths {
-				key := slugKeys[idx]
-				if key != "" {
-					slugs[key] = p
-				}
-			}
-		}
-
 		ctx := &RuntimeCtx{
 			RenderPage: renderPage,
 			Request:    r,
 			Response:   rw,
-			Slugs:      slugs,
+			Slugs:      parseSlug(slugKeys, r.URL.Path),
 		}
 
 		handler(ctx)

@@ -10,6 +10,8 @@ type JSWebWrapper interface {
 	Apply(page jsparse.JSDocument, toFilePath string) jsparse.JSDocument
 	NodeDependencies() map[string]string
 	DoesSatisfyConstraints(fileExtension string) bool
+	WrapVersion() string
+	RequiredBodyDOMElements() []string
 }
 
 type JSWebWrapperMap []JSWebWrapper

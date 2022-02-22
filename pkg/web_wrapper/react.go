@@ -27,13 +27,24 @@ func (s *ReactWebWrapper) Apply(page jsparse.JSDocument, toFilePath string) jspa
 
 func (s *ReactWebWrapper) NodeDependencies() map[string]string {
 	return map[string]string{
-		"react":            "^16.13.1",
-		"react-dom":        "^16.13.1",
-		"react-hot-loader": "^4.12.21",
-		"react-router-dom": "^5.2.0",
+		"react":            "16.13.1",
+		"react-dom":        "16.13.1",
+		"react-hot-loader": "4.12.21",
+		"react-router-dom": "5.2.0",
 	}
 }
 
 func (s *ReactWebWrapper) DoesSatisfyConstraints(fileExtension string) bool {
 	return strings.Contains(fileExtension, "jsx")
+}
+
+func (s *ReactWebWrapper) WrapVersion() string {
+	return "react-v16.13.1"
+}
+
+func (s *ReactWebWrapper) RequiredBodyDOMElements() []string {
+	return []string{
+		`<script src="https://unpkg.com/react/umd/react.production.min.js" crossorigin></script><script src="https://unpkg.com/react-dom/umd/react-dom.production.min.js" crossorigin></script><script src="https://unpkg.com/react-bootstrap@next/dist/react-bootstrap.min.js" crossorigin></script>`,
+		`<div id="root"></div>`,
+	}
 }

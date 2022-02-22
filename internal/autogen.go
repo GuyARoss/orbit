@@ -63,23 +63,22 @@ func (s *GenPagesSettings) PackWebDir(ctx context.Context, logger log.Logger) (*
 
 	pageFiles := fs.DirFiles(fmt.Sprintf("%s/pages", s.WebDir))
 
-	pages, err := settings.PackMany(pageFiles)
+	comps, err := settings.PackMany(pageFiles)
 	if err != nil {
 		return nil, err
 	}
 
-	lg := &libgen.BundleGroup{
+	lg := libgen.New(&libgen.BundleGroupOpts{
 		PackageName:   s.PackageName,
 		BaseBundleOut: ".orbit/dist",
 		BundleMode:    string(s.BundlerMode),
 		PublicDir:     s.PublicDir,
-	}
+	})
 
 	// create & build bundle files for each of the root pages
-	for _, p := range pages {
-		lg.ApplyBundle(p.Name, p.BundleKey)
-	}
+	lg.AcceptComponents(comps)
 
+	// @@todo: this should come from the embedded file rather than an output file.
 	libStaticContent, parseErr := libgen.ParseStaticFile(".orbit/assets/orbit.go")
 	if parseErr != nil {
 		return nil, parseErr
@@ -92,7 +91,7 @@ func (s *GenPagesSettings) PackWebDir(ctx context.Context, logger log.Logger) (*
 			Body:        libStaticContent,
 			PackageName: s.PackageName,
 		},
-		Pages:       pages,
+		Pages:       comps,
 		PackageName: s.PackageName,
 	}, nil
 }

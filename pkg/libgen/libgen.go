@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/GuyARoss/orbit/internal/srcpack"
 )
 
 type LibOut struct {
@@ -44,36 +46,78 @@ func (l *LibOut) WriteFile(dir string) error {
 }
 
 type page struct {
-	name      string
-	bundleKey string
+	name        string
+	bundleKey   string
+	wrapVersion string
 }
 
 type BundleGroup struct {
+	*BundleGroupOpts
+
+	pages []*page
+	// compRequiredBody map[string][]string
+
+	// component web wrapper body data
+	compww map[string][]string
+}
+
+type BundleGroupOpts struct {
 	PackageName   string
 	BaseBundleOut string
 	BundleMode    string
 	PublicDir     string
-
-	pages []*page
 }
 
-func (l *BundleGroup) ApplyBundle(name string, bundleKey string) {
-	l.pages = append(l.pages, &page{name, bundleKey})
+func New(opts *BundleGroupOpts) *BundleGroup {
+	return &BundleGroup{
+		BundleGroupOpts: opts,
+		pages:           make([]*page, 0),
+		compww:          make(map[string][]string),
+	}
+}
+
+func parseVersionKey(k string) string {
+	// @@todo: check if first char is int
+	f := strings.ReplaceAll(k, ".", "_")
+	return strings.ReplaceAll(f, "-", "")
+}
+
+func (l *BundleGroup) AcceptComponents(comps []*srcpack.Component) {
+	for _, c := range comps {
+		v := parseVersionKey(c.WebWrapper.WrapVersion())
+
+		l.pages = append(l.pages, &page{c.Name, c.BundleKey, v})
+		l.compww[v] = c.WebWrapper.RequiredBodyDOMElements()
+	}
 }
 
 func (l *BundleGroup) CreateBundleLib() *LibOut {
 	out := strings.Builder{}
 
+	for rd, v := range l.compww {
+		out.WriteString("\n")
+		out.WriteString(fmt.Sprintf(`var %s = []string{`, rd))
+		out.WriteString("\n")
+
+		for _, b := range v {
+			out.WriteString(fmt.Sprintf("`%s`,", b))
+			out.WriteString("\n")
+		}
+
+		out.WriteString("}")
+		out.WriteString("\n")
+	}
+
 	if len(l.BaseBundleOut) > 0 {
 		out.WriteString("\n")
 		out.WriteString(fmt.Sprintf(`var bundleDir string = "%s"`, l.BaseBundleOut))
-		out.WriteString("\n\n")
+		out.WriteString("\n")
 	}
 
 	if len(l.PublicDir) > 0 {
 		out.WriteString("\n")
 		out.WriteString(fmt.Sprintf(`var publicDir string = "%s"`, l.PublicDir))
-		out.WriteString("\n\n")
+		out.WriteString("\n")
 	}
 
 	out.WriteString("type PageRender string\n\n")
@@ -94,6 +138,18 @@ func (l *BundleGroup) CreateBundleLib() *LibOut {
 			out.WriteString(")\n")
 		}
 	}
+
+	out.WriteString("\n")
+	out.WriteString(`var wrapBody = map[PageRender][]string{`)
+	out.WriteString("\n")
+
+	for _, p := range l.pages {
+		out.WriteString(fmt.Sprintf(`	%s: %s,`, p.name, p.wrapVersion))
+		out.WriteString("\n")
+	}
+
+	out.WriteString("}")
+
 	out.WriteString("\n")
 
 	out.WriteString(`
