@@ -1,2 +1,9 @@
-rm -rf examples/basic-react/orbit
-ln orbit examples/basic-react/orbit
+echo "\n"
+
+for file in examples/*; do
+    rm -rf "$file"/orbit
+
+    cp orbit "$file"/orbit
+
+    echo "linked $file"
+done
