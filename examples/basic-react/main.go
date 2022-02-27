@@ -1,13 +1,19 @@
 package main
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/GuyARoss/orbit/examples/basic-react/orbitgen"
 )
 
 func main() {
-	orbitgen.HandleFunc("/", func(c *orbitgen.RuntimeCtx) {
+	orb, err := orbitgen.New()
+	if err != nil {
+		panic(err)
+	}
+
+	orb.HandleFunc("/", func(c *orbitgen.Request) {
 		now := time.Now()
 
 		props := make(map[string]interface{})
@@ -18,5 +24,5 @@ func main() {
 		c.RenderPage(orbitgen.ExamplePage, props)
 	})
 
-	orbitgen.Start(3003)
+	http.ListenAndServe(":3030", *orb.Serve())
 }
