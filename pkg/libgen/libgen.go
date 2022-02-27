@@ -181,8 +181,6 @@ const (
 	EndToken   StaticToken = "// **__END_STATIC__**"
 )
 
-var declarationTokens = []StaticToken{StartToken, EndToken}
-
 func ParseStaticFile(dir string) (string, error) {
 	file, err := os.Open(dir)
 	if err != nil {
@@ -194,31 +192,15 @@ func ParseStaticFile(dir string) (string, error) {
 	scanner.Split(bufio.ScanLines)
 
 	out := strings.Builder{}
-	isStatic := false
 
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		skip := false
-
-		for _, decToken := range declarationTokens {
-			if strings.Contains(line, string(decToken)) {
-				switch decToken {
-				case StartToken:
-					{
-						skip = true
-						isStatic = true
-					}
-				case EndToken:
-					isStatic = false
-				}
-
-				continue
-			}
+		// we don't want the package to be contained within this
+		if strings.Contains(line, "package") {
+			continue
 		}
-		if isStatic && !skip {
-			out.WriteString(fmt.Sprintf("%s\n", line))
-		}
+		out.WriteString(fmt.Sprintf("%s\n", line))
 	}
 
 	return out.String(), nil

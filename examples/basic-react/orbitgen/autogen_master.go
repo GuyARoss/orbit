@@ -1,5 +1,6 @@
 package orbitgen
 
+
 import (
 	"encoding/json"
 	"fmt"
@@ -9,81 +10,75 @@ import (
 	"strings"
 )
 
-type RuntimeCtx struct {
+// Request is the standard request payload for the orbit page handler
+// this is just a fancy wrapper around the http request & response that will also assist
+// the rendering of bundled pages & incoming path slugs
+type Request struct {
 	RenderPage func(page PageRender, data interface{})
 	Request    *http.Request
 	Response   http.ResponseWriter
 	Slugs      map[string]string
 }
 
+// DefaultPage defines the standard behavior for a orbit page handler
 type DefaultPage interface {
-	Handle(c *RuntimeCtx)
+	Handle(*Request)
 }
 
-type Route struct {
-	Path string
-	Page DefaultPage
-}
-
+// htmlDoc represents a basic document model that will be rendered upon build request
 type htmlDoc struct {
 	Head []string
 	Body []string
 }
 
-func centerStr(str string, subStart string, subEnd string) string {
-	init := strings.Split(str, subStart)[1:]
-
-	return strings.Split(strings.Join(init, ""), subEnd)[0]
-}
-
+// build builds the htmldocument given data for orbits manifest and the page's
+// javascript bundle key to render the document out to a single string
 func (s *htmlDoc) build(data []byte, page PageRender) string {
 	body := append(s.Body, wrapBody[page]...)
 
+	// the "orbit_manifest" refers to the object content that the specified
+	// web javascript bundle can make use of
 	return fmt.Sprintf(`
 	<!doctype html>
 	<html lang="en">
-		<head>
-			%s	
-			<script id="orbit_manifest" type="application/json">
-			%s
-			</script>
-		</head>
-		<body>
-			%s
-			<script src="/p/%s.js"></script>				
-		</body>
-	</html>
-	`, strings.Join(s.Head, ""), string(data), strings.Join(body, ""), page)
+	<head>%s<script id="orbit_manifest" type="application/json">%s</script></head>
+	<body>%s<script src="/p/%s.js"></script></body>
+	</html>`, strings.Join(s.Head, ""), string(data), strings.Join(body, ""), page)
 }
 
-func initHtmlDoc() (*htmlDoc, error) {
-	base := &htmlDoc{
-		Head: []string{`<meta charset="utf-8" />`},
-		Body: []string{},
-	}
+// innerHTML is a utility function that assists with the parsing the content of html tags
+// it does this by returning the subset of the two provided strings "subStart" & "subEnd"
+func innerHTML(str string, subStart string, subEnd string) string {
+	return strings.Split(strings.Join(strings.Split(str, subStart)[1:], ""), subEnd)[0]
+}
 
+// defaultHTMLDoc builds a standard html doc for orbit that also verifies the public directory
+// if override data exits, then it will use that as a base for the HTML document
+func defaultHTMLDoc(override string) (*htmlDoc, error) {
+	base := &htmlDoc{Head: []string{`<meta charset="utf-8" />`}, Body: []string{}}
+
+	// we allow some special operations on the dom for debugging, currently supporting:
+	// - geting the contents of orbit manifest with the function "getManifest"
 	if CurrentDevMode == DevBundleMode {
-		base.Body = append(base.Body, `<script> const getProps = () => JSON.parse(document.getElementById("orbit_manifest").textContent) </script>`)
+		base.Body = append(base.Body, `<script class="debug"> const getManifest = () => JSON.parse(document.getElementById("orbit_manifest").textContent) </script>`)
 	}
 
-	_, err := os.Stat(publicDir)
-	if !os.IsNotExist(err) {
-		data, err := ioutil.ReadFile(publicDir)
-		if err != nil {
-			return base, err
-		}
-
-		base.Body = append(base.Body, centerStr(string(data), "<body>", "</body>"))
-		base.Head = append(base.Body, centerStr(string(data), "<head>", "</head>"))
+	// the html override that will provide a basis for the default html doc
+	if override != "" {
+		base.Body = append(base.Body, innerHTML(string(override), "<body>", "</body>"))
+		base.Head = append(base.Head, innerHTML(string(override), "<head>", "</head>"))
 	}
 
 	return base, nil
 }
 
+// parseSlug will parse slugs from the incoming path provided initial slugKeys and return a map of the slugs
+// in map[string]string form where the key is the slug name & value is the value as it appears in the path
 func parseSlug(slugKeys map[int]string, path string) map[string]string {
 	slugs := make(map[string]string)
 	if len(slugKeys) > 0 {
 		paths := strings.Split(path, "/")
+
 		for idx, p := range paths {
 			key := slugKeys[idx]
 			if key != "" {
@@ -95,32 +90,51 @@ func parseSlug(slugKeys map[int]string, path string) map[string]string {
 	return slugs
 }
 
-func HandleFunc(path string, handler func(c *RuntimeCtx)) {
-	slugKeys := make(map[int]string, 0)
+// parsePathSlugs will parse initial slugs found in a path, these slugs can be identified with
+// the "{" char prepended & "}" appended to the path/subpath e.g "/path/{thing}" will represent "thing" as a slug key.
+func parsePathSlugs(path *string) map[int]string {
+	slugKeys := make(map[int]string)
 
 	validInitial := make([]string, 0)
-	stillValid := true
-	if strings.Contains(path, "{") {
-		paths := strings.Split(path, "/")
+	slide := true
+	if strings.Contains(*path, "{") {
+		paths := strings.Split(*path, "/")
 		for idx, p := range paths {
 			if strings.Contains(p, "{") {
-				stillValid = false
+				slide = false
 				slugKeys[idx] = p[1 : len(p)-1]
 			}
 
-			if stillValid {
+			if slide {
 				validInitial = append(validInitial, p)
 			}
 		}
-		path = fmt.Sprintf("%s/", strings.Join(validInitial, "/"))
+
+		final := fmt.Sprintf("%s/", strings.Join(validInitial, "/"))
+		path = &final
 	}
 
-	doc, err := initHtmlDoc()
-	if err != nil {
-		return
-	}
+	return slugKeys
+}
 
-	http.HandleFunc(path, func(rw http.ResponseWriter, r *http.Request) {
+// muxHandle is used to inject the base mux handler behavior
+type muxHandler interface {
+	HandleFunc(string, func(http.ResponseWriter, *http.Request))
+	Handle(string, http.Handler)
+	ServeHTTP(http.ResponseWriter, *http.Request)
+}
+
+type serve struct {
+	mux muxHandler
+	doc *htmlDoc
+}
+
+// HandleFunc attaches a handler to the specified pattern, this handler will be
+// ran upon a match of the request path during an incoming http request.
+func (s *serve) HandleFunc(path string, handler func(c *Request)) {
+	slugs := parsePathSlugs(&path)
+
+	s.mux.HandleFunc(path, func(rw http.ResponseWriter, r *http.Request) {
 		renderPage := func(page PageRender, data interface{}) {
 			d, err := json.Marshal(data)
 			if err != nil {
@@ -128,29 +142,62 @@ func HandleFunc(path string, handler func(c *RuntimeCtx)) {
 				return
 			}
 
-			html := doc.build(d, page)
+			html := s.doc.build(d, page)
 
 			rw.WriteHeader(http.StatusOK)
 			rw.Write([]byte(html))
 		}
 
-		ctx := &RuntimeCtx{
+		ctx := &Request{
 			RenderPage: renderPage,
 			Request:    r,
 			Response:   rw,
-			Slugs:      parseSlug(slugKeys, r.URL.Path),
+			Slugs:      parseSlug(slugs, r.URL.Path),
 		}
 
 		handler(ctx)
 	})
 }
 
-func HandlePage(path string, dp DefaultPage) {
-	HandleFunc(path, dp.Handle)
+// HandlePage attaches an orbit page to the specified pattern, this handler will be
+// ran upon a match of the request path during an incoming http request
+func (s *serve) HandlePage(path string, dp DefaultPage) {
+	s.HandleFunc(path, dp.Handle)
 }
 
-func Start(port int) {
-	http.Handle("/p/", http.StripPrefix("/p/", http.FileServer(http.Dir(bundleDir))))
-	http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+// setupMuxRequirements creates the required mux handlers for orbit, these include
+// - fileserver for the bundle directory bound to the "/p/" directory
+func (s *serve) setupMuxRequirements() *serve {
+	s.mux.Handle("/p/", http.StripPrefix("/p/", http.FileServer(http.Dir(bundleDir))))
+
+	return s
 }
 
+func (s *serve) Serve() *muxHandler {
+	return &s.mux
+}
+
+// NewServe creates a new default orbit server
+func New() (*serve, error) {
+	html := ""
+
+	_, err := os.Stat(publicDir)
+	if !os.IsNotExist(err) {
+		data, err := ioutil.ReadFile(publicDir)
+		if err != nil {
+			return nil, err
+		}
+
+		html = string(data)
+	}
+
+	doc, err := defaultHTMLDoc(html)
+	if err != nil {
+		return nil, err
+	}
+
+	return (&serve{
+		mux: http.NewServeMux(),
+		doc: doc,
+	}).setupMuxRequirements(), nil
+}
