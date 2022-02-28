@@ -34,7 +34,6 @@ var buildCMD = &cobra.Command{
 			panic(err)
 		}
 
-		ats.AssetKey(assets.WebPackConfig)
 		err = internal.OrbitFileStructure(&internal.FileStructureOpts{
 			PackageName: viper.GetString("pacname"),
 			OutDir:      viper.GetString("out"),
