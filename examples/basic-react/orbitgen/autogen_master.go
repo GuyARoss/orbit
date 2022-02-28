@@ -1,5 +1,6 @@
 package orbitgen
 
+
 import (
 	"encoding/json"
 	"fmt"
@@ -53,7 +54,7 @@ func innerHTML(str string, subStart string, subEnd string) string {
 
 // defaultHTMLDoc builds a standard html doc for orbit that also verifies the public directory
 // if override data exits, then it will use that as a base for the HTML document
-func defaultHTMLDoc(override string) (*htmlDoc, error) {
+func defaultHTMLDoc(override string) *htmlDoc {
 	base := &htmlDoc{Head: []string{`<meta charset="utf-8" />`}, Body: []string{}}
 
 	// we allow some special operations on the dom for debugging, currently supporting:
@@ -68,7 +69,7 @@ func defaultHTMLDoc(override string) (*htmlDoc, error) {
 		base.Head = append(base.Head, innerHTML(string(override), "<head>", "</head>"))
 	}
 
-	return base, nil
+	return base
 }
 
 // parseSlug will parse slugs from the incoming path provided initial slugKeys and return a map of the slugs
@@ -172,6 +173,7 @@ func (s *serve) setupMuxRequirements() *serve {
 	return s
 }
 
+// Serve returns the mux server
 func (s *serve) Serve() *muxHandler {
 	return &s.mux
 }
@@ -182,19 +184,13 @@ func New() (*serve, error) {
 
 	_, err := os.Stat(publicDir)
 	if !os.IsNotExist(err) {
-		data, err := ioutil.ReadFile(publicDir)
-		if err != nil {
-			return nil, err
-		}
-
+		// im not entirely sure that an error here would warrant a change in behavior
+		// invalid files should already be skipped, besides that, an empty []byte should suffice.
+		data, _ := ioutil.ReadFile(publicDir)
 		html = string(data)
 	}
 
-	doc, err := defaultHTMLDoc(html)
-	if err != nil {
-		return nil, err
-	}
-
+	doc := defaultHTMLDoc(html)
 	return (&serve{
 		mux: http.NewServeMux(),
 		doc: doc,

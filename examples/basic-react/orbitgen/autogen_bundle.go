@@ -2,8 +2,8 @@ package orbitgen
 
 
 var reactv16_13_1 = []string{
-`<script crossorigin src="https://unpkg.com/react/umd/react.production.min.js"></script>`,
-`<script crossorigin src="https://unpkg.com/react-dom/umd/react-dom.production.min.js"></script>`,
+`<script src="/p/fc38086145547d465be97fec2e412a16.js"></script>`,
+`<script src="/p/a63649d90703a7b09f22aed8d310be5b.js"></script>`,
 `<div id="root"></div>`,
 }
 

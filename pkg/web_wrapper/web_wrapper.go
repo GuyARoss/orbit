@@ -23,7 +23,7 @@ type CacheDOMOpts struct {
 	WebPrefix string
 }
 
-func (c *CacheDOMOpts) CacheWebRequest(uris []string) []string {
+func (c *CacheDOMOpts) CacheWebRequest(uris []string) ([]string, error) {
 	final := make([]string, 0)
 	for _, f := range uris {
 		sum := md5.Sum([]byte(f))
@@ -33,23 +33,31 @@ func (c *CacheDOMOpts) CacheWebRequest(uris []string) []string {
 		extension := extensions[len(extensions)-1]
 
 		filepath := fmt.Sprintf("%s/%s.%s", c.CacheDir, hash, extension)
+
+		// a local cached instance of the file does not exist so a request is
+		// made to the endpoint, then the response is saved to a file
 		if _, err := os.Stat(filepath); errors.Is(err, os.ErrNotExist) {
 			res, err := http.Get(f)
-			fmt.Println(err)
+			if err != nil {
+				return final, err
+			}
 
-			// @@todo; return error stating that required wrap data cannot be found
 			outFile, err := os.Create(filepath)
-			fmt.Println(err)
+			if err != nil {
+				return final, err
+			}
 
 			defer outFile.Close()
 			_, err = io.Copy(outFile, res.Body)
-			fmt.Println(err)
-
-			final = append(final, fmt.Sprintf("%s%s", c.WebPrefix, hash))
+			if err != nil {
+				return final, err
+			}
 		}
+
+		final = append(final, fmt.Sprintf("%s%s.%s", c.WebPrefix, hash, extension))
 	}
 
-	return final
+	return final, nil
 }
 
 type JSWebWrapper interface {

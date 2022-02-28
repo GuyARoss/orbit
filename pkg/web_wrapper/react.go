@@ -44,10 +44,21 @@ func (s *ReactWebWrapper) Version() string {
 }
 
 func (s *ReactWebWrapper) RequiredBodyDOMElements(ctx context.Context, cache *CacheDOMOpts) []string {
-	files := cache.CacheWebRequest([]string{
+	// @@todo: use env setting to use different env packages
+	files, err := cache.CacheWebRequest([]string{
 		"https://unpkg.com/react/umd/react.production.min.js",
 		"https://unpkg.com/react-dom/umd/react-dom.production.min.js",
 	})
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	// currently these files are just paths to a directory to refer
+	// to them on the dom, we need to convert them to <script> tags.
+	for i, f := range files {
+		files[i] = fmt.Sprintf(`<script src="%s"></script>`, f)
+	}
 
 	files = append(files, `<div id="root"></div>`)
 
