@@ -4,19 +4,28 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io/fs"
 	"os"
 	"strings"
 
+	"github.com/GuyARoss/orbit/internal/assets"
 	"github.com/GuyARoss/orbit/internal/srcpack"
 	webwrapper "github.com/GuyARoss/orbit/pkg/web_wrapper"
 )
 
-type LibOut struct {
+type GoFile struct {
 	PackageName string
 	Body        string
 }
 
-func (l *LibOut) WriteFile(dir string) error {
+func NewGoFile(packageName string, body string) *GoFile {
+	return &GoFile{
+		PackageName: packageName,
+		Body:        body,
+	}
+}
+
+func (l *GoFile) WriteFile(dir string) error {
 	out := strings.Builder{}
 	out.WriteString(fmt.Sprintf("package %s\n\n", l.PackageName))
 	out.WriteString(l.Body)
@@ -93,7 +102,7 @@ func (l *BundleGroup) AcceptComponents(ctx context.Context, comps []*srcpack.Com
 	}
 }
 
-func (l *BundleGroup) CreateBundleLib() *LibOut {
+func (l *BundleGroup) CreateBundleLib() *GoFile {
 	out := strings.Builder{}
 
 	for rd, v := range l.compww {
@@ -170,21 +179,15 @@ const (
 		out.WriteString("var CurrentDevMode BundleMode = DevBundleMode")
 	}
 
-	return &LibOut{
+	return &GoFile{
 		PackageName: l.PackageName,
 		Body:        out.String(),
 	}
 }
 
-type StaticToken string
+func ParseFile(entry fs.DirEntry) (string, error) {
+	file, err := assets.OpenFile(entry)
 
-const (
-	StartToken StaticToken = "// **__START_STATIC__**"
-	EndToken   StaticToken = "// **__END_STATIC__**"
-)
-
-func ParseStaticFile(dir string) (string, error) {
-	file, err := os.Open(dir)
 	if err != nil {
 		return "", err
 	}

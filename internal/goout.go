@@ -18,8 +18,10 @@ import (
 )
 
 type AutoGenPages struct {
-	BundleData  *libgen.LibOut
-	Master      *libgen.LibOut
+	BundleData *libgen.GoFile
+	Master     *libgen.GoFile
+	Test       *libgen.GoFile
+
 	Pages       []*srcpack.Component
 	OutDir      string
 	PackageName string
@@ -35,7 +37,7 @@ type GenPagesSettings struct {
 	UseDebug       bool
 }
 
-func (s *GenPagesSettings) SetupPack(ctx context.Context, logger log.Logger) (context.Context, *srcpack.Packer) {
+func (s *GenPagesSettings) DefaultPacker(ctx context.Context, logger log.Logger) (context.Context, *srcpack.Packer) {
 	return ctx, &srcpack.Packer{
 		Bundler: &bundler.WebPackBundler{
 			BaseBundler: &bundler.BaseBundler{
@@ -54,14 +56,19 @@ func (s *GenPagesSettings) SetupPack(ctx context.Context, logger log.Logger) (co
 }
 
 func (s *GenPagesSettings) PackWebDir(ctx context.Context, logger log.Logger) (*AutoGenPages, error) {
-	_, settings := s.SetupPack(ctx, logger)
+	_, settings := s.DefaultPacker(ctx, logger)
 
-	err := assets.WriteAssetsDir(".orbit/assets")
+	ats, err := assets.AssetKeys()
 	if err != nil {
 		return nil, err
 	}
 
 	pageFiles := fs.DirFiles(fmt.Sprintf("%s/pages", s.WebDir))
+
+	err = assets.WriteFile(".orbit/assets", ats.AssetKey(assets.WebPackConfig))
+	if err != nil {
+		return nil, err
+	}
 
 	comps, err := settings.PackMany(pageFiles)
 	if err != nil {
@@ -75,25 +82,27 @@ func (s *GenPagesSettings) PackWebDir(ctx context.Context, logger log.Logger) (*
 		PublicDir:     s.PublicDir,
 	})
 
-	// create & build bundle files for each of the root pages
+	// initialize bundle fields for each of the root pages
 	lg.AcceptComponents(ctx, comps, &webwrapper.CacheDOMOpts{
 		CacheDir:  ".orbit/dist",
 		WebPrefix: "/p/",
 	})
 
-	// @@todo: this should come from the embedded file rather than an output file.
-	libStaticContent, parseErr := libgen.ParseStaticFile(".orbit/assets/orbit.go")
-	if parseErr != nil {
-		return nil, parseErr
+	libStaticContent, err := libgen.ParseFile(ats.AssetKey(assets.PrimaryPackage))
+	if err != nil {
+		return nil, err
+	}
+
+	testsStaticContent, err := libgen.ParseFile(ats.AssetKey(assets.Tests))
+	if err != nil {
+		return nil, err
 	}
 
 	return &AutoGenPages{
-		OutDir:     s.OutDir,
-		BundleData: lg.CreateBundleLib(),
-		Master: &libgen.LibOut{
-			Body:        libStaticContent,
-			PackageName: s.PackageName,
-		},
+		OutDir:      s.OutDir,
+		BundleData:  lg.CreateBundleLib(),
+		Master:      libgen.NewGoFile(s.PackageName, libStaticContent),
+		Test:        libgen.NewGoFile(s.PackageName, testsStaticContent),
 		Pages:       comps,
 		PackageName: s.PackageName,
 	}, nil
@@ -113,11 +122,16 @@ func (s *GenPagesSettings) Repack(p *srcpack.Component, hooks srcpack.PackHook) 
 }
 
 func (s *AutoGenPages) WriteOut() error {
-	err := s.BundleData.WriteFile(fmt.Sprintf("%s/%s/autogen_bundle.go", s.OutDir, s.PackageName))
+	err := s.BundleData.WriteFile(fmt.Sprintf("%s/%s/orb_bundle.go", s.OutDir, s.PackageName))
 	if err != nil {
 		return err
 	}
-	err = s.Master.WriteFile(fmt.Sprintf("%s/%s/autogen_master.go", s.OutDir, s.PackageName))
+	err = s.Master.WriteFile(fmt.Sprintf("%s/%s/orb_master.go", s.OutDir, s.PackageName))
+	if err != nil {
+		return err
+	}
+
+	err = s.Test.WriteFile(fmt.Sprintf("%s/%s/orb_test.go", s.OutDir, s.PackageName))
 	if err != nil {
 		return err
 	}

@@ -79,7 +79,7 @@ func createSession(ctx context.Context, settings *internal.GenPagesSettings) (*d
 	}
 
 	// we use the default logger here to log the dev build events
-	_, packSettings := settings.SetupPack(ctx, log.NewDefaultLogger())
+	_, packSettings := settings.DefaultPacker(ctx, log.NewDefaultLogger())
 
 	return &devSession{
 		pageGenSettings:   settings,
