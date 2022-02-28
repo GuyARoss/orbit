@@ -3,6 +3,8 @@ package jsparse
 import (
 	"errors"
 	"testing"
+
+	"github.com/GuyARoss/orbit/pkg/fsutils"
 )
 
 func Test_formatImportLine_DefaultPkg(t *testing.T) {
@@ -28,7 +30,7 @@ func Test_formatImportLine_AlternateEOLChar(t *testing.T) {
 func Test_formatImportLine_DefaultLocal(t *testing.T) {
 	p := DefaultJSDocument{webDir: "test"}
 	got := p.formatImportLine("import React from '../react'")
-	expected := "import React from '../../../test/react.jsx'"
+	expected := fsutils.NormalizePath("import React from '../../../test/react.jsx'")
 
 	if got.FinalStatement != expected {
 		t.Errorf("got %s, expected %s", got.FinalStatement, expected)
@@ -38,7 +40,7 @@ func Test_formatImportLine_DefaultLocal(t *testing.T) {
 func Test_formatImportLine_AlternativeStrChar(t *testing.T) {
 	p := DefaultJSDocument{webDir: "test"}
 	got := p.formatImportLine("import React from \"../react\"")
-	expected := "import React from '../../../test/react.jsx'"
+	expected := fsutils.NormalizePath("import React from '../../../test/react.jsx'")
 
 	if got.FinalStatement != expected {
 		t.Errorf("got %s, expected %s", got.FinalStatement, expected)
@@ -48,7 +50,7 @@ func Test_formatImportLine_AlternativeStrChar(t *testing.T) {
 func Test_formatImportLine_ConstLocal(t *testing.T) {
 	p := DefaultJSDocument{webDir: "test"}
 	got := p.formatImportLine("import { tool } from '../tools/test'")
-	expected := "import { tool } from '../../../test/tools/test.jsx'"
+	expected := fsutils.NormalizePath("import { tool } from '../../../test/tools/test.jsx'")
 
 	if got.FinalStatement != expected {
 		t.Errorf("got %s, expected %s", got.FinalStatement, expected)

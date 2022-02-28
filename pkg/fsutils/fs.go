@@ -32,9 +32,8 @@ func copyFile(srcFile, dstFile string) error {
 	return nil
 }
 
-type CopyResults struct {
-	BaseDir string
-	CopyDir string
+func NormalizePath(path string) string {
+	return strings.ReplaceAll(path, "/", fmt.Sprintf("%c", os.PathSeparator))
 }
 
 func pathDelimiter(path string) string {
@@ -57,6 +56,11 @@ func condenseDirPath(dirPath string) string {
 	spt := strings.Split(dirPath, pathType)
 
 	return fmt.Sprintf("%s%s%s", strings.Join(spt[0:2], pathType), pathType, spt[len(spt)-1])
+}
+
+type CopyResults struct {
+	BaseDir string
+	CopyDir string
 }
 
 func CopyDir(dir string, baseDir string, outDir string, condense bool) []*CopyResults {

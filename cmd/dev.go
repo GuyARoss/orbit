@@ -82,7 +82,7 @@ func createSession(ctx context.Context, opts *SessionOpts) (*devSession, error) 
 		NodeModuleDir: viper.GetString("nodemod"),
 	})
 
-	pageFiles := fsutils.DirFiles(fmt.Sprintf("%s/pages", viper.GetString("webdir")))
+	pageFiles := fsutils.DirFiles(fsutils.NormalizePath(fmt.Sprintf("%s/pages", viper.GetString("webdir"))))
 	components, err := packer.PackMany(pageFiles)
 	if err != nil {
 		panic(err)
@@ -106,9 +106,9 @@ func createSession(ctx context.Context, opts *SessionOpts) (*devSession, error) 
 		ats.AssetKey(assets.Tests),
 		ats.AssetKey(assets.PrimaryPackage),
 	), &libout.FilePathOpts{
-		TestFile: fmt.Sprintf("%s/%s/orb_test.go", viper.GetString("webdir"), viper.GetString("pacname")),
-		EnvFile:  fmt.Sprintf("%s/%s/orb_env.go", viper.GetString("webdir"), viper.GetString("pacname")),
-		HTTPFile: fmt.Sprintf("%s/%s/orb_http.go", viper.GetString("webdir"), viper.GetString("pacname")),
+		TestFile: fsutils.NormalizePath(fmt.Sprintf("%s/%s/orb_test.go", viper.GetString("webdir"), viper.GetString("pacname"))),
+		EnvFile:  fsutils.NormalizePath(fmt.Sprintf("%s/%s/orb_env.go", viper.GetString("webdir"), viper.GetString("pacname"))),
+		HTTPFile: fsutils.NormalizePath(fmt.Sprintf("%s/%s/orb_http.go", viper.GetString("webdir"), viper.GetString("pacname"))),
 	})
 	if err != nil {
 		return nil, err
@@ -234,7 +234,7 @@ var devCMD = &cobra.Command{
 		watcher, _ = fsnotify.NewWatcher()
 		defer watcher.Close()
 
-		if err := filepath.Walk("./", watchDir); err != nil {
+		if err := filepath.Walk(fsutils.NormalizePath("./"), watchDir); err != nil {
 			panic("invalid walk on watchDir")
 		}
 

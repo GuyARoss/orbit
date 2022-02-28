@@ -1,12 +1,11 @@
 package fsutils
 
 import (
-	"path/filepath"
 	"testing"
 )
 
 func TestCondenseFilePath_LongPath(t *testing.T) {
-	path := filepath.Clean(".orbit/base/web/pages/home.jsx")
+	path := ".orbit/base/web/pages/home.jsx"
 
 	got := condenseFilePath(path)
 	if got != ".orbit/base/pages/home.jsx" {
@@ -15,7 +14,7 @@ func TestCondenseFilePath_LongPath(t *testing.T) {
 }
 
 func TestCondenseDirPath_LongDir(t *testing.T) {
-	path := filepath.Clean(".orbit/base/web/pages")
+	path := ".orbit/base/web/pages"
 
 	got := condenseDirPath(path)
 	if got != ".orbit/base/pages" {
@@ -24,7 +23,7 @@ func TestCondenseDirPath_LongDir(t *testing.T) {
 }
 
 func TestCondenseDirPath_ShortDir(t *testing.T) {
-	path := filepath.Clean(".orbit/base/pages")
+	path := ".orbit/base/pages"
 
 	got := condenseDirPath(path)
 	if got != ".orbit/base/pages" {
