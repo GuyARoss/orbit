@@ -2,10 +2,12 @@ package cmd
 
 import (
 	"fmt"
+	"io/fs"
 	"log"
 	"os/exec"
 
 	"github.com/GuyARoss/orbit/internal"
+	"github.com/GuyARoss/orbit/internal/assets"
 	"github.com/GuyARoss/orbit/pkg/prompt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -15,14 +17,6 @@ var initCMD = &cobra.Command{
 	Use:  "init",
 	Long: "initializes the project directory",
 	Run: func(cmd *cobra.Command, args []string) {
-		settings := &internal.GenPagesSettings{
-			PackageName: viper.GetString("pacname"),
-			OutDir:      viper.GetString("out"),
-			WebDir:      viper.GetString("webdir"),
-			BundlerMode: viper.GetString("mode"),
-			PublicDir:   viper.GetString("publicdir"),
-		}
-
 		nodeDependencies := map[string]string{
 			"@babel/core": "^7.11.1",
 			"@babel/plugin-proposal-export-default-from": "^7.12.13",
@@ -52,7 +46,7 @@ var initCMD = &cobra.Command{
 			Dependencies: nodeDependencies,
 		}
 
-		err := pkgJson.Write(fmt.Sprintf("%s/package.json", settings.OutDir))
+		err := pkgJson.Write(fmt.Sprintf("%s/package.json", viper.GetString("out")))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -62,7 +56,17 @@ var initCMD = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		err = settings.CleanPathing()
+		ats, err := assets.AssetKeys()
+		if err != nil {
+			panic(err)
+		}
+
+		err = internal.OrbitFileStructure(&internal.FileStructureOpts{
+			PackageName: viper.GetString("pacname"),
+			OutDir:      viper.GetString("out"),
+			Assets:      []fs.DirEntry{ats.AssetKey(assets.WebPackConfig)},
+		})
+
 		if err != nil {
 			log.Fatal(err)
 		}

@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/GuyARoss/orbit/pkg/bundler"
-	"github.com/GuyARoss/orbit/pkg/fs"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/log"
 	webwrapper "github.com/GuyARoss/orbit/pkg/web_wrapper"
@@ -24,11 +23,69 @@ type Packer struct {
 	WebDir   string
 }
 
-// copies the required assets to the asset directory
-func (s *Packer) CopyAssets() ([]*fs.CopyResults, error) {
-	results := fs.CopyDir(s.AssetDir, s.AssetDir, ".orbit/assets", false)
+// packs the provided file paths into the orbit root directory
+func (s *Packer) PackMany(pages []string) ([]*Component, error) {
+	cp := &concPack{
+		Packer:      s,
+		packedPages: make([]*Component, 0),
+		packMap:     make(map[string]bool),
+	}
 
-	return results, nil
+	wg := &sync.WaitGroup{}
+	wg.Add(len(pages))
+
+	errchan := make(chan error)
+
+	go func() {
+		err := <-errchan
+		// @@todo: do something more with this error?
+		fmt.Println("error occurred", err.Error())
+	}()
+
+	sh := NewSyncHook(s.Logger)
+
+	defer sh.Close()
+
+	for _, dir := range pages {
+		// we copy dir here to avoid the pointer of dir being passed to our wrap func.
+		t := dir
+		// go routine to pack every page found in the pages directory
+		// we wrap this routine with the sync hook to measure & log time deltas.
+		go sh.WrapFunc(dir, func() { cp.PackSingle(errchan, wg, t) })
+	}
+
+	wg.Wait()
+
+	return cp.packedPages, nil
+}
+
+func (p *Packer) ReattachLogger(logger log.Logger) *Packer {
+	p.Logger = logger
+	return p
+}
+
+type DefaultPackerOpts struct {
+	WebDir        string
+	BundlerMode   string
+	NodeModuleDir string
+}
+
+func NewDefaultPacker(logger log.Logger, opts *DefaultPackerOpts) *Packer {
+	return &Packer{
+		Bundler: &bundler.WebPackBundler{
+			BaseBundler: &bundler.BaseBundler{
+				Mode:           bundler.BundlerMode(opts.BundlerMode),
+				WebDir:         opts.WebDir,
+				PageOutputDir:  ".orbit/base/pages",
+				NodeModulesDir: opts.NodeModuleDir,
+				Logger:         logger,
+			},
+		},
+		WebDir:           opts.WebDir,
+		JsParser:         &jsparse.JSFileParser{},
+		ValidWebWrappers: webwrapper.NewActiveMap(),
+		Logger:           logger,
+	}
 }
 
 // concpack is a private packing mechanism embedding the packer to pack a set of files concurrently.
@@ -76,42 +133,6 @@ func (p *concPack) PackSingle(errchan chan error, wg *sync.WaitGroup, path strin
 	p.m.Unlock()
 
 	wg.Done()
-}
-
-// packs the provided file paths into the orbit root directory
-func (s *Packer) PackMany(pages []string) ([]*Component, error) {
-	cp := &concPack{
-		Packer:      s,
-		packedPages: make([]*Component, 0),
-		packMap:     make(map[string]bool),
-	}
-
-	wg := &sync.WaitGroup{}
-	wg.Add(len(pages))
-
-	errchan := make(chan error)
-
-	go func() {
-		err := <-errchan
-		// @@todo: do something more with this error?
-		fmt.Println("error occurred", err.Error())
-	}()
-
-	sh := NewSyncHook(s.Logger)
-
-	defer sh.Close()
-
-	for _, dir := range pages {
-		// we copy dir here to avoid the pointer of dir being passed to our wrap func.
-		t := dir
-		// go routine to pack every page found in the pages directory
-		// we wrap this routine with the sync hook to measure & log time deltas.
-		go sh.WrapFunc(dir, func() { cp.PackSingle(errchan, wg, t) })
-	}
-
-	wg.Wait()
-
-	return cp.packedPages, nil
 }
 
 type PackedComponentList []*Component
