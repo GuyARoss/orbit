@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/GuyARoss/orbit/pkg/bundler"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 )
 
@@ -40,15 +41,23 @@ func (s *ReactWebWrapper) DoesSatisfyConstraints(fileExtension string) bool {
 }
 
 func (s *ReactWebWrapper) Version() string {
-	return "react-v16.13.1"
+	return "react"
 }
 
 func (s *ReactWebWrapper) RequiredBodyDOMElements(ctx context.Context, cache *CacheDOMOpts) []string {
-	// @@todo: use env setting to use different env packages
-	files, err := cache.CacheWebRequest([]string{
-		"https://unpkg.com/react/umd/react.production.min.js",
-		"https://unpkg.com/react-dom/umd/react-dom.production.min.js",
-	})
+	mode := ctx.Value(bundler.BundlerID).(string)
+
+	uris := make([]string, 0)
+	switch bundler.BundlerMode(mode) {
+	case bundler.DevelopmentBundle:
+		uris = append(uris, "https://unpkg.com/react/umd/react.development.js")
+		uris = append(uris, "https://unpkg.com/react/umd/react.development.js")
+	case bundler.ProductionBundle:
+		uris = append(uris, "https://unpkg.com/react/umd/react.production.min.js")
+		uris = append(uris, "https://unpkg.com/react/umd/react.production.min.js")
+	}
+
+	files, err := cache.CacheWebRequest(uris)
 
 	if err != nil {
 		fmt.Println(err)

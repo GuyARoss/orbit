@@ -7,6 +7,12 @@ import (
 	"github.com/GuyARoss/orbit/pkg/log"
 )
 
+type BundlerKey string
+
+const (
+	BundlerID BundlerKey = "bundlerID"
+)
+
 type BundlerMode string
 
 const (
