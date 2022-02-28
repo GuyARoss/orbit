@@ -76,7 +76,10 @@ func (s *GenPagesSettings) PackWebDir(ctx context.Context, logger log.Logger) (*
 	})
 
 	// create & build bundle files for each of the root pages
-	lg.AcceptComponents(comps)
+	lg.AcceptComponents(ctx, comps, &webwrapper.CacheDOMOpts{
+		CacheDir:  ".orbit/dist",
+		WebPrefix: "/p/",
+	})
 
 	// @@todo: this should come from the embedded file rather than an output file.
 	libStaticContent, parseErr := libgen.ParseStaticFile(".orbit/assets/orbit.go")

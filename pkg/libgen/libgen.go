@@ -2,11 +2,13 @@ package libgen
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/GuyARoss/orbit/internal/srcpack"
+	webwrapper "github.com/GuyARoss/orbit/pkg/web_wrapper"
 )
 
 type LibOut struct {
@@ -82,12 +84,12 @@ func parseVersionKey(k string) string {
 	return strings.ReplaceAll(f, "-", "")
 }
 
-func (l *BundleGroup) AcceptComponents(comps []*srcpack.Component) {
+func (l *BundleGroup) AcceptComponents(ctx context.Context, comps []*srcpack.Component, cacheOpts *webwrapper.CacheDOMOpts) {
 	for _, c := range comps {
-		v := parseVersionKey(c.WebWrapper.WrapVersion())
+		v := parseVersionKey(c.WebWrapper.Version())
 
 		l.pages = append(l.pages, &page{c.Name, c.BundleKey, v})
-		l.compww[v] = c.WebWrapper.RequiredBodyDOMElements()
+		l.compww[v] = c.WebWrapper.RequiredBodyDOMElements(ctx, cacheOpts)
 	}
 }
 

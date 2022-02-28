@@ -11,6 +11,7 @@ import (
 
 	"github.com/GuyARoss/orbit/internal"
 	"github.com/GuyARoss/orbit/internal/srcpack"
+	"github.com/GuyARoss/orbit/pkg/bundler"
 	dependtree "github.com/GuyARoss/orbit/pkg/depend_tree"
 	"github.com/GuyARoss/orbit/pkg/log"
 	"github.com/fsnotify/fsnotify"
@@ -54,6 +55,8 @@ func createSession(ctx context.Context, settings *internal.GenPagesSettings) (*d
 	if err != nil {
 		return nil, err
 	}
+
+	ctx = context.WithValue(ctx, bundler.BundlerID, settings.BundlerMode)
 
 	// we use the empty logger here to to prevent the initial build from being shown
 	// during the creation of the dev session

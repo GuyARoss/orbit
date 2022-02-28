@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/GuyARoss/orbit/internal"
+	"github.com/GuyARoss/orbit/pkg/bundler"
 	"github.com/GuyARoss/orbit/pkg/log"
 	"github.com/GuyARoss/orbit/pkg/runtimeanalytics"
 	"github.com/spf13/cobra"
@@ -36,7 +37,10 @@ var buildCMD = &cobra.Command{
 			panic(err)
 		}
 
-		pages, err := settings.PackWebDir(context.Background(), log.NewDefaultLogger())
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, bundler.BundlerID, settings.BundlerMode)
+
+		pages, err := settings.PackWebDir(ctx, log.NewDefaultLogger())
 		if err != nil {
 			panic(err)
 		}
