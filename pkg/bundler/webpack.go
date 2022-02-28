@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os/exec"
 
+	"github.com/GuyARoss/orbit/pkg/fsutils"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 )
 
@@ -47,11 +48,11 @@ func (b *WebPackBundler) Setup(ctx context.Context, settings *BundleOpts) (*Bund
 }
 
 func (b *WebPackBundler) Bundle(configuratorFilePath string) error {
-	cmd := exec.Command("node", fmt.Sprintf("%s/.bin/webpack", b.NodeModulesDir), "--config", configuratorFilePath)
+	cmd := exec.Command("node", fsutils.NormalizePath(fmt.Sprintf("%s/.bin/webpack", b.NodeModulesDir)), "--config", configuratorFilePath)
 	_, err := cmd.Output()
 
 	if err != nil {
-		b.Logger.Warn(fmt.Sprintf(`invalid pack: "node %s --config %s"`, fmt.Sprintf("%s/.bin/webpack", b.NodeModulesDir), configuratorFilePath))
+		b.Logger.Warn(fmt.Sprintf(`invalid pack: "node %s --config %s"`, fsutils.NormalizePath(fmt.Sprintf("%s/.bin/webpack", b.NodeModulesDir)), configuratorFilePath))
 	}
 
 	return err

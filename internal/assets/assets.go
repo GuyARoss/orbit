@@ -6,6 +6,8 @@ import (
 	"io/fs"
 	"os"
 	"strings"
+
+	"github.com/GuyARoss/orbit/pkg/fsutils"
 )
 
 //go:embed embed/*
@@ -20,16 +22,16 @@ const (
 )
 
 func OpenFile(f fs.DirEntry) (fs.File, error) {
-	return content.Open(fmt.Sprintf("embed/%s", f.Name()))
+	return content.Open(fsutils.NormalizePath(fmt.Sprintf("embed/%s", f.Name())))
 }
 
 func WriteFile(toDir string, f fs.DirEntry) error {
-	newFile, err := os.Create(fmt.Sprintf("%s/%s", toDir, f.Name()))
+	newFile, err := os.Create(fsutils.NormalizePath(fmt.Sprintf("%s/%s", toDir, f.Name())))
 	if err != nil {
 		return err
 	}
 
-	data, err := content.ReadFile(fmt.Sprintf("embed/%s", f.Name()))
+	data, err := content.ReadFile(fsutils.NormalizePath(fmt.Sprintf("embed/%s", f.Name())))
 	if err != nil {
 		return err
 	}

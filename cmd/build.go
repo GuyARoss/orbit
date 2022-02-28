@@ -44,7 +44,7 @@ var buildCMD = &cobra.Command{
 			panic(err)
 		}
 
-		pageFiles := fsutils.DirFiles(fmt.Sprintf("%s/pages", viper.GetString("webdir")))
+		pageFiles := fsutils.DirFiles(fsutils.NormalizePath(fmt.Sprintf("%s/pages", viper.GetString("webdir"))))
 
 		packer := srcpack.NewDefaultPacker(log.NewDefaultLogger(), &srcpack.DefaultPackerOpts{
 			WebDir:        viper.GetString("webdir"),
@@ -58,7 +58,7 @@ var buildCMD = &cobra.Command{
 
 		bg := libout.New(&libout.BundleGroupOpts{
 			PackageName:   viper.GetString("pacname"),
-			BaseBundleOut: ".orbit/dist",
+			BaseBundleOut: fsutils.NormalizePath(".orbit/dist"),
 			BundleMode:    string(viper.GetString("mode")),
 			PublicDir:     viper.GetString("publicdir"),
 		})
@@ -67,17 +67,17 @@ var buildCMD = &cobra.Command{
 		ctx = context.WithValue(ctx, bundler.BundlerID, viper.GetString("mode"))
 
 		bg.AcceptComponents(ctx, components, &webwrapper.CacheDOMOpts{
-			CacheDir:  ".orbit/dist",
-			WebPrefix: "/p/",
+			CacheDir:  fsutils.NormalizePath(".orbit/dist"),
+			WebPrefix: fsutils.NormalizePath("/p/"),
 		})
 
 		err = bg.WriteLibout(libout.NewGOLibout(
 			ats.AssetKey(assets.Tests),
 			ats.AssetKey(assets.PrimaryPackage),
 		), &libout.FilePathOpts{
-			TestFile: fmt.Sprintf("%s/%s/orb_test.go", viper.GetString("webdir"), viper.GetString("pacname")),
-			EnvFile:  fmt.Sprintf("%s/%s/orb_env.go", viper.GetString("webdir"), viper.GetString("pacname")),
-			HTTPFile: fmt.Sprintf("%s/%s/orb_http.go", viper.GetString("webdir"), viper.GetString("pacname")),
+			TestFile: fsutils.NormalizePath(fmt.Sprintf("%s/%s/orb_test.go", viper.GetString("webdir"), viper.GetString("pacname"))),
+			EnvFile:  fsutils.NormalizePath(fmt.Sprintf("%s/%s/orb_env.go", viper.GetString("webdir"), viper.GetString("pacname"))),
+			HTTPFile: fsutils.NormalizePath(fmt.Sprintf("%s/%s/orb_http.go", viper.GetString("webdir"), viper.GetString("pacname"))),
 		})
 
 		if err != nil {

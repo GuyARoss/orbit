@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/GuyARoss/orbit/pkg/fsutils"
 	"github.com/google/uuid"
 )
 
@@ -192,7 +193,7 @@ func (p *DefaultJSDocument) formatImportLine(line string) *ImportDependency {
 	finalPath := strings.Join(cleanWebDirPaths, "/")
 	extension := pageExtension(finalPath)
 
-	newPath := fmt.Sprintf("'../../../%s%s'", strings.Join(cleanWebDirPaths, "/"), extension)
+	newPath := fsutils.NormalizePath(fmt.Sprintf("'../../../%s%s'", strings.Join(cleanWebDirPaths, "/"), extension))
 	statementWithoutPath := strings.Replace(line, fmt.Sprintf("%c%s%c", pathChar, path, pathChar), newPath, 1)
 
 	return &ImportDependency{
@@ -232,11 +233,11 @@ func (p *DefaultJSDocument) tokenizeLine(line string) error {
 func (p *DefaultJSDocument) WriteFile(dir string) error {
 	out := strings.Builder{}
 	for _, imp := range p.imports {
-		out.WriteString(fmt.Sprintf("%s\n", imp.FinalStatement))
+		out.WriteString(fsutils.NormalizePath(fmt.Sprintf("%s\n", imp.FinalStatement)))
 	}
 
 	for _, other := range p.Other() {
-		out.WriteString(fmt.Sprintf("%s\n", other))
+		out.WriteString(fsutils.NormalizePath(fmt.Sprintf("%s\n", other)))
 	}
 
 	f, err := os.OpenFile(dir, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
@@ -281,11 +282,11 @@ type JSParser interface {
 type JSFileParser struct{}
 
 func (p *JSFileParser) Parse(pageDir string, webDir string) (JSDocument, error) {
-	if pageDir[0:2] != "./" {
-		pageDir = fmt.Sprintf("./%s", pageDir)
+	if pageDir[0:2] != fsutils.NormalizePath("./") {
+		pageDir = fsutils.NormalizePath(fmt.Sprintf("./%s", pageDir))
 	}
 
-	file, err := os.Open(pageDir)
+	file, err := os.Open(fsutils.NormalizePath(pageDir))
 	if err != nil {
 		return nil, err
 	}
