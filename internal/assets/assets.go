@@ -2,8 +2,8 @@ package assets
 
 import (
 	"embed"
-	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"strings"
 )
@@ -11,22 +11,49 @@ import (
 //go:embed embed/*
 var content embed.FS
 
-func WriteAssetsDir(toDir string) error {
+type AssetKey string
+
+const (
+	WebPackConfig  AssetKey = "base.config.js"
+	Tests          AssetKey = "orbit_test.go"
+	PrimaryPackage AssetKey = "orbit.go"
+)
+
+func OpenFile(f fs.DirEntry) (fs.File, error) {
+	return content.Open(fmt.Sprintf("embed/%s", f.Name()))
+}
+
+func WriteFile(toDir string, f fs.DirEntry) error {
+	newFile, err := os.Create(fmt.Sprintf("%s/%s", toDir, f.Name()))
+	if err != nil {
+		return err
+	}
+
+	data, err := content.ReadFile(fmt.Sprintf("embed/%s", f.Name()))
+	if err != nil {
+		return err
+	}
+
+	_, err = newFile.Write(data)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type AssetMap map[AssetKey]fs.DirEntry
+
+func (m AssetMap) AssetKey(key AssetKey) fs.DirEntry {
+	return m[key]
+}
+
+func AssetKeys() (AssetMap, error) {
+	mp := make(map[AssetKey]fs.DirEntry)
+
 	files, err := content.ReadDir("embed")
 	if err != nil {
-		return err
-	}
-
-	_, err = os.Stat(toDir)
-	if errors.Is(err, os.ErrNotExist) {
-		err := os.Mkdir(toDir, 0755)
-		if err != nil {
-			return err
-		}
-	}
-
-	if err != nil {
-		return err
+		return nil, err
 	}
 
 	for _, file := range files {
@@ -34,21 +61,8 @@ func WriteAssetsDir(toDir string) error {
 			continue
 		}
 
-		newFile, err := os.Create(fmt.Sprintf("%s/%s", toDir, file.Name()))
-		if err != nil {
-			return err
-		}
-
-		data, err := content.ReadFile(fmt.Sprintf("embed/%s", file.Name()))
-		if err != nil {
-			return err
-		}
-
-		_, err = newFile.Write(data)
-		if err != nil {
-			return err
-		}
+		mp[AssetKey(file.Name())] = file
 	}
 
-	return nil
+	return mp, nil
 }
