@@ -198,7 +198,7 @@ func (p *DefaultJSDocument) formatImportLine(line string) *ImportDependency {
 
 	return &ImportDependency{
 		FinalStatement: statementWithoutPath,
-		InitialPath:    fmt.Sprintf("%s%s", strings.Join(cleanWebDirPaths, "/"), extension),
+		InitialPath:    fsutils.NormalizePath(fmt.Sprintf("%s%s", strings.Join(cleanWebDirPaths, "/"), extension)),
 		Type:           importType,
 	}
 }
