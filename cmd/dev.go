@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,10 +11,14 @@ import (
 	"time"
 
 	"github.com/GuyARoss/orbit/internal"
+	"github.com/GuyARoss/orbit/internal/assets"
+	"github.com/GuyARoss/orbit/internal/libout"
 	"github.com/GuyARoss/orbit/internal/srcpack"
 	"github.com/GuyARoss/orbit/pkg/bundler"
 	dependtree "github.com/GuyARoss/orbit/pkg/depend_tree"
+	"github.com/GuyARoss/orbit/pkg/fsutils"
 	"github.com/GuyARoss/orbit/pkg/log"
+	webwrapper "github.com/GuyARoss/orbit/pkg/web_wrapper"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -24,14 +29,19 @@ type proccessedChangeRequest struct {
 	FileName    string
 }
 
-type devSession struct {
-	pageGenSettings *internal.GenPagesSettings
-	rootComponents  map[string]*srcpack.Component
-	sourceMap       *dependtree.DependencySourceMap
+type SessionOpts struct {
+	UseDebug bool
+	WebDir   string
+}
 
+type devSession struct {
+	*SessionOpts
+
+	rootComponents    map[string]*srcpack.Component
+	sourceMap         *dependtree.DependencySourceMap
 	lastProcessedFile *proccessedChangeRequest
 	m                 *sync.Mutex
-	packSettings      *srcpack.Packer
+	packer            *srcpack.Packer
 }
 
 var watcher *fsnotify.Watcher
@@ -50,60 +60,96 @@ func verifyComponentPath(in string) string {
 	return in[skip:]
 }
 
-func createSession(ctx context.Context, settings *internal.GenPagesSettings) (*devSession, error) {
-	err := settings.CleanPathing()
+func createSession(ctx context.Context, opts *SessionOpts) (*devSession, error) {
+	ats, err := assets.AssetKeys()
+	if err != nil {
+		panic(err)
+	}
+
+	err = internal.OrbitFileStructure(&internal.FileStructureOpts{
+		PackageName: viper.GetString("pacname"),
+		OutDir:      viper.GetString("out"),
+		Assets:      []fs.DirEntry{ats.AssetKey(assets.WebPackConfig)},
+	})
+
 	if err != nil {
 		return nil, err
 	}
 
-	ctx = context.WithValue(ctx, bundler.BundlerID, settings.BundlerMode)
+	packer := srcpack.NewDefaultPacker(log.NewEmptyLogger(), &srcpack.DefaultPackerOpts{
+		WebDir:        viper.GetString("webdir"),
+		BundlerMode:   viper.GetString("mode"),
+		NodeModuleDir: viper.GetString("nodemod"),
+	})
 
-	// we use the empty logger here to to prevent the initial build from being shown
-	// during the creation of the dev session
-	lib, err := settings.PackWebDir(ctx, log.NewEmptyLogger())
+	pageFiles := fsutils.DirFiles(fmt.Sprintf("%s/pages", viper.GetString("webdir")))
+	components, err := packer.PackMany(pageFiles)
+	if err != nil {
+		panic(err)
+	}
+
+	bg := libout.New(&libout.BundleGroupOpts{
+		PackageName:   viper.GetString("pacname"),
+		BaseBundleOut: ".orbit/dist",
+		BundleMode:    string(viper.GetString("mode")),
+		PublicDir:     viper.GetString("publicdir"),
+	})
+
+	ctx = context.WithValue(ctx, bundler.BundlerID, viper.GetString("mode"))
+
+	bg.AcceptComponents(ctx, components, &webwrapper.CacheDOMOpts{
+		CacheDir:  ".orbit/dist",
+		WebPrefix: "/p/",
+	})
+
+	err = bg.WriteLibout(libout.NewGOLibout(
+		ats.AssetKey(assets.Tests),
+		ats.AssetKey(assets.PrimaryPackage),
+	), &libout.FilePathOpts{
+		TestFile: fmt.Sprintf("%s/%s/orb_test.go", viper.GetString("webdir"), viper.GetString("pacname")),
+		EnvFile:  fmt.Sprintf("%s/%s/orb_env.go", viper.GetString("webdir"), viper.GetString("pacname")),
+		HTTPFile: fmt.Sprintf("%s/%s/orb_http.go", viper.GetString("webdir"), viper.GetString("pacname")),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	sourceMap, err := srcpack.New(opts.WebDir, components, opts.WebDir)
 	if err != nil {
 		return nil, err
 	}
 
 	rootComponents := make(map[string]*srcpack.Component)
-	for _, p := range lib.Pages {
+	for _, p := range components {
 		// verify that the path is clean before we apply it to the root component map
 		path := verifyComponentPath(p.OriginalFilePath())
 
 		rootComponents[path] = p
 	}
 
-	sourceMap, err := srcpack.New(settings.WebDir, lib.Pages, settings.WebDir)
-	if err != nil {
-		return nil, err
-	}
-
-	// we use the default logger here to log the dev build events
-	_, packSettings := settings.DefaultPacker(ctx, log.NewDefaultLogger())
-
 	return &devSession{
-		pageGenSettings:   settings,
+		SessionOpts:       opts,
 		rootComponents:    rootComponents,
 		sourceMap:         sourceMap,
 		lastProcessedFile: &proccessedChangeRequest{},
 		m:                 &sync.Mutex{},
-		packSettings:      packSettings,
+		packer:            packer.ReattachLogger(log.NewDefaultLogger()),
 	}, nil
 }
 
 // executeChangeRequest attempts to find the file in the component tree, if found it
 // will repack each of the branches that dependens on it.
-func (s *devSession) executeChangeRequest(file string, timeoutDuration time.Duration) error {
-	if s.pageGenSettings.UseDebug {
-		s.packSettings.Logger.Info(fmt.Sprintf("change detected → %s", file))
+func (s *devSession) executeChangeRequest(file string, timeoutDuration time.Duration, sh *srcpack.SyncHook) error {
+	if s.UseDebug {
+		s.packer.Logger.Info(fmt.Sprintf("change detected → %s", file))
 	}
 
 	// if this file has been recently processed (specificed by the timeout flag), do not process it.
 	if file == s.lastProcessedFile.FileName &&
 		time.Since(s.lastProcessedFile.ProcessedAt).Seconds() < timeoutDuration.Seconds() {
 
-		if s.pageGenSettings.UseDebug {
-			s.packSettings.Logger.Info(fmt.Sprintf("change not excepted → %s (too recently processed)", file))
+		if s.UseDebug {
+			s.packer.Logger.Info(fmt.Sprintf("change not excepted → %s (too recently processed)", file))
 		}
 		return nil
 	}
@@ -112,14 +158,11 @@ func (s *devSession) executeChangeRequest(file string, timeoutDuration time.Dura
 
 	// if component is one of the root components, we will just repack that component
 	if component != nil {
-		if s.pageGenSettings.UseDebug {
-			s.packSettings.Logger.Info(fmt.Sprintf("change found → %s (root)", file))
+		if s.UseDebug {
+			s.packer.Logger.Info(fmt.Sprintf("change found → %s (root)", file))
 		}
 
-		err := s.pageGenSettings.Repack(component, srcpack.NewSyncHook(log.NewDefaultLogger()))
-		if err != nil {
-			return err
-		}
+		sh.WrapFunc(component.OriginalFilePath(), func() { component.Repack() })
 
 		s.m.Lock()
 		s.lastProcessedFile = &proccessedChangeRequest{
@@ -135,15 +178,15 @@ func (s *devSession) executeChangeRequest(file string, timeoutDuration time.Dura
 	// a repack for each of those components & their dependent branches.
 	sources := s.sourceMap.FindRoot(file)
 
-	if s.pageGenSettings.UseDebug {
-		s.packSettings.Logger.Info(fmt.Sprintf("%d branch(s) found", len(sources)))
+	if s.UseDebug {
+		s.packer.Logger.Info(fmt.Sprintf("%d branch(s) found", len(sources)))
 	}
 
 	// we iterate through each of the root sources for the source
 	activeNodes := make([]*srcpack.Component, 0)
 	for _, source := range sources {
-		if s.pageGenSettings.UseDebug {
-			s.packSettings.Logger.Info(fmt.Sprintf("change found → %s (branch)", source))
+		if s.UseDebug {
+			s.packer.Logger.Info(fmt.Sprintf("change found → %s (branch)", source))
 		}
 
 		source = verifyComponentPath(source)
@@ -178,17 +221,10 @@ var devCMD = &cobra.Command{
 
 		logger.Info("starting dev server...")
 
-		as := &internal.GenPagesSettings{
-			PackageName:    viper.GetString("pacname"),
-			OutDir:         viper.GetString("out"),
-			WebDir:         viper.GetString("webdir"),
-			BundlerMode:    viper.GetString("mode"),
-			NodeModulePath: viper.GetString("nodemod"),
-			PublicDir:      viper.GetString("publicdir"),
-			UseDebug:       viper.GetBool("usedebug"),
-		}
-
-		s, err := createSession(context.Background(), as)
+		s, err := createSession(context.Background(), &SessionOpts{
+			UseDebug: viper.GetBool("usedebug"),
+			WebDir:   viper.GetString("webdir"),
+		})
 		if err != nil {
 			panic(err)
 		}
@@ -205,13 +241,15 @@ var devCMD = &cobra.Command{
 		done := make(chan bool)
 
 		go func() {
+			sh := srcpack.NewSyncHook(log.NewDefaultLogger())
+
 			for {
 				time.Sleep(time.Duration(viper.GetInt("timeout")) * time.Millisecond)
 
 				select {
 				case e := <-watcher.Events:
 					if !strings.Contains(e.Name, "node_modules") && !strings.Contains(e.Name, ".orbit") {
-						go s.executeChangeRequest(e.Name, time.Duration(viper.GetInt("samefiletimeout"))*time.Millisecond)
+						go s.executeChangeRequest(e.Name, time.Duration(viper.GetInt("samefiletimeout"))*time.Millisecond, sh)
 					}
 				case err := <-watcher.Errors:
 					panic(fmt.Sprintf("watcher failed %s", err.Error()))

@@ -1,4 +1,4 @@
-package fs
+package fsutils
 
 import (
 	"path/filepath"
