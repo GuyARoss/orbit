@@ -24,5 +24,5 @@ func main() {
 		c.RenderPage(orbitgen.ExamplePage, props)
 	})
 
-	http.ListenAndServe(":3030", *orb.Serve())
+	http.ListenAndServe(":3030", orb.Serve())
 }

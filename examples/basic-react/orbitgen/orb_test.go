@@ -84,10 +84,14 @@ func TestParseSlug(t *testing.T) {
 func TestParsePathSlugs(t *testing.T) {
 	path := "/thing/{toast}"
 
-	p := parsePathSlugs(&path)
+	p, path := parsePathSlugs(path)
 
 	if p[2] != "toast" {
 		t.Errorf("expected %s got %s", "toast", p[1])
+	}
+
+	if path != "/thing/" {
+		t.Errorf("expected %s got %s", "/thing/", path)
 	}
 }
 
@@ -175,7 +179,7 @@ func (m *mockHandle) ServeHTTP(http.ResponseWriter, *http.Request) {}
 func TestSetupMuxRequirements(t *testing.T) {
 	reg := false
 
-	s := &serve{
+	s := &Serve{
 		mux: &mockHandle{
 			writer: nil,
 			checkPath: func(s string) {
@@ -204,7 +208,7 @@ type mockPage struct {
 func (p *mockPage) Handle(c *Request) { p.fn(c) }
 
 func TestHandlePage(t *testing.T) {
-	p := &serve{
+	p := &Serve{
 		mux: &mockHandle{
 			writer: &mockResponseWriter{
 				mockWriteHeader: func(statusCode int) {},
@@ -288,7 +292,7 @@ func TestHandleFunc(t *testing.T) {
 
 		writer.mockWriteHeader = d.headFn
 
-		s := &serve{
+		s := &Serve{
 			mux: &mockHandle{
 				writer:    writer,
 				checkPath: func(s string) {},
@@ -308,7 +312,7 @@ func TestHandleFunc(t *testing.T) {
 }
 
 func TestServe(t *testing.T) {
-	s := &serve{
+	s := &Serve{
 		mux: &mockHandle{
 			writer:    nil,
 			checkPath: func(s string) {},

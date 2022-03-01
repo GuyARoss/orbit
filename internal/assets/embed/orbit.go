@@ -91,13 +91,13 @@ func parseSlug(slugKeys map[int]string, path string) map[string]string {
 
 // parsePathSlugs will parse initial slugs found in a path, these slugs can be identified with
 // the "{" char prepended & "}" appended to the path/subpath e.g "/path/{thing}" will represent "thing" as a slug key.
-func parsePathSlugs(path *string) map[int]string {
+func parsePathSlugs(path string) (map[int]string, string) {
 	slugKeys := make(map[int]string)
 
 	validInitial := make([]string, 0)
 	slide := true
-	if strings.Contains(*path, "{") {
-		paths := strings.Split(*path, "/")
+	if strings.Contains(path, "{") {
+		paths := strings.Split(path, "/")
 		for idx, p := range paths {
 			if strings.Contains(p, "{") {
 				slide = false
@@ -108,30 +108,27 @@ func parsePathSlugs(path *string) map[int]string {
 				validInitial = append(validInitial, p)
 			}
 		}
-
-		final := fmt.Sprintf("%s/", strings.Join(validInitial, "/"))
-		path = &final
 	}
 
-	return slugKeys
+	return slugKeys, fmt.Sprintf("%s/", strings.Join(validInitial, "/"))
 }
 
 // muxHandle is used to inject the base mux handler behavior
-type muxHandler interface {
+type MuxHandler interface {
 	HandleFunc(string, func(http.ResponseWriter, *http.Request))
 	Handle(string, http.Handler)
 	ServeHTTP(http.ResponseWriter, *http.Request)
 }
 
-type serve struct {
-	mux muxHandler
+type Serve struct {
+	mux MuxHandler
 	doc *htmlDoc
 }
 
 // HandleFunc attaches a handler to the specified pattern, this handler will be
 // ran upon a match of the request path during an incoming http request.
-func (s *serve) HandleFunc(path string, handler func(c *Request)) {
-	slugs := parsePathSlugs(&path)
+func (s *Serve) HandleFunc(path string, handler func(c *Request)) {
+	slugs, path := parsePathSlugs(path)
 
 	s.mux.HandleFunc(path, func(rw http.ResponseWriter, r *http.Request) {
 		renderPage := func(page PageRender, data interface{}) {
@@ -160,25 +157,25 @@ func (s *serve) HandleFunc(path string, handler func(c *Request)) {
 
 // HandlePage attaches an orbit page to the specified pattern, this handler will be
 // ran upon a match of the request path during an incoming http request
-func (s *serve) HandlePage(path string, dp DefaultPage) {
+func (s *Serve) HandlePage(path string, dp DefaultPage) {
 	s.HandleFunc(path, dp.Handle)
 }
 
 // setupMuxRequirements creates the required mux handlers for orbit, these include
 // - fileserver for the bundle directory bound to the "/p/" directory
-func (s *serve) setupMuxRequirements() *serve {
+func (s *Serve) setupMuxRequirements() *Serve {
 	s.mux.Handle("/p/", http.StripPrefix("/p/", http.FileServer(http.Dir(bundleDir))))
 
 	return s
 }
 
 // Serve returns the mux server
-func (s *serve) Serve() *muxHandler {
-	return &s.mux
+func (s *Serve) Serve() MuxHandler {
+	return s.mux
 }
 
 // NewServe creates a new default orbit server
-func New() (*serve, error) {
+func New() (*Serve, error) {
 	html := ""
 
 	_, err := os.Stat(publicDir)
@@ -190,7 +187,7 @@ func New() (*serve, error) {
 	}
 
 	doc := defaultHTMLDoc(html)
-	return (&serve{
+	return (&Serve{
 		mux: http.NewServeMux(),
 		doc: doc,
 	}).setupMuxRequirements(), nil
