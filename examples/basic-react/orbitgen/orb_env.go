@@ -2,8 +2,8 @@ package orbitgen
 
 
 var react = []string{
-`<script src="/p/fc38086145547d465be97fec2e412a16.js"></script>`,
-`<script src="/p/fc38086145547d465be97fec2e412a16.js"></script>`,
+`<script src="/p/02bab3977c197c77b270370f110270b1.js"></script>`,
+`<script src="/p/02bab3977c197c77b270370f110270b1.js"></script>`,
 `<div id="root"></div>`,
 }
 
@@ -13,13 +13,13 @@ var publicDir string = "./public/index.html"
 type PageRender string
 
 const ( 
-	ExampleTwoPage PageRender = "fe9faa2750e8559c8c213c2c25c4ce73"
 	ExamplePage PageRender = "496a05464c3f5aa89e1d8bed7afe59d4"
+	ExampleTwoPage PageRender = "fe9faa2750e8559c8c213c2c25c4ce73"
 )
 
 var wrapBody = map[PageRender][]string{
-	ExampleTwoPage: react,
 	ExamplePage: react,
+	ExampleTwoPage: react,
 }
 
 type BundleMode int32
@@ -29,4 +29,4 @@ const (
 	ProdBundleMode BundleMode = 1
 )
 
-var CurrentDevMode BundleMode = ProdBundleMode
+var CurrentDevMode BundleMode = DevBundleMode

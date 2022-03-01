@@ -106,9 +106,9 @@ func createSession(ctx context.Context, opts *SessionOpts) (*devSession, error) 
 		ats.AssetKey(assets.Tests),
 		ats.AssetKey(assets.PrimaryPackage),
 	), &libout.FilePathOpts{
-		TestFile: fsutils.NormalizePath(fmt.Sprintf("%s/%s/orb_test.go", viper.GetString("webdir"), viper.GetString("pacname"))),
-		EnvFile:  fsutils.NormalizePath(fmt.Sprintf("%s/%s/orb_env.go", viper.GetString("webdir"), viper.GetString("pacname"))),
-		HTTPFile: fsutils.NormalizePath(fmt.Sprintf("%s/%s/orb_http.go", viper.GetString("webdir"), viper.GetString("pacname"))),
+		TestFile: fsutils.NormalizePath(fmt.Sprintf("%s/%s/orb_test.go", viper.GetString("out"), viper.GetString("pacname"))),
+		EnvFile:  fsutils.NormalizePath(fmt.Sprintf("%s/%s/orb_env.go", viper.GetString("out"), viper.GetString("pacname"))),
+		HTTPFile: fsutils.NormalizePath(fmt.Sprintf("%s/%s/orb_http.go", viper.GetString("out"), viper.GetString("pacname"))),
 	})
 	if err != nil {
 		return nil, err
