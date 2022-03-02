@@ -11,29 +11,34 @@ import (
 	"github.com/google/uuid"
 )
 
-// FunctionDefinition
-// light-weight struct to define JS function definition
+// FunctionDefinition is a light-weight struct to define JS function definition
 type FunctionDefinition struct {
 	Content    string
 	Name       string
 	IsExported bool
 }
 
-// ImportType
-// Defines type of import with binary determination
+// ImportType represents a javascript import type
 type ImportType int32
 
 const (
-	LocalImportType  ImportType = 0
+	// LocalImportType represents an import that appears to be a local module
+	// e.g import Thing from '../stuff/help.js'
+	LocalImportType ImportType = 0
+
+	// ModuleImportType represents an import that appears to be located in
+	// as a node module. e.g import Thing from '@someorg/help.js'
 	ModuleImportType ImportType = 1
 )
 
+// ImportDependency represents an entire import path within a javascript file.
 type ImportDependency struct {
 	FinalStatement string
 	InitialPath    string
 	Type           ImportType
 }
 
+// JSDocument is an interface that describes the behavior of a JSDocument
 type JSDocument interface {
 	WriteFile(string) error
 	Key() string
@@ -45,6 +50,8 @@ type JSDocument interface {
 	Extension() string
 }
 
+// DefaultJSDocument is a struct that implements the JSDocument interface
+// this struct can be used as an output for JSDocument parsing.
 type DefaultJSDocument struct {
 	imports []*ImportDependency
 	name    string
@@ -54,6 +61,7 @@ type DefaultJSDocument struct {
 	pageDir string
 }
 
+// JSToken is some keyword(s) found in javascript used to tokenize js documents.
 type JSToken string
 
 const (
@@ -67,6 +75,8 @@ var ErrFunctionExport = errors.New("function export cannot be the name of the de
 
 var ErrExportNotCapitalized = errors.New("default export of component should be capitalized")
 
+// extractDefaultExportName finds and returns an export name
+// (if applicable) found within the provided line.
 func extractDefaultExportName(line string) (string, error) {
 	exportData := strings.Split(line, string(ExportToken))
 	possibleName := strings.Trim(exportData[1][1:], " ")
@@ -82,7 +92,8 @@ func extractDefaultExportName(line string) (string, error) {
 	return possibleName, nil
 }
 
-func filterCenter(str string, subStart rune, subEnd rune) string {
+// subsetRune returns a string subset found within two runes (subStart & subEnd)
+func subsetRune(str string, subStart rune, subEnd rune) string {
 	final := make([]rune, 0)
 
 	started := false
@@ -103,9 +114,16 @@ func filterCenter(str string, subStart rune, subEnd rune) string {
 	return string(final)
 }
 
+// pageExtension attempts to determine the provided strings (importPath) file extension
+// this can be used to determine an extension when one is not present on the file path
+// if one is present, it returns in empty string, rather than the one present on the line.
 func pageExtension(importPath string) string {
+	// todo(issue/#11): context should be used here to pass in a "defaultExtension" type
+	// provided by the pages web wrapper method.
 	split := strings.Split(importPath, ".")
+
 	if len(split) > 1 {
+		// an extension is already present on the resource.
 		return ""
 	}
 
@@ -117,6 +135,8 @@ func pageExtension(importPath string) string {
 	return extension
 }
 
+// pathToken finds the first valid JS path token (" or ') within the line
+// if no valid path token is found \u002 is used by default.
 func pathToken(line string) rune {
 	for i := len(line) - 1; i > 0; i-- {
 		if string(line[i]) == `'` {
@@ -128,14 +148,14 @@ func pathToken(line string) rune {
 		}
 	}
 
-	// @@todo raise an exception here
+	// @@todo an exception could be raised here in the case that a suitable path token is not found.
 	return rune('\u0022')
 }
 
+// lineImportType finds the valid ImportType provided a valid import line
 func lineImportType(line string) ImportType {
 	pathToken := pathToken(line)
-
-	path := filterCenter(line, rune(pathToken), rune(pathToken))
+	path := subsetRune(line, rune(pathToken), rune(pathToken))
 
 	if path[1] == '.' || path[1] == '/' {
 		return LocalImportType
@@ -144,10 +164,12 @@ func lineImportType(line string) ImportType {
 	return ModuleImportType
 }
 
+// NewEmptyDocument creates a new empty JSDocument
 func NewEmptyDocument() *DefaultJSDocument {
 	return &DefaultJSDocument{}
 }
 
+// formatImportLine parses an import line to create an import dependency
 func (p *DefaultJSDocument) formatImportLine(line string) *ImportDependency {
 	importType := lineImportType(line)
 	if importType == ModuleImportType {
@@ -159,9 +181,9 @@ func (p *DefaultJSDocument) formatImportLine(line string) *ImportDependency {
 	}
 
 	pathChar := '"'
-	path := filterCenter(line, '"', '"')
+	path := subsetRune(line, '"', '"')
 	if len(path) == 0 {
-		path = filterCenter(line, '\'', '\'')
+		path = subsetRune(line, '\'', '\'')
 		pathChar = '\''
 	}
 
@@ -177,13 +199,22 @@ func (p *DefaultJSDocument) formatImportLine(line string) *ImportDependency {
 	}
 
 	tokenPathPaths := strings.Split(path, "/")
-	hasProceedingDirectory := false
 	for _, tk := range tokenPathPaths {
-		if strings.Contains(tk, "..") {
-			if hasProceedingDirectory {
-				// @@todo(debug) throw error cuz this is out of range
+		// tk = "." should provide support for localized paths such as "./"
+		if tk == "." {
+			validPageDir := p.pageDir
+
+			if p.pageDir[:2] == "./" {
+				validPageDir = p.pageDir[2:]
 			}
-			hasProceedingDirectory = true
+
+			pageDirs := strings.Split(validPageDir, "/")
+			cleanWebDirPaths = pageDirs[0 : len(pageDirs)-1]
+
+			continue
+		}
+
+		if strings.Contains(tk, "..") {
 			continue
 		}
 
@@ -203,15 +234,14 @@ func (p *DefaultJSDocument) formatImportLine(line string) *ImportDependency {
 	}
 }
 
+// tokenizeLine tokenizes each line and serializes it to the provided JSDocument
 func (p *DefaultJSDocument) tokenizeLine(line string) error {
-	skip := false
 	for _, decToken := range declarationTokens {
 		if strings.Contains(line, string(decToken)) {
 			switch decToken {
 			case ImportToken:
 				p.imports = append(p.imports, p.formatImportLine(line))
-
-				skip = true
+				return nil
 			case ExportToken:
 				possibleName, err := extractDefaultExportName(line)
 				if err != nil && !errors.Is(ErrFunctionExport, err) {
@@ -219,14 +249,13 @@ func (p *DefaultJSDocument) tokenizeLine(line string) error {
 				}
 
 				p.name = possibleName
-				skip = true
+				return nil
 			}
 		}
 	}
 
-	if !skip {
-		p.AddOther(line)
-	}
+	p.AddOther(line)
+
 	return nil
 }
 

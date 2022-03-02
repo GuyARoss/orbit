@@ -88,8 +88,7 @@ func New(path string, c []*Component, webDirPath string) (*dependtree.Dependency
 	var wg sync.WaitGroup
 
 	dependSettings := &JSDependencyTree{
-		WebDir: webDirPath,
-		// @@todo: do not use default logger here, should instead refer to an arg.
+		WebDir:   webDirPath,
 		JsParser: &jsparse.JSFileParser{},
 	}
 
