@@ -4,6 +4,8 @@ import (
 	"errors"
 	"strings"
 	"testing"
+
+	"github.com/GuyARoss/orbit/pkg/fsutils"
 )
 
 func TestFormatImportLine(t *testing.T) {
@@ -25,7 +27,7 @@ func TestFormatImportLine(t *testing.T) {
 		got := p.formatImportLine(c.i)
 
 		if c.o != got.FinalStatement {
-			t.Errorf("(%d) expected %s got %s \n", i, c.o, got.FinalStatement)
+			t.Errorf("(%d) expected %s got %s \n", i, c.o, fsutils.NormalizePath(got.FinalStatement))
 		}
 	}
 }
