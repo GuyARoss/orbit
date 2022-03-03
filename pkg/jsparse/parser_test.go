@@ -17,7 +17,7 @@ func TestFormatImportLine(t *testing.T) {
 		{"import Thing2 from './thing2'", "import Thing2 from '../../../thing/thing2.jsx'"},
 		{"import { withMemo } from 'react-thing';", "import { withMemo } from 'react-thing';"},
 		{"import React from '../react'", "import React from '../../../test/react.jsx'"},
-		{"import React from \"../react\"", "import React from '../../../test/react.jsx'"},
+		{`import React from "../react"`, "import React from '../../../test/react.jsx'"},
 		{"import { tool } from '../tools/test'", "import { tool } from '../../../test/tools/test.jsx'"},
 	}
 
@@ -27,7 +27,7 @@ func TestFormatImportLine(t *testing.T) {
 		got := p.formatImportLine(c.i)
 
 		if c.o != got.FinalStatement {
-			t.Errorf("(%d) expected %s got %s \n", i, fsutils.NormalizePath(c.o), got.FinalStatement)
+			t.Errorf("(%d) expected %s got %s \n", i, fsutils.NormalizePath(c.o), fsutils.NormalizePath(got.FinalStatement))
 		}
 	}
 }
