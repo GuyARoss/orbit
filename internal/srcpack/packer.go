@@ -11,6 +11,10 @@ import (
 	webwrapper "github.com/GuyARoss/orbit/pkg/web_wrapper"
 )
 
+// CachedEnvKeys represents a map where the key is the filepath
+// for the env setting and where the value is a bundler key
+type CachedEnvKeys map[string]string
+
 // packer is the primary struct used for packing a directory of javascript files into
 // valid web components.
 type Packer struct {
@@ -19,16 +23,28 @@ type Packer struct {
 	ValidWebWrappers webwrapper.JSWebWrapperMap
 	Logger           log.Logger
 
-	AssetDir string
-	WebDir   string
+	AssetDir         string
+	WebDir           string
+	cachedBundleKeys CachedEnvKeys
+}
+
+// concpack is a private packing mechanism embedding the packer to pack a set of files concurrently.
+type concPack struct {
+	*Packer
+	m sync.Mutex
+
+	packedPages      []*Component
+	packMap          map[string]bool
+	cachedBundleKeys CachedEnvKeys
 }
 
 // packs the provided file paths into the orbit root directory
 func (s *Packer) PackMany(pages []string) ([]*Component, error) {
 	cp := &concPack{
-		Packer:      s,
-		packedPages: make([]*Component, 0),
-		packMap:     make(map[string]bool),
+		Packer:           s,
+		packedPages:      make([]*Component, 0),
+		packMap:          make(map[string]bool),
+		cachedBundleKeys: s.cachedBundleKeys,
 	}
 
 	wg := &sync.WaitGroup{}
@@ -64,37 +80,12 @@ func (p *Packer) ReattachLogger(logger log.Logger) *Packer {
 	return p
 }
 
+// DefaultPackerOpts options for creating a new default packer
 type DefaultPackerOpts struct {
-	WebDir        string
-	BundlerMode   string
-	NodeModuleDir string
-}
-
-func NewDefaultPacker(logger log.Logger, opts *DefaultPackerOpts) *Packer {
-	return &Packer{
-		Bundler: &bundler.WebPackBundler{
-			BaseBundler: &bundler.BaseBundler{
-				Mode:           bundler.BundlerMode(opts.BundlerMode),
-				WebDir:         opts.WebDir,
-				PageOutputDir:  ".orbit/base/pages",
-				NodeModulesDir: opts.NodeModuleDir,
-				Logger:         logger,
-			},
-		},
-		WebDir:           opts.WebDir,
-		JsParser:         &jsparse.JSFileParser{},
-		ValidWebWrappers: webwrapper.NewActiveMap(),
-		Logger:           logger,
-	}
-}
-
-// concpack is a private packing mechanism embedding the packer to pack a set of files concurrently.
-type concPack struct {
-	*Packer
-	m sync.Mutex
-
-	packedPages []*Component
-	packMap     map[string]bool
+	WebDir           string
+	BundlerMode      string
+	NodeModuleDir    string
+	CachedBundleKeys CachedEnvKeys
 }
 
 // pack single packs a single file path into a usable web component
@@ -105,6 +96,7 @@ func (p *concPack) PackSingle(errchan chan error, wg *sync.WaitGroup, path strin
 	// @@todo: we should validate if these components exist on our source map yet, if so we should
 	// inherit the metadata, rather than generate new metadata.
 	page, err := NewComponent(context.TODO(), &NewComponentOpts{
+		DefaultKey:    p.cachedBundleKeys[path],
 		FilePath:      path,
 		WebDir:        p.WebDir,
 		JSWebWrappers: p.ValidWebWrappers,
@@ -164,4 +156,23 @@ func (l *PackedComponentList) RepackMany(logger log.Logger) error {
 	wg.Wait()
 
 	return nil
+}
+
+func NewDefaultPacker(logger log.Logger, opts *DefaultPackerOpts) *Packer {
+	return &Packer{
+		Bundler: &bundler.WebPackBundler{
+			BaseBundler: &bundler.BaseBundler{
+				Mode:           bundler.BundlerMode(opts.BundlerMode),
+				WebDir:         opts.WebDir,
+				PageOutputDir:  ".orbit/base/pages",
+				NodeModulesDir: opts.NodeModuleDir,
+				Logger:         logger,
+			},
+		},
+		WebDir:           opts.WebDir,
+		JsParser:         &jsparse.JSFileParser{},
+		ValidWebWrappers: webwrapper.NewActiveMap(),
+		Logger:           logger,
+		cachedBundleKeys: opts.CachedBundleKeys,
+	}
 }

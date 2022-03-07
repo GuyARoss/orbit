@@ -1,16 +1,20 @@
 package internal
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
 	"os"
+	"strings"
 
 	"github.com/GuyARoss/orbit/internal/assets"
+	"github.com/GuyARoss/orbit/internal/srcpack"
 	"github.com/GuyARoss/orbit/pkg/fsutils"
 )
 
+// PackageJSONTemplate struct for nodejs package.json file.
 type PackageJSONTemplate struct {
 	Name         string            `json:"name"`
 	Version      string            `json:"version"`
@@ -20,6 +24,7 @@ type PackageJSONTemplate struct {
 	Dependencies map[string]string `json:"dependencies"`
 }
 
+// Write creates a new package.json to the provided path
 func (p *PackageJSONTemplate) Write(path string) error {
 	newFile, err := os.Create(path)
 	if err != nil {
@@ -31,17 +36,22 @@ func (p *PackageJSONTemplate) Write(path string) error {
 		return err
 	}
 
-	newFile.Write(jsonData)
+	_, err = newFile.Write(jsonData)
 
-	return nil
+	return err
 }
 
+// FileStructureOpts reqired structure options for the file structure creation
 type FileStructureOpts struct {
 	PackageName string
 	OutDir      string
 	Assets      []fs.DirEntry
 }
 
+// OrbitFileStructure creates the foundation for orbits file structure, this includes:
+// 1. creating the out package directory
+// 2. the ./.orbit file structure
+// 3. asset directory
 func OrbitFileStructure(s *FileStructureOpts) error {
 	err := os.RemoveAll(".orbit/")
 	if err != nil {
@@ -77,4 +87,43 @@ func OrbitFileStructure(s *FileStructureOpts) error {
 	}
 
 	return nil
+}
+
+// CachedEnvFromFile creates a new cached environment provided a file path
+// for this method, we prefer using a single pass file reader over something like
+// reflection due to the speed constraints of reflection
+func CachedEnvFromFile(path string) (srcpack.CachedEnvKeys, error) {
+	// @@todo: if we plan to add support for another output langauge, this
+	// function needs to validate the extension to determine parsing method.
+	file, err := os.Open(path)
+
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	scanner.Split(bufio.ScanLines)
+
+	k := make(srcpack.CachedEnvKeys)
+
+	current := ""
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		if strings.Contains(line, "orbit:page") {
+			current = strings.Split(line, " ")[2]
+			continue
+		}
+
+		// @@todo: to provide extensibility this should be specific to the language parser
+		// rather than a hardcoded value.
+		if current != "" && strings.Contains(line, "PageRender") {
+			k[current] = strings.ReplaceAll(strings.Split(line, " ")[3], `"`, ``)
+
+			current = ""
+		}
+	}
+
+	return k, nil
 }

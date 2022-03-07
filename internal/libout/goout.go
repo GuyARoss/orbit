@@ -10,11 +10,15 @@ import (
 	"github.com/GuyARoss/orbit/internal/assets"
 )
 
+// GOLibFile is an implementation of the libout.LiboutFile
+// that represents a single golang generated file
 type GOLibFile struct {
 	PackageName string
 	Body        string
 }
 
+// Write writes the current golibfile to the provided path
+// this function will also create the file, if it does not exist.
 func (l *GOLibFile) Write(path string) error {
 	out := strings.Builder{}
 	out.WriteString(fmt.Sprintf("package %s\n\n", l.PackageName))
@@ -46,6 +50,8 @@ func (l *GOLibFile) Write(path string) error {
 	return nil
 }
 
+// GOLibOut is an implementation of the libout.Libout interface
+// which is an auto generated set of files that represent some bundling process.
 type GOLibout struct {
 	testFile fs.DirEntry
 	httpFile fs.DirEntry
@@ -67,7 +73,8 @@ func parseFile(entry fs.DirEntry) (string, error) {
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		// we don't want the package to be contained within this
+		// part of the write process includes applying a provided package name. To ensure
+		// that we do not have two package names, we skip over the line that contains one.
 		if strings.Contains(line, "package") {
 			continue
 		}
@@ -137,12 +144,14 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 			out.WriteString("const ( \n")
 		}
 
+		// since all of the the valid bundle names can only be refererred to "pages"
+		// we ensure that page does not already exist on the string
 		if !strings.Contains(p.name, "Page") {
 			p.name = fmt.Sprintf("%sPage", p.name)
 		}
 
-		out.WriteString(fmt.Sprintf(`	%s PageRender = "%s"`, p.name, p.bundleKey))
-		out.WriteString("\n")
+		out.WriteString(fmt.Sprintf("	// orbit:page %s", p.filePath) + "\n")
+		out.WriteString(fmt.Sprintf(`	%s PageRender = "%s"`, p.name, p.bundleKey) + "\n")
 
 		if idx == len(bg.pages)-1 {
 			out.WriteString(")\n")

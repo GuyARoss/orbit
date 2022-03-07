@@ -19,6 +19,7 @@ type page struct {
 	name        string
 	bundleKey   string
 	wrapVersion string
+	filePath    string
 }
 
 type LiboutFile interface {
@@ -91,7 +92,7 @@ func (l *BundleGroup) AcceptComponents(ctx context.Context, comps []*srcpack.Com
 	for _, c := range comps {
 		v := parseVersionKey(c.WebWrapper.Version())
 
-		l.pages = append(l.pages, &page{c.Name, c.BundleKey, v})
+		l.pages = append(l.pages, &page{c.Name, c.BundleKey, v, c.OriginalFilePath()})
 		l.componentBodyMap[v] = c.WebWrapper.RequiredBodyDOMElements(ctx, cacheOpts)
 	}
 }

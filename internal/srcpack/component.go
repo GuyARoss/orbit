@@ -27,8 +27,9 @@ type Component struct {
 }
 
 type NewComponentOpts struct {
-	FilePath string
-	WebDir   string
+	FilePath   string
+	WebDir     string
+	DefaultKey string
 
 	JSParser      jsparse.JSParser
 	Bundler       bundler.Bundler
@@ -54,10 +55,16 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (*Component, erro
 
 	page = webwrap.Apply(page, opts.FilePath)
 
+	bundleKey := opts.DefaultKey
+	if bundleKey == "" {
+		bundleKey = page.Key()
+	}
+
 	resource, err := opts.Bundler.Setup(ctx, &bundler.BundleOpts{
 		FileName:  opts.FilePath,
-		BundleKey: page.Key(),
+		BundleKey: bundleKey,
 	})
+
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +86,7 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (*Component, erro
 
 	return &Component{
 		Name:             page.Name(),
-		BundleKey:        page.Key(),
+		BundleKey:        bundleKey,
 		dependencies:     page.Imports(),
 		originalFilePath: opts.FilePath,
 		m:                &sync.Mutex{},

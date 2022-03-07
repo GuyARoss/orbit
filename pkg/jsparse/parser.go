@@ -342,6 +342,10 @@ func (p *JSFileParser) Parse(pageDir string, webDir string) (JSDocument, error) 
 
 	return page, nil
 }
+func (p *DefaultJSDocument) Name() string { return p.name }
+
+func (p *DefaultJSDocument) Other() []string              { return p.other }
+func (p *DefaultJSDocument) Imports() []*ImportDependency { return p.imports }
 
 func (p *DefaultJSDocument) Key() string {
 	id := uuid.NewSHA1(uuid.NameSpaceDNS, []byte(p.name))
@@ -349,22 +353,10 @@ func (p *DefaultJSDocument) Key() string {
 	return strings.ReplaceAll(id.String(), "-", "")
 }
 
-func (p *DefaultJSDocument) Name() string {
-	return p.name
-}
-
 func (p *DefaultJSDocument) AddImport(dependency *ImportDependency) []*ImportDependency {
 	p.imports = append(p.imports, dependency)
 
 	return p.imports
-}
-
-func (p *DefaultJSDocument) Imports() []*ImportDependency {
-	return p.imports
-}
-
-func (p *DefaultJSDocument) Other() []string {
-	return p.other
 }
 
 func (p *DefaultJSDocument) AddOther(new string) []string {

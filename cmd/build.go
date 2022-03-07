@@ -25,6 +25,13 @@ var buildCMD = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		analytics := &runtimeanalytics.RuntimeAnalytics{}
 
+		c, err := internal.CachedEnvFromFile(fsutils.NormalizePath(fmt.Sprintf("%s/%s/orb_env.go", viper.GetString("out"), viper.GetString("pacname"))))
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println(c)
+
 		if viper.GetBool("debugduration") {
 			analytics.StartCapture()
 		}
