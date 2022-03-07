@@ -11,6 +11,7 @@ import (
 )
 
 // component that has been successfully ran, and output from a packing method.
+// a component represents a source file that has a valid parser
 type Component struct {
 	WebDir string
 
@@ -26,6 +27,7 @@ type Component struct {
 	m                *sync.Mutex
 }
 
+// NewComponentOpts options for creating a new component
 type NewComponentOpts struct {
 	FilePath   string
 	WebDir     string
@@ -38,6 +40,7 @@ type NewComponentOpts struct {
 
 var ErrInvalidComponentType = errors.New("invalid component type")
 
+// NewComponent creates a new component that represents a packaged & bundled web component
 func NewComponent(ctx context.Context, opts *NewComponentOpts) (*Component, error) {
 	page, err := opts.JSParser.Parse(opts.FilePath, opts.WebDir)
 	if err != nil {
@@ -97,14 +100,10 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (*Component, erro
 	}, nil
 }
 
-func (s *Component) OriginalFilePath() string {
-	return s.originalFilePath
-}
-
-func (s *Component) Dependencies() []*jsparse.ImportDependency {
-	return s.dependencies
-}
-
+// Repack repacks a component following the following processes
+// 	- parses the provided filepath with the the components jsparser
+// 	- reapplies the component web wrapper
+// 	- bundles the component
 func (s *Component) Repack() error {
 	// parse the original javascript page, provided our javascript parser.
 	// we later mutate this page to apply the rest of the required web wrapper
@@ -148,6 +147,7 @@ func (s *Component) Repack() error {
 	return nil
 }
 
+// RepackForWaitGroup given a wait group, repacks the component using the underlying "Repack" method.
 func (s *Component) RepackForWaitGroup(wg *sync.WaitGroup, c chan error) {
 	err := s.Repack()
 
@@ -157,3 +157,9 @@ func (s *Component) RepackForWaitGroup(wg *sync.WaitGroup, c chan error) {
 
 	wg.Done()
 }
+
+// OriginalFilePath returns the original file path on the component
+func (s *Component) OriginalFilePath() string { return s.originalFilePath }
+
+// Dependencies returns the dependencies on the component
+func (s *Component) Dependencies() []*jsparse.ImportDependency { return s.dependencies }
