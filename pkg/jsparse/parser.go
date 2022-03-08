@@ -169,6 +169,14 @@ func NewEmptyDocument() *DefaultJSDocument {
 	return &DefaultJSDocument{}
 }
 
+// NewDocument creates a new JS document
+func NewDocument(webDir string, pageDir string) *DefaultJSDocument {
+	return &DefaultJSDocument{
+		webDir:  webDir,
+		pageDir: pageDir,
+	}
+}
+
 // formatImportLine parses an import line to create an import dependency
 func (p *DefaultJSDocument) formatImportLine(line string) *ImportDependency {
 	importType := lineImportType(line)
@@ -308,10 +316,18 @@ type JSParser interface {
 	Parse(string, string) (JSDocument, error)
 }
 
+type EmptyParser struct {
+	BadParse bool
+}
+
+func (p *EmptyParser) Parse(string, string) (JSDocument, error) {
+	return &DefaultJSDocument{}, nil
+}
+
 type JSFileParser struct{}
 
 func (p *JSFileParser) Parse(pageDir string, webDir string) (JSDocument, error) {
-	if pageDir[0:2] != fsutils.NormalizePath("./") {
+	if len(pageDir) >= 2 && pageDir[0:2] != fsutils.NormalizePath("./") {
 		pageDir = fsutils.NormalizePath(fmt.Sprintf("./%s", pageDir))
 	}
 
@@ -342,6 +358,10 @@ func (p *JSFileParser) Parse(pageDir string, webDir string) (JSDocument, error) 
 
 	return page, nil
 }
+func (p *DefaultJSDocument) Name() string { return p.name }
+
+func (p *DefaultJSDocument) Other() []string              { return p.other }
+func (p *DefaultJSDocument) Imports() []*ImportDependency { return p.imports }
 
 func (p *DefaultJSDocument) Key() string {
 	id := uuid.NewSHA1(uuid.NameSpaceDNS, []byte(p.name))
@@ -349,22 +369,10 @@ func (p *DefaultJSDocument) Key() string {
 	return strings.ReplaceAll(id.String(), "-", "")
 }
 
-func (p *DefaultJSDocument) Name() string {
-	return p.name
-}
-
 func (p *DefaultJSDocument) AddImport(dependency *ImportDependency) []*ImportDependency {
 	p.imports = append(p.imports, dependency)
 
 	return p.imports
-}
-
-func (p *DefaultJSDocument) Imports() []*ImportDependency {
-	return p.imports
-}
-
-func (p *DefaultJSDocument) Other() []string {
-	return p.other
 }
 
 func (p *DefaultJSDocument) AddOther(new string) []string {

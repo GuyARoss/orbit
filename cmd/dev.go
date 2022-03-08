@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -44,8 +45,8 @@ type devSession struct {
 	packer            *srcpack.Packer
 }
 
-var watcher *fsnotify.Watcher
-
+// verifyComponentPath is a utility that verifies
+// that the provided path is a file valid path
 func verifyComponentPath(in string) string {
 	skip := 0
 	for _, c := range in {
@@ -60,6 +61,9 @@ func verifyComponentPath(in string) string {
 	return in[skip:]
 }
 
+// createSession creates a new active dev session with the following
+// - a flat tree represented by a map of the root page in component form
+// - initializes the development build process
 func createSession(ctx context.Context, opts *SessionOpts) (*devSession, error) {
 	ats, err := assets.AssetKeys()
 	if err != nil {
@@ -76,10 +80,16 @@ func createSession(ctx context.Context, opts *SessionOpts) (*devSession, error) 
 		return nil, err
 	}
 
+	c, err := internal.CachedEnvFromFile(fsutils.NormalizePath(fmt.Sprintf("%s/%s/orb_env.go", viper.GetString("out"), viper.GetString("pacname"))))
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		panic(err)
+	}
+
 	packer := srcpack.NewDefaultPacker(log.NewEmptyLogger(), &srcpack.DefaultPackerOpts{
-		WebDir:        viper.GetString("webdir"),
-		BundlerMode:   viper.GetString("mode"),
-		NodeModuleDir: viper.GetString("nodemod"),
+		WebDir:           viper.GetString("webdir"),
+		BundlerMode:      viper.GetString("mode"),
+		NodeModuleDir:    viper.GetString("nodemod"),
+		CachedBundleKeys: c,
 	})
 
 	pageFiles := fsutils.DirFiles(fsutils.NormalizePath(fmt.Sprintf("%s/pages", viper.GetString("webdir"))))
@@ -200,12 +210,16 @@ func (s *devSession) executeChangeRequest(file string, timeoutDuration time.Dura
 	return cl.RepackMany(log.NewDefaultLogger())
 }
 
-func watchDir(path string, fi os.FileInfo, err error) error {
-	if fi.Mode().IsDir() {
-		return watcher.Add(path)
-	}
+// watchDir is a utility function used by the file path walker that applies
+// each sub directory found under a path to the file watcher
+func watchDir(watcher *fsnotify.Watcher) func(path string, fi os.FileInfo, err error) error {
+	return func(path string, fi os.FileInfo, err error) error {
+		if fi.Mode().IsDir() {
+			return watcher.Add(path)
+		}
 
-	return nil
+		return nil
+	}
 }
 
 var devCMD = &cobra.Command{
@@ -231,10 +245,10 @@ var devCMD = &cobra.Command{
 
 		logger.Success("dev server started successfully\n")
 
-		watcher, _ = fsnotify.NewWatcher()
+		watcher, _ := fsnotify.NewWatcher()
 		defer watcher.Close()
 
-		if err := filepath.Walk(fsutils.NormalizePath("./"), watchDir); err != nil {
+		if err := filepath.Walk(fsutils.NormalizePath("./"), watchDir(watcher)); err != nil {
 			panic("invalid walk on watchDir")
 		}
 

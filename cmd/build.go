@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
+	"os"
 
 	"github.com/GuyARoss/orbit/internal"
 	"github.com/GuyARoss/orbit/internal/assets"
@@ -46,11 +48,18 @@ var buildCMD = &cobra.Command{
 
 		pageFiles := fsutils.DirFiles(fsutils.NormalizePath(fmt.Sprintf("%s/pages", viper.GetString("webdir"))))
 
+		c, err := internal.CachedEnvFromFile(fsutils.NormalizePath(fmt.Sprintf("%s/%s/orb_env.go", viper.GetString("out"), viper.GetString("pacname"))))
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			panic(err)
+		}
+
 		packer := srcpack.NewDefaultPacker(log.NewDefaultLogger(), &srcpack.DefaultPackerOpts{
-			WebDir:        viper.GetString("webdir"),
-			BundlerMode:   viper.GetString("mode"),
-			NodeModuleDir: viper.GetString("nodemod"),
+			WebDir:           viper.GetString("webdir"),
+			BundlerMode:      viper.GetString("mode"),
+			NodeModuleDir:    viper.GetString("nodemod"),
+			CachedBundleKeys: c,
 		})
+
 		components, err := packer.PackMany(pageFiles)
 		if err != nil {
 			panic(err)

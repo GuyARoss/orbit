@@ -37,7 +37,9 @@ type BundleOpts struct {
 type BundledResource struct {
 	BundleFilePath       string
 	ConfiguratorFilePath string
-	ConfiguratorPage     jsparse.JSDocument
+
+	// ConfiguratorPage represents a bundler setup file
+	ConfiguratorPage jsparse.JSDocument
 }
 
 type Bundler interface {
