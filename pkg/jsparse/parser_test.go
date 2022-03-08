@@ -26,7 +26,7 @@ func TestFormatImportLine(t *testing.T) {
 	for i, c := range tt {
 		got := p.formatImportLine(c.i)
 
-		if c.o != got.FinalStatement {
+		if fsutils.NormalizePath(c.o) != got.FinalStatement {
 			t.Errorf("(%d) expected %s got %s \n", i, fsutils.NormalizePath(c.o), got.FinalStatement)
 		}
 	}
