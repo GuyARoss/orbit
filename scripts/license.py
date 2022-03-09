@@ -1,12 +1,12 @@
 # Copyright (c) 2021 Guy A. Ross
 # This source code is licensed under the GNU GPLv3 found in the
-# LICENSE file in the root directory of this source tree.
+# license file in the root directory of this source tree.
 import os
 
 statement = [
 " Copyright (c) 2021 Guy A. Ross",
 " This source code is licensed under the GNU GPLv3 found in the",
-" LICENSE file in the root directory of this source tree.",
+" license file in the root directory of this source tree.",
 ]
 
 def original_txt(path):
