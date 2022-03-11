@@ -57,7 +57,7 @@ type FileStructureOpts struct {
 // 2. the ./.orbit file structure
 // 3. asset directory
 func OrbitFileStructure(s *FileStructureOpts) error {
-	err := os.RemoveAll(".orbit/")
+	err := os.RemoveAll(".orbit/base")
 	if err != nil {
 		return err
 	}

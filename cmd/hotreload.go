@@ -8,89 +8,34 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
-	"sync"
 	"time"
 
+	"github.com/GuyARoss/orbit/internal"
 	"github.com/GuyARoss/orbit/internal/srcpack"
 	"github.com/GuyARoss/orbit/pkg/fsutils"
+	"github.com/GuyARoss/orbit/pkg/hotreload"
 	"github.com/GuyARoss/orbit/pkg/log"
 	"github.com/fsnotify/fsnotify"
-	"github.com/gorilla/websocket"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-type SocketRequest struct {
-	Operation string `json:"operation"`
-	Value     string `json:"value"`
-}
-
-type HotReload struct {
-	m        *sync.Mutex
-	socket   *websocket.Conn
-	upgrader *websocket.Upgrader
-
-	CurrentBundleKey string
-}
-
-func NewHotReload() *HotReload {
-	u := &websocket.Upgrader{}
-	u.CheckOrigin = func(r *http.Request) bool {
-		return true
-	}
-
-	return &HotReload{
-		m:        &sync.Mutex{},
-		upgrader: u,
-	}
-}
-
-func (s *HotReload) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
-	s.m.Lock()
-
-	// close previous socket conn
-	if s.socket != nil {
-		s.socket.Close()
-	}
-
-	c, err := s.upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		panic(err)
-	}
-
-	sockRequest := &SocketRequest{}
-	err = c.ReadJSON(sockRequest)
-
-	if err != nil {
-		panic(err)
-	}
-
-	s.socket = c
-
-	switch sockRequest.Operation {
-	case "page":
-		s.CurrentBundleKey = sockRequest.Value
-	}
-
-	s.m.Unlock()
-}
-
-func (s *HotReload) ReloadSignal() error {
-	return s.socket.WriteJSON(&SocketRequest{
-		Operation: "refresh",
-	})
-}
-
-var hotreloadCMD = &cobra.Command{
+var devCMD = &cobra.Command{
 	Use:   "hotreload",
 	Long:  "hot-reload bundle data given the specified pages in dev mode",
 	Short: "hot-reload bundle data given the specified pages in dev mode",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger := log.NewDefaultLogger()
 
-		s, err := createSession(context.Background(), &SessionOpts{
-			UseDebug: viper.GetBool("usedebug"),
-			WebDir:   viper.GetString("webdir"),
+		s, err := internal.CreateSession(context.Background(), &internal.SessionOpts{
+			UseDebug:      viper.GetBool("usedebug"),
+			WebDir:        viper.GetString("webdir"),
+			Mode:          viper.GetString("mode"),
+			Pacname:       viper.GetString("pacname"),
+			OutDir:        viper.GetString("out"),
+			NodeModDir:    viper.GetString("nodemod"),
+			PublicDir:     viper.GetString("publicdir"),
+			HotReloadPort: viper.GetInt("hotreloadport"),
 		})
 
 		if err != nil {
@@ -100,13 +45,13 @@ var hotreloadCMD = &cobra.Command{
 		watcher, _ := fsnotify.NewWatcher()
 		defer watcher.Close()
 
-		hotReload := NewHotReload()
+		hotReload := hotreload.New()
 
-		if err := filepath.Walk(fsutils.NormalizePath("./"), watchDir(watcher)); err != nil {
+		if err := filepath.Walk(fsutils.NormalizePath("./"), internal.WatchDir(watcher)); err != nil {
 			panic("invalid walk on watchDir")
 		}
 
-		go func(hr *HotReload) {
+		go func(hr *hotreload.HotReload) {
 			sh := srcpack.NewSyncHook(log.NewDefaultLogger())
 
 			for {
@@ -157,14 +102,14 @@ func init() {
 	var samefileTimeout int
 	var port int
 
-	hotreloadCMD.PersistentFlags().IntVar(&timeoutDuration, "timeout", 2000, "specifies the timeout duration in milliseconds until a change will be detected")
-	viper.BindPFlag("timeout", hotreloadCMD.PersistentFlags().Lookup("timeout"))
+	devCMD.PersistentFlags().IntVar(&timeoutDuration, "timeout", 2000, "specifies the timeout duration in milliseconds until a change will be detected")
+	viper.BindPFlag("timeout", devCMD.PersistentFlags().Lookup("timeout"))
 
-	hotreloadCMD.PersistentFlags().IntVar(&samefileTimeout, "samefiletimeout", 2000, "specifies the timeout duration in milliseconds until a change will be detected for repeating files")
-	viper.BindPFlag("samefiletimeout", hotreloadCMD.PersistentFlags().Lookup("samefiletimeout"))
+	devCMD.PersistentFlags().IntVar(&samefileTimeout, "samefiletimeout", 2000, "specifies the timeout duration in milliseconds until a change will be detected for repeating files")
+	viper.BindPFlag("samefiletimeout", devCMD.PersistentFlags().Lookup("samefiletimeout"))
 
-	hotreloadCMD.PersistentFlags().IntVar(&port, "hotreloadport", 3005, "port used for hotreload")
-	viper.BindPFlag("hotreloadport", hotreloadCMD.PersistentFlags().Lookup("hotreloadport"))
+	devCMD.PersistentFlags().IntVar(&port, "hotreloadport", 3005, "port used for hotreload")
+	viper.BindPFlag("hotreloadport", devCMD.PersistentFlags().Lookup("hotreloadport"))
 
-	RootCMD.AddCommand(hotreloadCMD)
+	RootCMD.AddCommand(devCMD)
 }

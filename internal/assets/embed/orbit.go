@@ -61,6 +61,7 @@ func defaultHTMLDoc(override string) *htmlDoc {
 	if CurrentDevMode == DevBundleMode {
 		base.Body = append(base.Body, `<script class="debug"> const getManifest = () => JSON.parse(document.getElementById("orbit_manifest").textContent) </script>`)
 		base.Body = append(base.Body, `<script class="debug" src="/p/hotreload.js"> </script>`)
+		base.Body = append(base.Body, fmt.Sprintf(`<script class="debug" id="debug_data" type="application/json">{ "hotReloadPort": %d }</script>`, hotReloadPort))
 	}
 
 	// the html override that will provide a basis for the default html doc

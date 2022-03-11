@@ -16,3 +16,5 @@ const (
 var CurrentDevMode BundleMode
 
 var wrapBody = map[PageRender][]string{}
+
+var hotReloadPort = 1000

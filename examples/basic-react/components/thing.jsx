@@ -1,9 +1,9 @@
 import Thing2 from './thing2'
 
-export default Thing = () => {
+export default () => {
     return (
         <>
-            THING!
+            THING!!
 
             <Thing2 />
         </>
