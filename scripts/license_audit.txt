@@ -1,3 +1,5 @@
+./pkg/hotreload/hotreload.go
+./internal/dev.go
 ./main.go
 ./scripts/link_examples.sh
 ./scripts/license.py

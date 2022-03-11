@@ -42,7 +42,7 @@ func (s *htmlDoc) build(data []byte, page PageRender) string {
 	<!doctype html>
 	<html lang="en">
 	<head>%s<script id="orbit_manifest" type="application/json">%s</script></head>
-	<body>%s<script src="/p/%s.js"></script></body>
+	<body>%s<script id="orbit_bk" src="/p/%s.js"></script></body>
 	</html>`, strings.Join(s.Head, ""), string(data), strings.Join(body, ""), page)
 }
 
@@ -61,6 +61,8 @@ func defaultHTMLDoc(override string) *htmlDoc {
 	// - geting the contents of orbit manifest with the function "getManifest"
 	if CurrentDevMode == DevBundleMode {
 		base.Body = append(base.Body, `<script class="debug"> const getManifest = () => JSON.parse(document.getElementById("orbit_manifest").textContent) </script>`)
+		base.Body = append(base.Body, `<script class="debug" src="/p/hotreload.js"> </script>`)
+		base.Body = append(base.Body, fmt.Sprintf(`<script class="debug" id="debug_data" type="application/json">{ "hotReloadPort": %d }</script>`, hotReloadPort))
 	}
 
 	// the html override that will provide a basis for the default html doc

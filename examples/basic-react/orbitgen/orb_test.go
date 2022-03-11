@@ -41,7 +41,7 @@ func TestHTMLDocBuild(t *testing.T) {
 		r      string
 	}{
 		{data, `<script id="orbit_manifest" type="application/json">`, "</script>"},
-		{page, `script src="/p/`, `.js">`},
+		{page, `script id="orbit_bk" src="/p/`, `.js">`},
 		{head, "<head>", "</head>"},
 		{body, "<body>", "</body>"},
 	}
@@ -56,7 +56,7 @@ func TestHTMLDocBuild(t *testing.T) {
 	for _, d := range tt {
 		content := innerHTML(flatdoc, d.l, d.r)
 		if !strings.Contains(content, d.expect) {
-			t.Errorf("%s expected on parent tag but not found", d.expect)
+			t.Errorf("%s expected on parent tag but found %s", d.expect, content)
 		}
 	}
 }

@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/GuyARoss/orbit/internal/assets"
+	"github.com/GuyARoss/orbit/pkg/bundler"
 )
 
 // GOLibFile is an implementation of the libout.LiboutFile
@@ -140,6 +141,11 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 		out.WriteString("\n")
 	}
 
+	if bg.BundleMode == string(bundler.DevelopmentBundle) {
+		out.WriteString(fmt.Sprintf(`var hotReloadPort int = %d`, bg.HotReloadPort))
+		out.WriteString("\n")
+	}
+
 	out.WriteString("type PageRender string\n\n")
 
 	for idx, p := range bg.pages {
@@ -161,9 +167,7 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 		}
 	}
 
-	out.WriteString("\n")
-	out.WriteString(`var wrapBody = map[PageRender][]string{`)
-	out.WriteString("\n")
+	out.WriteString("\nvar wrapBody = map[PageRender][]string{\n")
 
 	for _, p := range bg.pages {
 		out.WriteString(fmt.Sprintf(`	%s: %s,`, p.name, p.wrapVersion))

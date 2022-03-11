@@ -1,3 +1,3 @@
 export default () => (
-    <> Thing2 </>
+    <> Thing2! </>
 )

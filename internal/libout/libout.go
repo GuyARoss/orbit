@@ -16,6 +16,7 @@ type BundleGroupOpts struct {
 	BaseBundleOut string
 	BundleMode    string
 	PublicDir     string
+	HotReloadPort int
 }
 
 type page struct {
