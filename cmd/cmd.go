@@ -25,8 +25,8 @@ func init() {
 	var recordBuildDuration bool
 	var debug bool
 
-	buildCmds := [3]*cobra.Command{
-		buildCMD, devCMD, initCMD,
+	buildCmds := [4]*cobra.Command{
+		buildCMD, devCMD, initCMD, hotreloadCMD,
 	}
 
 	for _, cmd := range buildCmds {

@@ -20,6 +20,7 @@ type AssetKey string
 
 const (
 	WebPackConfig  AssetKey = "base.config.js"
+	HotReload      AssetKey = "hotreload.js"
 	Tests          AssetKey = "orbit_test.go"
 	PrimaryPackage AssetKey = "orbit.go"
 )

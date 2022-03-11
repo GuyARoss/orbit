@@ -1,27 +1,27 @@
 package orbitgen
 
+
 var react = []string{
-	`<script src="/p/02bab3977c197c77b270370f110270b1.js"></script>`,
-	`<script src="/p/02bab3977c197c77b270370f110270b1.js"></script>`,
-	`<div id="root"></div>`,
+`<script src="/p/02bab3977c197c77b270370f110270b1.js"></script>`,
+`<script src="/p/02bab3977c197c77b270370f110270b1.js"></script>`,
+`<div id="root"></div>`,
 }
 
 var bundleDir string = ".orbit/dist"
 
 var publicDir string = "./public/index.html"
-
 type PageRender string
 
-const (
-	// orbit:page .//pages/example.jsx
-	ExamplePage PageRender = "496a05464c3f5aa89e1d8bed7afe59d4"
+const ( 
 	// orbit:page .//pages/example2.jsx
 	ExampleTwoPage PageRender = "fe9faa2750e8559c8c213c2c25c4ce73"
+	// orbit:page .//pages/example.jsx
+	ExamplePage PageRender = "496a05464c3f5aa89e1d8bed7afe59d4"
 )
 
 var wrapBody = map[PageRender][]string{
-	ExamplePage:    react,
 	ExampleTwoPage: react,
+	ExamplePage: react,
 }
 
 type BundleMode int32

@@ -42,7 +42,9 @@ var buildCMD = &cobra.Command{
 		err = internal.OrbitFileStructure(&internal.FileStructureOpts{
 			PackageName: viper.GetString("pacname"),
 			OutDir:      viper.GetString("out"),
-			Assets:      []fs.DirEntry{ats.AssetKey(assets.WebPackConfig)},
+			// @@@ remove me "ASSETS.HOTRELOAD"
+			Dist:   []fs.DirEntry{ats.AssetKey(assets.HotReload)},
+			Assets: []fs.DirEntry{ats.AssetKey(assets.WebPackConfig)},
 		})
 
 		if err != nil {

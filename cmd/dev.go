@@ -77,6 +77,7 @@ func createSession(ctx context.Context, opts *SessionOpts) (*devSession, error) 
 		PackageName: viper.GetString("pacname"),
 		OutDir:      viper.GetString("out"),
 		Assets:      []fs.DirEntry{ats.AssetKey(assets.WebPackConfig)},
+		Dist:        []fs.DirEntry{ats.AssetKey(assets.HotReload)},
 	})
 
 	if err != nil {
@@ -148,6 +149,98 @@ func createSession(ctx context.Context, opts *SessionOpts) (*devSession, error) 
 		m:                 &sync.Mutex{},
 		packer:            packer.ReattachLogger(log.NewDefaultLogger()),
 	}, nil
+}
+
+func (s *devSession) directFileChangeRequest(file string, timeoutDuration time.Duration, sh *srcpack.SyncHook) error {
+	if s.UseDebug {
+		s.packer.Logger.Info(fmt.Sprintf("change detected → %s", file))
+	}
+
+	// if this file has been recently processed (specificed by the timeout flag), do not process it.
+	if file == s.lastProcessedFile.FileName &&
+		time.Since(s.lastProcessedFile.ProcessedAt).Seconds() < timeoutDuration.Seconds() {
+
+		if s.UseDebug {
+			s.packer.Logger.Info(fmt.Sprintf("change not excepted → %s (too recently processed)", file))
+		}
+		return nil
+	}
+
+	component := s.rootComponents[file]
+
+	// if component is one of the root components, we will just repack that component
+	if component != nil {
+		if s.UseDebug {
+			s.packer.Logger.Info(fmt.Sprintf("change found → %s (root)", file))
+		}
+
+		sh.WrapFunc(component.OriginalFilePath(), func() { component.Repack() })
+
+		s.m.Lock()
+		s.lastProcessedFile = &proccessedChangeRequest{
+			FileName:    file,
+			ProcessedAt: time.Now(),
+		}
+		s.m.Unlock()
+
+		return nil
+	}
+
+	return nil
+}
+
+func (s *devSession) indirectFileChangeRequest(indirectFile string, directComponentBundleKey string, timeoutDuration time.Duration, sh *srcpack.SyncHook) error {
+	// if this file has been recently processed (specificed by the timeout flag), do not process it.
+	if indirectFile == s.lastProcessedFile.FileName &&
+		time.Since(s.lastProcessedFile.ProcessedAt).Seconds() < timeoutDuration.Seconds() {
+
+		if s.UseDebug {
+			s.packer.Logger.Info(fmt.Sprintf("change not excepted → %s (too recently processed)", indirectFile))
+		}
+		return nil
+	}
+
+	// component is not root, we need to find in which tree(s) the component exists & execute
+	// a repack for each of those components & their dependent branches.
+	sources := s.sourceMap.FindRoot(indirectFile)
+
+	if s.UseDebug {
+		s.packer.Logger.Info(fmt.Sprintf("%d branch(s) found", len(sources)))
+	}
+
+	// we iterate through each of the root sources for the source
+	activeNodes := make([]*srcpack.Component, 0)
+	for _, source := range sources {
+		if s.UseDebug {
+			s.packer.Logger.Info(fmt.Sprintf("change found → %s (branch)", source))
+		}
+
+		source = verifyComponentPath(source)
+		component := s.rootComponents[source]
+
+		if component.BundleKey == directComponentBundleKey {
+			if s.UseDebug {
+				s.packer.Logger.Info(fmt.Sprintf("change found → %s (root)", indirectFile))
+			}
+
+			sh.WrapFunc(component.OriginalFilePath(), func() { component.Repack() })
+
+			s.m.Lock()
+			s.lastProcessedFile = &proccessedChangeRequest{
+				FileName:    indirectFile,
+				ProcessedAt: time.Now(),
+			}
+			s.m.Unlock()
+
+			return nil
+		}
+
+		activeNodes = append(activeNodes, component)
+	}
+
+	cl := srcpack.PackedComponentList(activeNodes)
+
+	return cl.RepackMany(log.NewDefaultLogger())
 }
 
 // executeChangeRequest attempts to find the file in the component tree, if found it

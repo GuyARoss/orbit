@@ -49,6 +49,7 @@ type FileStructureOpts struct {
 	PackageName string
 	OutDir      string
 	Assets      []fs.DirEntry
+	Dist        []fs.DirEntry
 }
 
 // OrbitFileStructure creates the foundation for orbits file structure, this includes:
@@ -84,6 +85,13 @@ func OrbitFileStructure(s *FileStructureOpts) error {
 
 	for _, a := range s.Assets {
 		err = assets.WriteFile(fsutils.NormalizePath(".orbit/assets"), a)
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, a := range s.Dist {
+		err = assets.WriteFile(fsutils.NormalizePath(".orbit/dist"), a)
 		if err != nil {
 			return err
 		}
