@@ -3,8 +3,6 @@ function isHotReloadReady() {
 }
 
 function debugData() {
-    console.log(document.getElementById("debug_data"))
-
     return JSON.parse(document.getElementById("debug_data").innerText)
 }
 
@@ -15,14 +13,12 @@ async function createSocket() {
             try {
                 const debug = debugData()
     
-                const socket = new WebSocket(`ws://localhost:${debug?.hotReloadPort}/ws`);
-                console.log(`ws://localhost:${debug?.hotReloadPort}/ws` )
+                const socket = new WebSocket(`ws://localhost:${debug?.hotReloadPort}/ws`);                
                 clearInterval(createSockInterval)
     
                 res(socket) 
             } catch {
                 failCounter += 1
-                console.log(failCounter)
      
                 if (failCounter === 5) {
                     clearInterval(createSockInterval)

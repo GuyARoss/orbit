@@ -39,8 +39,8 @@ type SessionOpts struct {
 type devSession struct {
 	*SessionOpts
 
-	rootComponents    map[string]*srcpack.Component
-	sourceMap         *dependtree.DependencySourceMap
+	RootComponents    map[string]*srcpack.Component
+	SourceMap         *dependtree.DependencySourceMap
 	lastProcessedFile *proccessedChangeRequest
 	m                 *sync.Mutex
 	packer            *srcpack.Packer
@@ -142,8 +142,8 @@ func CreateSession(ctx context.Context, opts *SessionOpts) (*devSession, error) 
 
 	return &devSession{
 		SessionOpts:       opts,
-		rootComponents:    rootComponents,
-		sourceMap:         sourceMap,
+		RootComponents:    rootComponents,
+		SourceMap:         sourceMap,
 		lastProcessedFile: &proccessedChangeRequest{},
 		m:                 &sync.Mutex{},
 		packer:            packer.ReattachLogger(log.NewDefaultLogger()),
@@ -165,7 +165,7 @@ func (s *devSession) DirectFileChangeRequest(file string, timeoutDuration time.D
 		return nil
 	}
 
-	component := s.rootComponents[file]
+	component := s.RootComponents[file]
 
 	// if component is one of the root components, we will just repack that component
 	if component != nil {
@@ -201,7 +201,7 @@ func (s *devSession) IndirectFileChangeRequest(indirectFile string, directCompon
 
 	// component is not root, we need to find in which tree(s) the component exists & execute
 	// a repack for each of those components & their dependent branches.
-	sources := s.sourceMap.FindRoot(indirectFile)
+	sources := s.SourceMap.FindRoot(indirectFile)
 
 	if s.UseDebug {
 		s.packer.Logger.Info(fmt.Sprintf("%d branch(s) found", len(sources)))
@@ -215,7 +215,7 @@ func (s *devSession) IndirectFileChangeRequest(indirectFile string, directCompon
 		}
 
 		source = verifyComponentPath(source)
-		component := s.rootComponents[source]
+		component := s.RootComponents[source]
 
 		if component.BundleKey == directComponentBundleKey {
 			if s.UseDebug {
@@ -233,69 +233,6 @@ func (s *devSession) IndirectFileChangeRequest(indirectFile string, directCompon
 
 			return nil
 		}
-
-		activeNodes = append(activeNodes, component)
-	}
-
-	cl := srcpack.PackedComponentList(activeNodes)
-
-	return cl.RepackMany(log.NewDefaultLogger())
-}
-
-// executeChangeRequest attempts to find the file in the component tree, if found it
-// will repack each of the branches that dependens on it.
-func (s *devSession) ExecuteChangeRequest(file string, timeoutDuration time.Duration, sh *srcpack.SyncHook) error {
-	if s.UseDebug {
-		s.packer.Logger.Info(fmt.Sprintf("change detected → %s", file))
-	}
-
-	// if this file has been recently processed (specificed by the timeout flag), do not process it.
-	if file == s.lastProcessedFile.FileName &&
-		time.Since(s.lastProcessedFile.ProcessedAt).Seconds() < timeoutDuration.Seconds() {
-
-		if s.UseDebug {
-			s.packer.Logger.Info(fmt.Sprintf("change not excepted → %s (too recently processed)", file))
-		}
-		return nil
-	}
-
-	component := s.rootComponents[file]
-
-	// if component is one of the root components, we will just repack that component
-	if component != nil {
-		if s.UseDebug {
-			s.packer.Logger.Info(fmt.Sprintf("change found → %s (root)", file))
-		}
-
-		sh.WrapFunc(component.OriginalFilePath(), func() { component.Repack() })
-
-		s.m.Lock()
-		s.lastProcessedFile = &proccessedChangeRequest{
-			FileName:    file,
-			ProcessedAt: time.Now(),
-		}
-		s.m.Unlock()
-
-		return nil
-	}
-
-	// component is not root, we need to find in which tree(s) the component exists & execute
-	// a repack for each of those components & their dependent branches.
-	sources := s.sourceMap.FindRoot(file)
-
-	if s.UseDebug {
-		s.packer.Logger.Info(fmt.Sprintf("%d branch(s) found", len(sources)))
-	}
-
-	// we iterate through each of the root sources for the source
-	activeNodes := make([]*srcpack.Component, 0)
-	for _, source := range sources {
-		if s.UseDebug {
-			s.packer.Logger.Info(fmt.Sprintf("change found → %s (branch)", source))
-		}
-
-		source = verifyComponentPath(source)
-		component = s.rootComponents[source]
 
 		activeNodes = append(activeNodes, component)
 	}

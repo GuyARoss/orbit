@@ -21,7 +21,7 @@ import (
 )
 
 var devCMD = &cobra.Command{
-	Use:   "hotreload",
+	Use:   "dev",
 	Long:  "hot-reload bundle data given the specified pages in dev mode",
 	Short: "hot-reload bundle data given the specified pages in dev mode",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -59,12 +59,12 @@ var devCMD = &cobra.Command{
 
 				select {
 				case e := <-watcher.Events:
-					root := s.rootComponents[e.Name]
+					root := s.RootComponents[e.Name]
 
 					// page is the current bundle that is open in the browser
 					// process change, recompute bundle and send refresh signal back to browser
-					if root != nil && s.rootComponents[e.Name].BundleKey == hr.CurrentBundleKey {
-						s.directFileChangeRequest(e.Name, time.Duration(viper.GetInt("samefiletimeout"))*time.Millisecond, sh)
+					if root != nil && s.RootComponents[e.Name].BundleKey == hr.CurrentBundleKey {
+						s.DirectFileChangeRequest(e.Name, time.Duration(viper.GetInt("samefiletimeout"))*time.Millisecond, sh)
 
 						err := hr.ReloadSignal()
 						if err != nil {
@@ -73,8 +73,8 @@ var devCMD = &cobra.Command{
 					}
 
 					// component may exist as a page depencency, if so, recompute and send refresh signal
-					if len(s.sourceMap.FindRoot(e.Name)) > 0 {
-						s.indirectFileChangeRequest(e.Name, hr.CurrentBundleKey, time.Duration(viper.GetInt("samefiletimeout"))*time.Millisecond, sh)
+					if len(s.SourceMap.FindRoot(e.Name)) > 0 {
+						s.IndirectFileChangeRequest(e.Name, hr.CurrentBundleKey, time.Duration(viper.GetInt("samefiletimeout"))*time.Millisecond, sh)
 
 						err := hr.ReloadSignal()
 						if err != nil {
