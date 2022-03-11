@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/GuyARoss/orbit/internal/assets"
@@ -45,7 +44,6 @@ type devSession struct {
 	RootComponents    map[string]*srcpack.Component
 	SourceMap         *dependtree.DependencySourceMap
 	lastProcessedFile *proccessedChangeRequest
-	m                 *sync.Mutex
 	packer            *srcpack.Packer
 }
 
@@ -148,7 +146,6 @@ func CreateSession(ctx context.Context, opts *SessionOpts) (*devSession, error) 
 		RootComponents:    rootComponents,
 		SourceMap:         sourceMap,
 		lastProcessedFile: &proccessedChangeRequest{},
-		m:                 &sync.Mutex{},
 		packer:            packer.ReattachLogger(log.NewDefaultLogger()),
 	}, nil
 }
@@ -178,12 +175,10 @@ func (s *devSession) DirectFileChangeRequest(file string, timeoutDuration time.D
 
 		sh.WrapFunc(component.OriginalFilePath(), func() { component.Repack() })
 
-		s.m.Lock()
 		s.lastProcessedFile = &proccessedChangeRequest{
 			FileName:    file,
 			ProcessedAt: time.Now(),
 		}
-		s.m.Unlock()
 
 		return nil
 	}
@@ -227,12 +222,10 @@ func (s *devSession) IndirectFileChangeRequest(indirectFile string, directCompon
 
 			sh.WrapFunc(component.OriginalFilePath(), func() { component.Repack() })
 
-			s.m.Lock()
 			s.lastProcessedFile = &proccessedChangeRequest{
 				FileName:    indirectFile,
 				ProcessedAt: time.Now(),
 			}
-			s.m.Unlock()
 
 			return nil
 		}
