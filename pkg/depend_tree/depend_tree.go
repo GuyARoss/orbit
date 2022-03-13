@@ -11,12 +11,10 @@ type DependencyTreeNode struct {
 	IsRoot bool
 }
 
-type DependencySourceMap struct {
-	sourceMap map[string][]string
-}
+type DependencySourceMap map[string][]string
 
-func (d *DependencySourceMap) FindRoot(path string) []string {
-	return d.sourceMap[path]
+func (d DependencySourceMap) FindRoot(path string) []string {
+	return d[path]
 }
 
 func (d *DependencyTreeNode) values(current []string) []string {
@@ -38,7 +36,7 @@ func (d *DependencyTreeNode) values(current []string) []string {
 	return current
 }
 
-func (d *DependencyTreeNode) SourceMap() *DependencySourceMap {
+func (d *DependencyTreeNode) SourceMap() DependencySourceMap {
 	m := make(map[string][]string)
 
 	current := d
@@ -59,7 +57,7 @@ func (d *DependencyTreeNode) SourceMap() *DependencySourceMap {
 
 		current = current.Right
 	}
-	return &DependencySourceMap{m}
+	return m
 }
 
 type DependencyTree interface {

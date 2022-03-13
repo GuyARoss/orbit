@@ -11,24 +11,18 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type HotReloader interface {
+	ReloadSignal() error
+	HandleWebSocket(w http.ResponseWriter, r *http.Request)
+	CurrentBundleKey() string
+}
+
 type HotReload struct {
 	m        *sync.Mutex
 	socket   *websocket.Conn
 	upgrader *websocket.Upgrader
 
-	CurrentBundleKey string
-}
-
-func New() *HotReload {
-	u := &websocket.Upgrader{}
-	u.CheckOrigin = func(r *http.Request) bool {
-		return true
-	}
-
-	return &HotReload{
-		m:        &sync.Mutex{},
-		upgrader: u,
-	}
+	currentBundleKey string
 }
 
 type SocketRequest struct {
@@ -40,6 +34,10 @@ func (s *HotReload) ReloadSignal() error {
 	return s.socket.WriteJSON(&SocketRequest{
 		Operation: "reload",
 	})
+}
+
+func (s *HotReload) CurrentBundleKey() string {
+	return s.currentBundleKey
 }
 
 func (s *HotReload) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
@@ -66,8 +64,20 @@ func (s *HotReload) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	switch sockRequest.Operation {
 	case "page":
-		s.CurrentBundleKey = sockRequest.Value
+		s.currentBundleKey = sockRequest.Value
 	}
 
 	s.m.Unlock()
+}
+
+func New() *HotReload {
+	u := &websocket.Upgrader{}
+	u.CheckOrigin = func(r *http.Request) bool {
+		return true
+	}
+
+	return &HotReload{
+		m:        &sync.Mutex{},
+		upgrader: u,
+	}
 }

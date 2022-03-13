@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -28,7 +29,7 @@ var devCMD = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		logger := log.NewDefaultLogger()
 
-		s, err := internal.CreateSession(context.Background(), &internal.SessionOpts{
+		s, err := internal.NewDevSession(context.Background(), &internal.SessionOpts{
 			UseDebug:      viper.GetBool("usedebug"),
 			WebDir:        viper.GetString("webdir"),
 			Mode:          viper.GetString("mode"),
@@ -48,40 +49,25 @@ var devCMD = &cobra.Command{
 
 		hotReload := hotreload.New()
 
-		if err := filepath.Walk(fsutils.NormalizePath("./"), internal.WatchDir(watcher)); err != nil {
+		if err := filepath.Walk(fsutils.NormalizePath("./"), WatchDir(watcher)); err != nil {
 			panic("invalid walk on watchDir")
 		}
 
+		timeout := time.Duration(viper.GetInt("timeout")) * time.Millisecond
+
 		go func(hr *hotreload.HotReload) {
-			sh := srcpack.NewSyncHook(log.NewDefaultLogger())
+			fileChangeOpts := &internal.ChangeRequestOpts{
+				SafeFileTimeout: time.Duration(viper.GetInt("samefiletimeout")) * time.Millisecond,
+				Hook:            srcpack.NewSyncHook(log.NewDefaultLogger()),
+				HotReload:       hr,
+			}
 
 			for {
-				time.Sleep(time.Duration(viper.GetInt("timeout")) * time.Millisecond)
+				time.Sleep(timeout)
 
 				select {
 				case e := <-watcher.Events:
-					root := s.RootComponents[e.Name]
-
-					// page is the current bundle that is open in the browser
-					// process change, recompute bundle and send refresh signal back to browser
-					if root != nil && s.RootComponents[e.Name].BundleKey == hr.CurrentBundleKey {
-						s.DirectFileChangeRequest(e.Name, time.Duration(viper.GetInt("samefiletimeout"))*time.Millisecond, sh)
-
-						err := hr.ReloadSignal()
-						if err != nil {
-							fmt.Println(err)
-						}
-					}
-
-					// component may exist as a page depencency, if so, recompute and send refresh signal
-					if len(s.SourceMap.FindRoot(e.Name)) > 0 {
-						s.IndirectFileChangeRequest(e.Name, hr.CurrentBundleKey, time.Duration(viper.GetInt("samefiletimeout"))*time.Millisecond, sh)
-
-						err := hr.ReloadSignal()
-						if err != nil {
-							fmt.Println(err)
-						}
-					}
+					s.DoChangeRequest(e.Name, fileChangeOpts)
 				case err := <-watcher.Errors:
 					panic(fmt.Sprintf("watcher failed %s", err.Error()))
 				}
@@ -96,6 +82,18 @@ var devCMD = &cobra.Command{
 			panic(err)
 		}
 	},
+}
+
+// watchDir is a utility function used by the file path walker that applies
+// each sub directory found under a path to the file watcher
+func WatchDir(watcher *fsnotify.Watcher) func(path string, fi os.FileInfo, err error) error {
+	return func(path string, fi os.FileInfo, err error) error {
+		if fi.Mode().IsDir() {
+			return watcher.Add(path)
+		}
+
+		return nil
+	}
 }
 
 func init() {

@@ -37,16 +37,16 @@ type concPack struct {
 	*Packer
 	m sync.Mutex
 
-	packedPages      []*Component
+	packedPages      []PackComponent
 	packMap          map[string]bool
 	cachedBundleKeys CachedEnvKeys
 }
 
 // packs the provided file paths into the orbit root directory
-func (s *Packer) PackMany(pages []string) ([]*Component, error) {
+func (s *Packer) PackMany(pages []string) ([]PackComponent, error) {
 	cp := &concPack{
 		Packer:           s,
-		packedPages:      make([]*Component, 0),
+		packedPages:      make([]PackComponent, 0),
 		packMap:          make(map[string]bool),
 		cachedBundleKeys: s.cachedBundleKeys,
 	}
@@ -116,7 +116,7 @@ func (p *concPack) PackSingle(errchan chan error, wg *sync.WaitGroup, path strin
 		return
 	}
 
-	if p.packMap[page.Name] {
+	if p.packMap[page.Name()] {
 		// this page has already been packed before
 		// and does not need to be repacked.
 		wg.Done()
@@ -125,13 +125,13 @@ func (p *concPack) PackSingle(errchan chan error, wg *sync.WaitGroup, path strin
 
 	p.m.Lock()
 	p.packedPages = append(p.packedPages, page)
-	p.packMap[page.Name] = true
+	p.packMap[page.Name()] = true
 	p.m.Unlock()
 
 	wg.Done()
 }
 
-type PackedComponentList []*Component
+type PackedComponentList []PackComponent
 
 func (l *PackedComponentList) RepackMany(logger log.Logger) error {
 	wg := &sync.WaitGroup{}
@@ -154,7 +154,7 @@ func (l *PackedComponentList) RepackMany(logger log.Logger) error {
 		t := comp
 		// go routine to pack every page found in the pages directory
 		// we wrap this routine with the sync hook to measure & log time deltas.
-		go sh.WrapFunc(t.originalFilePath, func() { comp.RepackForWaitGroup(wg, errchan) })
+		go sh.WrapFunc(t.OriginalFilePath(), func() { comp.RepackForWaitGroup(wg, errchan) })
 	}
 
 	wg.Wait()

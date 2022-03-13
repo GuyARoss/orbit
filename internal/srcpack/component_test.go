@@ -89,8 +89,8 @@ func TestNewComponent_BundleKey(t *testing.T) {
 			t.Error("error should not be thrown")
 		}
 
-		if c.BundleKey != d.k {
-			t.Errorf("expected %s got %s", d.k, c.BundleKey)
+		if c.BundleKey() != d.k {
+			t.Errorf("expected %s got %s", d.k, c.BundleKey())
 		}
 	}
 }

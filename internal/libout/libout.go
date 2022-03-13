@@ -93,12 +93,12 @@ func parseVersionKey(k string) string {
 }
 
 // AcceptComponents collects the required DOM elements and applies it to the component body map
-func (l *BundleGroup) AcceptComponents(ctx context.Context, comps []*srcpack.Component, cacheOpts *webwrapper.CacheDOMOpts) {
+func (l *BundleGroup) AcceptComponents(ctx context.Context, comps []srcpack.PackComponent, cacheOpts *webwrapper.CacheDOMOpts) {
 	for _, c := range comps {
-		v := parseVersionKey(c.WebWrapper.Version())
+		v := parseVersionKey(c.WebWrapper().Version())
 
-		l.pages = append(l.pages, &page{c.Name, c.BundleKey, v, c.OriginalFilePath()})
-		l.componentBodyMap[v] = c.WebWrapper.RequiredBodyDOMElements(ctx, cacheOpts)
+		l.pages = append(l.pages, &page{c.Name(), c.BundleKey(), v, c.OriginalFilePath()})
+		l.componentBodyMap[v] = c.WebWrapper().RequiredBodyDOMElements(ctx, cacheOpts)
 	}
 }
 
