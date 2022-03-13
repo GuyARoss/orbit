@@ -151,6 +151,7 @@ func CreateSession(ctx context.Context, opts *SessionOpts) (*devSession, error) 
 	}, nil
 }
 
+// DirectFileChangeRequest processes a change request for a root component directly
 func (s *devSession) DirectFileChangeRequest(file string, timeoutDuration time.Duration, sh *srcpack.SyncHook) error {
 	if s.UseDebug {
 		s.packer.Logger.Info(fmt.Sprintf("change detected → %s", file))
@@ -187,6 +188,7 @@ func (s *devSession) DirectFileChangeRequest(file string, timeoutDuration time.D
 	return nil
 }
 
+// IndirectFileChangeRequest processes a change request for a file that may be a dependency of a root component
 func (s *devSession) IndirectFileChangeRequest(indirectFile string, directComponentBundleKey string, timeoutDuration time.Duration, sh *srcpack.SyncHook) error {
 	// if this file has been recently processed (specificed by the timeout flag), do not process it.
 	if indirectFile == s.lastProcessedFile.FileName &&

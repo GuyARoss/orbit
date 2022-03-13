@@ -23,7 +23,6 @@ func init() {
 	var pacname string
 	var nodeModDir string
 	var publicDir string
-	var recordBuildDuration bool
 	var debug bool
 
 	buildCmds := [3]*cobra.Command{
@@ -52,9 +51,6 @@ func init() {
 
 		cmd.PersistentFlags().StringVar(&nodeModDir, "nodemod", fsutils.NormalizePath("./node_modules"), "specifies the directory to find node modules")
 		viper.BindPFlag("nodemod", cmd.PersistentFlags().Lookup("nodemod"))
-
-		cmd.PersistentFlags().BoolVar(&recordBuildDuration, "debugduration", false, "capture the duration for the entire bundle")
-		viper.BindPFlag("debugduration", cmd.PersistentFlags().Lookup("debugduration"))
 
 		cmd.PersistentFlags().BoolVar(&debug, "usedebug", false, "enables the debug mode")
 		viper.BindPFlag("usedebug", cmd.PersistentFlags().Lookup("usedebug"))

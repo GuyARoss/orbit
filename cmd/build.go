@@ -18,7 +18,6 @@ import (
 	"github.com/GuyARoss/orbit/pkg/bundler"
 	"github.com/GuyARoss/orbit/pkg/fsutils"
 	"github.com/GuyARoss/orbit/pkg/log"
-	"github.com/GuyARoss/orbit/pkg/runtimeanalytics"
 	webwrapper "github.com/GuyARoss/orbit/pkg/web_wrapper"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -29,12 +28,6 @@ var buildCMD = &cobra.Command{
 	Long:  "bundle data given the specified pages in prod mode",
 	Short: "bundle data given the specified pages in prod mode",
 	Run: func(cmd *cobra.Command, args []string) {
-		analytics := &runtimeanalytics.RuntimeAnalytics{}
-
-		if viper.GetBool("debugduration") {
-			analytics.StartCapture()
-		}
-
 		ats, err := assets.AssetKeys()
 		if err != nil {
 			panic(err)
@@ -95,11 +88,6 @@ var buildCMD = &cobra.Command{
 
 		if err != nil {
 			panic(err)
-		}
-
-		if viper.GetBool("debugduration") {
-			end := analytics.StopCapture()
-			fmt.Printf("total build duration: %fms\n", end)
 		}
 	},
 }
