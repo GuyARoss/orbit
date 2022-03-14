@@ -18,18 +18,13 @@ import (
 	"github.com/GuyARoss/orbit/pkg/bundler"
 	dependtree "github.com/GuyARoss/orbit/pkg/depend_tree"
 	"github.com/GuyARoss/orbit/pkg/fsutils"
+	"github.com/GuyARoss/orbit/pkg/hotreload"
 	"github.com/GuyARoss/orbit/pkg/log"
 	webwrapper "github.com/GuyARoss/orbit/pkg/web_wrapper"
-	"github.com/fsnotify/fsnotify"
 )
 
-type proccessedChangeRequest struct {
-	ProcessedAt time.Time
-	FileName    string
-}
-
+// SessionOpts are options used for creating a new session
 type SessionOpts struct {
-	UseDebug      bool
 	WebDir        string
 	Mode          string
 	Pacname       string
@@ -39,13 +34,110 @@ type SessionOpts struct {
 	HotReloadPort int
 }
 
+// proccessedChangeRequest is the most recent file change that has happended within the development process
+type proccessedChangeRequest struct {
+	ProcessedAt time.Time
+	FileName    string
+}
+
+// devSession is the internal state for processing change requests during a development process
 type devSession struct {
 	*SessionOpts
 
-	RootComponents    map[string]*srcpack.Component
-	SourceMap         *dependtree.DependencySourceMap
+	RootComponents    map[string]srcpack.PackComponent
+	SourceMap         dependtree.DependencySourceMap
 	lastProcessedFile *proccessedChangeRequest
 	packer            *srcpack.Packer
+}
+
+// ChangeRequestOpts options used for processing a change request
+type ChangeRequestOpts struct {
+	SafeFileTimeout time.Duration
+	HotReload       hotreload.HotReloader
+	Hook            *srcpack.SyncHook
+}
+
+var ErrFileTooRecentlyProcessed = errors.New("change not accepted, file too recently processed")
+
+// ProcessChangeRequest will determine which type of change request is required for computation of the request file
+func (s *devSession) DoChangeRequest(filePath string, opts *ChangeRequestOpts) error {
+	// if this file has been recently processed (specificed by the timeout flag), do not process it.
+	if filePath == s.lastProcessedFile.FileName &&
+		time.Since(s.lastProcessedFile.ProcessedAt).Seconds() < opts.SafeFileTimeout.Seconds() {
+
+		return ErrFileTooRecentlyProcessed
+	}
+
+	root := s.RootComponents[filePath]
+
+	// if components' bundle is the current bundle that is open in the browser
+	// recompute bundle and send refresh signal back to browser
+	if root != nil && root.BundleKey() == opts.HotReload.CurrentBundleKey() {
+		s.DirectFileChangeRequest(filePath, root, opts)
+
+		err := opts.HotReload.ReloadSignal()
+		if err != nil {
+			return err
+		}
+
+		// no need to continue, root file has already been processed.
+		return nil
+	}
+
+	sources := s.SourceMap.FindRoot(filePath)
+
+	// component may exist as a page depencency, if so, recompute and send refresh signal
+	if len(sources) > 0 {
+		// component is not root, we need to find in which tree(s) the component exists & execute
+		// a repack for each of those components & their dependent branches.
+		s.IndirectFileChangeRequest(sources, filePath, opts)
+
+		err := opts.HotReload.ReloadSignal()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// DirectFileChangeRequest processes a change request for a root component directly
+func (s *devSession) DirectFileChangeRequest(filePath string, component srcpack.PackComponent, opts *ChangeRequestOpts) error {
+	// if component is one of the root components, we will just repack that component
+	if component == nil {
+		return nil
+	}
+
+	opts.Hook.WrapFunc(component.OriginalFilePath(), func() { component.Repack() })
+
+	s.lastProcessedFile = &proccessedChangeRequest{
+		FileName:    filePath,
+		ProcessedAt: time.Now(),
+	}
+
+	return nil
+}
+
+// IndirectFileChangeRequest processes a change request for a file that may be a dependency of a root component
+func (s *devSession) IndirectFileChangeRequest(sources []string, indirectFile string, opts *ChangeRequestOpts) error {
+	// we iterate through each of the root sources for the source until the component bundle has been found.
+	for _, source := range sources {
+		source = verifyComponentPath(source)
+		component := s.RootComponents[source]
+
+		if component.BundleKey() == opts.HotReload.CurrentBundleKey() {
+			opts.Hook.WrapFunc(component.OriginalFilePath(), func() { component.Repack() })
+
+			s.lastProcessedFile = &proccessedChangeRequest{
+				FileName:    indirectFile,
+				ProcessedAt: time.Now(),
+			}
+
+			return nil
+		}
+	}
+
+	return nil
 }
 
 // verifyComponentPath is a utility that verifies
@@ -64,10 +156,10 @@ func verifyComponentPath(in string) string {
 	return in[skip:]
 }
 
-// CreateSession creates a new active dev session with the following
-// - a flat tree represented by a map of the root page in component form
-// - initializes the development build process
-func CreateSession(ctx context.Context, opts *SessionOpts) (*devSession, error) {
+// NewDevSession creates a new active dev session with the following:
+//  1. a flat tree represented by a map of the root page in component form
+//  2. initializes the development build process
+func NewDevSession(ctx context.Context, opts *SessionOpts) (*devSession, error) {
 	ats, err := assets.AssetKeys()
 	if err != nil {
 		panic(err)
@@ -134,7 +226,7 @@ func CreateSession(ctx context.Context, opts *SessionOpts) (*devSession, error) 
 		return nil, err
 	}
 
-	rootComponents := make(map[string]*srcpack.Component)
+	rootComponents := make(map[string]srcpack.PackComponent)
 	for _, p := range components {
 		// verify that the path is clean before we apply it to the root component map
 		path := verifyComponentPath(p.OriginalFilePath())
@@ -149,104 +241,4 @@ func CreateSession(ctx context.Context, opts *SessionOpts) (*devSession, error) 
 		lastProcessedFile: &proccessedChangeRequest{},
 		packer:            packer.ReattachLogger(log.NewDefaultLogger()),
 	}, nil
-}
-
-func (s *devSession) DirectFileChangeRequest(file string, timeoutDuration time.Duration, sh *srcpack.SyncHook) error {
-	if s.UseDebug {
-		s.packer.Logger.Info(fmt.Sprintf("change detected → %s", file))
-	}
-
-	// if this file has been recently processed (specificed by the timeout flag), do not process it.
-	if file == s.lastProcessedFile.FileName &&
-		time.Since(s.lastProcessedFile.ProcessedAt).Seconds() < timeoutDuration.Seconds() {
-
-		if s.UseDebug {
-			s.packer.Logger.Info(fmt.Sprintf("change not excepted → %s (too recently processed)", file))
-		}
-		return nil
-	}
-
-	component := s.RootComponents[file]
-
-	// if component is one of the root components, we will just repack that component
-	if component != nil {
-		if s.UseDebug {
-			s.packer.Logger.Info(fmt.Sprintf("change found → %s (root)", file))
-		}
-
-		sh.WrapFunc(component.OriginalFilePath(), func() { component.Repack() })
-
-		s.lastProcessedFile = &proccessedChangeRequest{
-			FileName:    file,
-			ProcessedAt: time.Now(),
-		}
-
-		return nil
-	}
-
-	return nil
-}
-
-func (s *devSession) IndirectFileChangeRequest(indirectFile string, directComponentBundleKey string, timeoutDuration time.Duration, sh *srcpack.SyncHook) error {
-	// if this file has been recently processed (specificed by the timeout flag), do not process it.
-	if indirectFile == s.lastProcessedFile.FileName &&
-		time.Since(s.lastProcessedFile.ProcessedAt).Seconds() < timeoutDuration.Seconds() {
-
-		if s.UseDebug {
-			s.packer.Logger.Info(fmt.Sprintf("change not excepted → %s (too recently processed)", indirectFile))
-		}
-		return nil
-	}
-
-	// component is not root, we need to find in which tree(s) the component exists & execute
-	// a repack for each of those components & their dependent branches.
-	sources := s.SourceMap.FindRoot(indirectFile)
-
-	if s.UseDebug {
-		s.packer.Logger.Info(fmt.Sprintf("%d branch(s) found", len(sources)))
-	}
-
-	// we iterate through each of the root sources for the source
-	activeNodes := make([]*srcpack.Component, 0)
-	for _, source := range sources {
-		if s.UseDebug {
-			s.packer.Logger.Info(fmt.Sprintf("change found → %s (branch)", source))
-		}
-
-		source = verifyComponentPath(source)
-		component := s.RootComponents[source]
-
-		if component.BundleKey == directComponentBundleKey {
-			if s.UseDebug {
-				s.packer.Logger.Info(fmt.Sprintf("change found → %s (root)", indirectFile))
-			}
-
-			sh.WrapFunc(component.OriginalFilePath(), func() { component.Repack() })
-
-			s.lastProcessedFile = &proccessedChangeRequest{
-				FileName:    indirectFile,
-				ProcessedAt: time.Now(),
-			}
-
-			return nil
-		}
-
-		activeNodes = append(activeNodes, component)
-	}
-
-	cl := srcpack.PackedComponentList(activeNodes)
-
-	return cl.RepackMany(log.NewDefaultLogger())
-}
-
-// watchDir is a utility function used by the file path walker that applies
-// each sub directory found under a path to the file watcher
-func WatchDir(watcher *fsnotify.Watcher) func(path string, fi os.FileInfo, err error) error {
-	return func(path string, fi os.FileInfo, err error) error {
-		if fi.Mode().IsDir() {
-			return watcher.Add(path)
-		}
-
-		return nil
-	}
 }

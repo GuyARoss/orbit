@@ -42,7 +42,7 @@ func TestCreateDependTree(t *testing.T) {
 	}
 
 	shallowMap := resp.SourceMap()
-	for f, k := range shallowMap.sourceMap {
+	for f, k := range shallowMap {
 		if f == "/pages" || f == "/files" {
 			continue
 		}

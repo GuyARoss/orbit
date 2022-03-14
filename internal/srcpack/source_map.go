@@ -45,7 +45,7 @@ func localDependencies(dependencies []*jsparse.ImportDependency) []string {
 	return finalDependendices
 }
 
-func (s *JSDependencyTree) cacheRootDirList(c []*Component, wg *sync.WaitGroup) {
+func (s *JSDependencyTree) cacheRootDirList(c []PackComponent, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	lst := make([]string, len(c))
@@ -56,7 +56,7 @@ func (s *JSDependencyTree) cacheRootDirList(c []*Component, wg *sync.WaitGroup) 
 	s.dirList = &lst
 }
 
-func (s *JSDependencyTree) cacheRootPathDependencyMap(c []*Component, wg *sync.WaitGroup) {
+func (s *JSDependencyTree) cacheRootPathDependencyMap(c []PackComponent, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	m := make(map[string][]string)
@@ -88,7 +88,7 @@ func (s *JSDependencyTree) PathDependencies(path string) ([]string, error) {
 	return localDependencies(page.Imports()), nil
 }
 
-func New(path string, c []*Component, webDirPath string) (*dependtree.DependencySourceMap, error) {
+func New(path string, c []PackComponent, webDirPath string) (dependtree.DependencySourceMap, error) {
 	var wg sync.WaitGroup
 
 	dependSettings := &JSDependencyTree{

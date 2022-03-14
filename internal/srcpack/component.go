@@ -14,20 +14,29 @@ import (
 	webwrapper "github.com/GuyARoss/orbit/pkg/web_wrapper"
 )
 
+type PackComponent interface {
+	Repack() error
+	RepackForWaitGroup(wg *sync.WaitGroup, c chan error)
+	OriginalFilePath() string
+	Dependencies() []*jsparse.ImportDependency
+	BundleKey() string
+	Name() string
+	WebWrapper() webwrapper.JSWebWrapper
+}
+
 // component that has been successfully ran, and output from a packing method.
 // a component represents a source file that has a valid parser
 type Component struct {
 	WebDir string
 
-	Name      string
-	BundleKey string
+	Bundler  bundler.Bundler
+	JsParser jsparse.JSParser
 
-	WebWrapper webwrapper.JSWebWrapper
-	Bundler    bundler.Bundler
-	JsParser   jsparse.JSParser
-
+	webWrapper       webwrapper.JSWebWrapper
+	bundleKey        string
 	dependencies     []*jsparse.ImportDependency
 	originalFilePath string
+	name             string
 	m                *sync.Mutex
 }
 
@@ -44,8 +53,10 @@ type NewComponentOpts struct {
 
 var ErrInvalidComponentType = errors.New("invalid component type")
 
+var ErrInvalidPageName = errors.New("invalid page name")
+
 // NewComponent creates a new component that represents a packaged & bundled web component
-func NewComponent(ctx context.Context, opts *NewComponentOpts) (*Component, error) {
+func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, error) {
 	page, err := opts.JSParser.Parse(opts.FilePath, opts.WebDir)
 	if err != nil {
 		return nil, err
@@ -92,12 +103,12 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (*Component, erro
 	}
 
 	return &Component{
-		Name:             page.Name(),
-		BundleKey:        bundleKey,
+		name:             page.Name(),
+		bundleKey:        bundleKey,
 		dependencies:     page.Imports(),
 		originalFilePath: opts.FilePath,
 		m:                &sync.Mutex{},
-		WebWrapper:       webwrap,
+		webWrapper:       webwrap,
 		Bundler:          opts.Bundler,
 		JsParser:         opts.JSParser,
 		WebDir:           opts.WebDir,
@@ -116,11 +127,17 @@ func (s *Component) Repack() error {
 		return err
 	}
 
+	// sometime during the repack process a component/ page found that does
+	// not contain a page name see issue #29
+	if page.Name() == "" {
+		return ErrInvalidPageName
+	}
+
 	// apply the necessary requirements for the web framework to the original page
-	page = s.WebWrapper.Apply(page, s.originalFilePath)
+	page = s.WebWrapper().Apply(page, s.originalFilePath)
 	resource, err := s.Bundler.Setup(context.TODO(), &bundler.BundleOpts{
 		FileName:  s.originalFilePath,
-		BundleKey: s.BundleKey,
+		BundleKey: s.BundleKey(),
 	})
 
 	if err != nil {
@@ -167,3 +184,12 @@ func (s *Component) OriginalFilePath() string { return s.originalFilePath }
 
 // Dependencies returns the dependencies on the component
 func (s *Component) Dependencies() []*jsparse.ImportDependency { return s.dependencies }
+
+// BundleKey returns the bundle key for the packed component
+func (s *Component) BundleKey() string { return s.bundleKey }
+
+// Name returns the name of the component
+func (s *Component) Name() string { return s.name }
+
+// WebWrapper returns the instance of the webwrapper applied to the component
+func (s *Component) WebWrapper() webwrapper.JSWebWrapper { return s.webWrapper }
