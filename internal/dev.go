@@ -25,7 +25,6 @@ import (
 
 // SessionOpts are options used for creating a new session
 type SessionOpts struct {
-	UseDebug      bool
 	WebDir        string
 	Mode          string
 	Pacname       string
@@ -66,10 +65,6 @@ func (s *devSession) DoChangeRequest(filePath string, opts *ChangeRequestOpts) e
 	if filePath == s.lastProcessedFile.FileName &&
 		time.Since(s.lastProcessedFile.ProcessedAt).Seconds() < opts.SafeFileTimeout.Seconds() {
 
-		if s.UseDebug {
-			s.packer.Logger.Info(fmt.Sprintf("change not excepted → %s (too recently processed)", filePath))
-		}
-
 		return ErrFileTooRecentlyProcessed
 	}
 
@@ -78,7 +73,7 @@ func (s *devSession) DoChangeRequest(filePath string, opts *ChangeRequestOpts) e
 	// if components' bundle is the current bundle that is open in the browser
 	// recompute bundle and send refresh signal back to browser
 	if root != nil && root.BundleKey() == opts.HotReload.CurrentBundleKey() {
-		s.DirectFileChangeRequest(filePath, root, opts.SafeFileTimeout, opts.Hook)
+		s.DirectFileChangeRequest(filePath, root, opts)
 
 		err := opts.HotReload.ReloadSignal()
 		if err != nil {
@@ -89,9 +84,13 @@ func (s *devSession) DoChangeRequest(filePath string, opts *ChangeRequestOpts) e
 		return nil
 	}
 
+	sources := s.SourceMap.FindRoot(filePath)
+
 	// component may exist as a page depencency, if so, recompute and send refresh signal
-	if len(s.SourceMap.FindRoot(filePath)) > 0 {
-		s.IndirectFileChangeRequest(filePath, opts.HotReload.CurrentBundleKey(), opts.SafeFileTimeout, opts.Hook)
+	if len(sources) > 0 {
+		// component is not root, we need to find in which tree(s) the component exists & execute
+		// a repack for each of those components & their dependent branches.
+		s.IndirectFileChangeRequest(sources, filePath, opts)
 
 		err := opts.HotReload.ReloadSignal()
 		if err != nil {
@@ -103,52 +102,31 @@ func (s *devSession) DoChangeRequest(filePath string, opts *ChangeRequestOpts) e
 }
 
 // DirectFileChangeRequest processes a change request for a root component directly
-func (s *devSession) DirectFileChangeRequest(filePath string, component srcpack.PackComponent, timeoutDuration time.Duration, sh *srcpack.SyncHook) error {
+func (s *devSession) DirectFileChangeRequest(filePath string, component srcpack.PackComponent, opts *ChangeRequestOpts) error {
 	// if component is one of the root components, we will just repack that component
-	if component != nil {
-		if s.UseDebug {
-			s.packer.Logger.Info(fmt.Sprintf("change found → %s (root)", filePath))
-		}
-
-		sh.WrapFunc(component.OriginalFilePath(), func() { component.Repack() })
-
-		s.lastProcessedFile = &proccessedChangeRequest{
-			FileName:    filePath,
-			ProcessedAt: time.Now(),
-		}
-
+	if component == nil {
 		return nil
+	}
+
+	opts.Hook.WrapFunc(component.OriginalFilePath(), func() { component.Repack() })
+
+	s.lastProcessedFile = &proccessedChangeRequest{
+		FileName:    filePath,
+		ProcessedAt: time.Now(),
 	}
 
 	return nil
 }
 
 // IndirectFileChangeRequest processes a change request for a file that may be a dependency of a root component
-func (s *devSession) IndirectFileChangeRequest(indirectFile string, parentBundleKey string, timeoutDuration time.Duration, sh *srcpack.SyncHook) error {
-	// component is not root, we need to find in which tree(s) the component exists & execute
-	// a repack for each of those components & their dependent branches.
-	sources := s.SourceMap.FindRoot(indirectFile)
-
-	if s.UseDebug {
-		s.packer.Logger.Info(fmt.Sprintf("%d branch(s) found", len(sources)))
-	}
-
-	// we iterate through each of the root sources for the source
-	activeNodes := make([]srcpack.PackComponent, 0)
+func (s *devSession) IndirectFileChangeRequest(sources []string, indirectFile string, opts *ChangeRequestOpts) error {
+	// we iterate through each of the root sources for the source until the component bundle has been found.
 	for _, source := range sources {
-		if s.UseDebug {
-			s.packer.Logger.Info(fmt.Sprintf("change found → %s (branch)", source))
-		}
-
 		source = verifyComponentPath(source)
 		component := s.RootComponents[source]
 
-		if component.BundleKey() == parentBundleKey {
-			if s.UseDebug {
-				s.packer.Logger.Info(fmt.Sprintf("change found → %s (root)", indirectFile))
-			}
-
-			sh.WrapFunc(component.OriginalFilePath(), func() { component.Repack() })
+		if component.BundleKey() == opts.HotReload.CurrentBundleKey() {
+			opts.Hook.WrapFunc(component.OriginalFilePath(), func() { component.Repack() })
 
 			s.lastProcessedFile = &proccessedChangeRequest{
 				FileName:    indirectFile,
@@ -157,13 +135,9 @@ func (s *devSession) IndirectFileChangeRequest(indirectFile string, parentBundle
 
 			return nil
 		}
-
-		activeNodes = append(activeNodes, component)
 	}
 
-	cl := srcpack.PackedComponentList(activeNodes)
-
-	return cl.RepackMany(log.NewDefaultLogger())
+	return nil
 }
 
 // verifyComponentPath is a utility that verifies

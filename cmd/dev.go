@@ -30,7 +30,6 @@ var devCMD = &cobra.Command{
 		logger := log.NewDefaultLogger()
 
 		s, err := internal.NewDevSession(context.Background(), &internal.SessionOpts{
-			UseDebug:      viper.GetBool("usedebug"),
 			WebDir:        viper.GetString("webdir"),
 			Mode:          viper.GetString("mode"),
 			Pacname:       viper.GetString("pacname"),

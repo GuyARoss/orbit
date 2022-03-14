@@ -21,9 +21,7 @@ func TestProcessChangeRequest_TooRecentlyProcessed(t *testing.T) {
 			FileName:    fn,
 			ProcessedAt: time.Now(),
 		},
-		SessionOpts: &SessionOpts{
-			UseDebug: false,
-		},
+		SessionOpts: &SessionOpts{},
 	}
 
 	err := s.DoChangeRequest(fn, &ChangeRequestOpts{
@@ -73,9 +71,7 @@ func TestDoChangeRequest_DirectFile(t *testing.T) {
 	comp := &mockPackedComponent{}
 	s := devSession{
 		lastProcessedFile: &proccessedChangeRequest{},
-		SessionOpts: &SessionOpts{
-			UseDebug: false,
-		},
+		SessionOpts:       &SessionOpts{},
 		RootComponents: map[string]srcpack.PackComponent{
 			fn: comp,
 		},
@@ -102,5 +98,34 @@ func TestDoChangeRequest_DirectFile(t *testing.T) {
 }
 
 func TestDoChangeRequest_IndirectFile(t *testing.T) {
+	fn := "direct_file_thing"
 
+	comp := &mockPackedComponent{}
+
+	s := devSession{
+		lastProcessedFile: &proccessedChangeRequest{},
+		SessionOpts:       &SessionOpts{},
+		RootComponents: map[string]srcpack.PackComponent{
+			"thing2": comp,
+		},
+		SourceMap: map[string][]string{
+			fn: {"thing2"},
+		},
+	}
+	hotReloader := &mockHotReload{}
+	err := s.DoChangeRequest(fn, &ChangeRequestOpts{
+		SafeFileTimeout: time.Hour * 2,
+		HotReload:       hotReloader,
+		Hook:            srcpack.NewSyncHook(log.NewEmptyLogger()),
+	})
+	if err != nil {
+		t.Errorf("error should not have been thrown during indirect file processing")
+	}
+
+	if hotReloader.didReload == false {
+		t.Errorf("hot reloading did not occur after file processing")
+	}
+	if comp.wasRepacked == false {
+		t.Errorf("packing did not occur during direct file processing")
+	}
 }

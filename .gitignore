@@ -7,3 +7,6 @@ orbit.exe
 dist
 orbit
 todo
+
+# test coverage
+c.out
