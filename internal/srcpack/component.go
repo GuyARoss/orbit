@@ -53,6 +53,8 @@ type NewComponentOpts struct {
 
 var ErrInvalidComponentType = errors.New("invalid component type")
 
+var ErrInvalidPageName = errors.New("invalid page name")
+
 // NewComponent creates a new component that represents a packaged & bundled web component
 func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, error) {
 	page, err := opts.JSParser.Parse(opts.FilePath, opts.WebDir)
@@ -123,6 +125,12 @@ func (s *Component) Repack() error {
 	page, err := s.JsParser.Parse(s.originalFilePath, s.WebDir)
 	if err != nil {
 		return err
+	}
+
+	// sometime during the repack process a component/ page found that does
+	// not contain a page name see issue #29
+	if page.Name() == "" {
+		return ErrInvalidPageName
 	}
 
 	// apply the necessary requirements for the web framework to the original page

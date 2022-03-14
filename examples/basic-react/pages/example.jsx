@@ -2,9 +2,8 @@ const Example = ({day, month, year}) => {
     return (
         <>
             <h1>Orbit-SSR</h1>
-            <p>Welcome to this example!</p>
-
-            <div>Delete!</div>
+            <p>Welcome to this example!!</p>
+            
             <p>
                 Today is {day}/{month}/{year}
             </p>
