@@ -28,8 +28,8 @@ type CacheDOMOpts struct {
 }
 
 func (c *CacheDOMOpts) CacheWebRequest(uris []string) ([]string, error) {
-	final := make([]string, 0)
-	for _, f := range uris {
+	final := make([]string, len(uris))
+	for i, f := range uris {
 		sum := md5.Sum([]byte(f))
 		hash := hex.EncodeToString(sum[:])
 
@@ -38,27 +38,38 @@ func (c *CacheDOMOpts) CacheWebRequest(uris []string) ([]string, error) {
 
 		filepath := fmt.Sprintf("%s/%s.%s", c.CacheDir, hash, extension)
 
+		_, err := os.Stat(filepath)
+
+		// file path exists
+		if err == nil {
+			final[i] = fmt.Sprintf("%s%s.%s", c.WebPrefix, hash, extension)
+			continue
+		}
+
 		// a local cached instance of the file does not exist so a request is
 		// made to the endpoint, then the response is saved to a file
-		if _, err := os.Stat(filepath); errors.Is(err, os.ErrNotExist) {
+		if errors.Is(err, os.ErrNotExist) {
 			res, err := http.Get(f)
 			if err != nil {
-				return final, err
+				final[i] = uris[i]
+				continue
 			}
 
 			outFile, err := os.Create(filepath)
 			if err != nil {
-				return final, err
+				final[i] = uris[i]
+				continue
 			}
 
 			defer outFile.Close()
 			_, err = io.Copy(outFile, res.Body)
 			if err != nil {
-				return final, err
+				final[i] = uris[i]
+				continue
 			}
 		}
 
-		final = append(final, fmt.Sprintf("%s%s.%s", c.WebPrefix, hash, extension))
+		final[i] = fmt.Sprintf("%s%s.%s", c.WebPrefix, hash, extension)
 	}
 
 	return final, nil

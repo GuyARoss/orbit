@@ -55,17 +55,13 @@ func (s *ReactWebWrapper) RequiredBodyDOMElements(ctx context.Context, cache *Ca
 	switch bundler.BundlerMode(mode) {
 	case bundler.DevelopmentBundle:
 		uris = append(uris, "https://unpkg.com/react/umd/react.development.js")
-		uris = append(uris, "https://unpkg.com/react/umd/react.development.js")
+		uris = append(uris, "https://unpkg.com/react-dom/umd/react-dom.development.js")
 	case bundler.ProductionBundle:
 		uris = append(uris, "https://unpkg.com/react/umd/react.production.min.js")
-		uris = append(uris, "https://unpkg.com/react/umd/react.production.min.js")
+		uris = append(uris, "https://unpkg.com/react-dom/umd/react-dom.production.min.js")
 	}
 
-	files, err := cache.CacheWebRequest(uris)
-
-	if err != nil {
-		fmt.Println(err)
-	}
+	files, _ := cache.CacheWebRequest(uris)
 
 	// currently these files are just paths to a directory to refer
 	// to them on the dom, we need to convert them to <script> tags.
