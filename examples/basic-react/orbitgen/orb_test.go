@@ -82,16 +82,27 @@ func TestParseSlug(t *testing.T) {
 }
 
 func TestParsePathSlugs(t *testing.T) {
-	path := "/thing/{toast}"
-
-	p, path := parsePathSlugs(path)
-
-	if p[2] != "toast" {
-		t.Errorf("expected %s got %s", "toast", p[1])
+	tt := []struct {
+		path  string
+		epath string
+		i     int
+		e     string
+	}{
+		{"/thing/{toast}", "/thing/", 2, "toast"},
+		{"/thing", "/thing", 0, ""},
+		{"/thing/{toast}/{cat}", "/thing/", 2, "toast"},
 	}
 
-	if path != "/thing/" {
-		t.Errorf("expected %s got %s", "/thing/", path)
+	for i, d := range tt {
+		slugs, path := parsePathSlugs(d.path)
+
+		if slugs[d.i] != d.e {
+			t.Errorf("(%d) expected %s got %s", i, d.e, slugs[d.i])
+		}
+
+		if path != d.epath {
+			t.Errorf("(%d) expected %s got %s", i, d.epath, path)
+		}
 	}
 }
 
@@ -157,9 +168,11 @@ func (s *mockResponseWriter) Write(in []byte) (int, error) { return s.mockWrite(
 func (s *mockResponseWriter) WriteHeader(statusCode int)   { s.mockWriteHeader(statusCode) }
 
 type mockHandle struct {
-	isErr     bool
-	writer    http.ResponseWriter
-	checkPath func(string)
+	isErr         bool
+	writer        http.ResponseWriter
+	checkPath     func(string)
+	requestPath   string
+	requestMethod string
 }
 
 func (m *mockHandle) HandleFunc(path string, handler func(rw http.ResponseWriter, r *http.Request)) {
@@ -168,7 +181,7 @@ func (m *mockHandle) HandleFunc(path string, handler func(rw http.ResponseWriter
 		return
 	}
 
-	r, _ := http.NewRequest("get", "/thing", nil)
+	r, _ := http.NewRequest(m.requestMethod, m.requestPath, nil)
 
 	handler(m.writer, r)
 }
@@ -181,7 +194,9 @@ func TestSetupMuxRequirements(t *testing.T) {
 
 	s := &Serve{
 		mux: &mockHandle{
-			writer: nil,
+			requestPath:   "/test",
+			requestMethod: "get",
+			writer:        nil,
 			checkPath: func(s string) {
 				reg = true
 
@@ -210,6 +225,8 @@ func (p *mockPage) Handle(c *Request) { p.fn(c) }
 func TestHandlePage(t *testing.T) {
 	p := &Serve{
 		mux: &mockHandle{
+			requestPath:   "/test",
+			requestMethod: "get",
 			writer: &mockResponseWriter{
 				mockWriteHeader: func(statusCode int) {},
 				mockWrite:       func(b []byte) (int, error) { return 0, nil },
@@ -240,8 +257,10 @@ func TestHandleFunc(t *testing.T) {
 	reg := false
 
 	var tt = []struct {
-		headFn  func(int)
-		handler func(*Request)
+		headFn      func(int)
+		handler     func(*Request)
+		path        string
+		requestPath string
 	}{
 		// ensure the correct error code is transmitted when bad manifest
 		// data is passed to render page.
@@ -255,6 +274,7 @@ func TestHandleFunc(t *testing.T) {
 			func(c *Request) {
 				c.RenderPage("", c)
 			},
+			"/test", "/test",
 		},
 
 		// status ok when manifest data is valid
@@ -271,6 +291,7 @@ func TestHandleFunc(t *testing.T) {
 
 				c.RenderPage("", props)
 			},
+			"/test", "/test",
 		},
 
 		// status ok when manifest data is nil
@@ -284,6 +305,21 @@ func TestHandleFunc(t *testing.T) {
 			func(c *Request) {
 				c.RenderPage("", nil)
 			},
+			"/test", "/test",
+		},
+
+		// status bad request slug count is invalid for this request.
+		{
+			func(code int) {
+				reg = true
+				if code != http.StatusBadRequest {
+					t.Errorf("expected status 400 upon incorrectly formatted slugs got %d", code)
+				}
+			},
+			func(c *Request) {
+				c.RenderPage("", nil)
+			},
+			"/test/{cat}/{dog}", "/test/",
 		},
 	}
 
@@ -294,13 +330,15 @@ func TestHandleFunc(t *testing.T) {
 
 		s := &Serve{
 			mux: &mockHandle{
-				writer:    writer,
-				checkPath: func(s string) {},
+				requestPath:   d.requestPath,
+				requestMethod: "get",
+				writer:        writer,
+				checkPath:     func(s string) {},
 			},
 			doc: &htmlDoc{[]string{}, []string{}},
 		}
 
-		s.HandleFunc("/test", func(c *Request) {
+		s.HandleFunc(d.path, func(c *Request) {
 			d.handler(c)
 		})
 
@@ -314,8 +352,10 @@ func TestHandleFunc(t *testing.T) {
 func TestServe(t *testing.T) {
 	s := &Serve{
 		mux: &mockHandle{
-			writer:    nil,
-			checkPath: func(s string) {},
+			requestPath:   "/test",
+			requestMethod: "get",
+			writer:        nil,
+			checkPath:     func(s string) {},
 		},
 		doc: &htmlDoc{[]string{}, []string{}},
 	}
