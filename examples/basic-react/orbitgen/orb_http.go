@@ -113,7 +113,12 @@ func parsePathSlugs(path string) (map[int]string, string) {
 		}
 	}
 
-	return slugKeys, fmt.Sprintf("%s/", strings.Join(validInitial, "/"))
+	finalPath := path
+	if len(slugKeys) > 0 {
+		finalPath = fmt.Sprintf("%s/", strings.Join(validInitial, "/"))
+	}
+
+	return slugKeys, finalPath
 }
 
 // muxHandle is used to inject the base mux handler behavior
@@ -134,6 +139,17 @@ func (s *Serve) HandleFunc(path string, handler func(c *Request)) {
 	slugs, path := parsePathSlugs(path)
 
 	s.mux.HandleFunc(path, func(rw http.ResponseWriter, r *http.Request) {
+		requestSlugs := make(map[string]string)
+
+		if len(slugs) > 0 {
+			requestSlugs = parseSlug(slugs, r.URL.Path)
+
+			if len(requestSlugs) != len(slugs) {
+				rw.WriteHeader(http.StatusBadRequest)
+				return
+			}
+		}
+
 		renderPage := func(page PageRender, data interface{}) {
 			d, err := json.Marshal(data)
 			if err != nil {
@@ -151,7 +167,7 @@ func (s *Serve) HandleFunc(path string, handler func(c *Request)) {
 			RenderPage: renderPage,
 			Request:    r,
 			Response:   rw,
-			Slugs:      parseSlug(slugs, r.URL.Path),
+			Slugs:      requestSlugs,
 		}
 
 		handler(ctx)
