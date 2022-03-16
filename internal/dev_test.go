@@ -1,12 +1,14 @@
 package internal
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/GuyARoss/orbit/internal/libout"
 	"github.com/GuyARoss/orbit/internal/srcpack"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/log"
@@ -127,5 +129,56 @@ func TestDoChangeRequest_IndirectFile(t *testing.T) {
 	}
 	if comp.wasRepacked == false {
 		t.Errorf("packing did not occur during direct file processing")
+	}
+}
+
+type mockPacker struct {
+	components []srcpack.Component
+}
+
+func (m *mockPacker) PackMany(pages []string) ([]srcpack.PackComponent, error) { return nil, nil }
+func (m *mockPacker) PackSingle(logger log.Logger, file string) (srcpack.PackComponent, error) {
+	return &m.components[0], nil
+}
+func (m *mockPacker) ReattachLogger(logger log.Logger) srcpack.Packer { return nil }
+
+type mockBundleWriter struct{}
+
+func (m *mockBundleWriter) WriteLibout(files libout.Libout, fOpts *libout.FilePathOpts) error {
+	return nil
+}
+func (m *mockBundleWriter) AcceptComponent(ctx context.Context, c srcpack.PackComponent, cacheOpts *webwrapper.CacheDOMOpts) {
+}
+func (m *mockBundleWriter) AcceptComponents(ctx context.Context, comps []srcpack.PackComponent, cacheOpts *webwrapper.CacheDOMOpts) {
+}
+
+func TestDoChangeRequest_UnknownPage(t *testing.T) {
+	fn := "/pages/filename.jsx"
+
+	s := devSession{
+		lastProcessedFile: &proccessedChangeRequest{},
+		SessionOpts:       &SessionOpts{},
+		RootComponents:    map[string]srcpack.PackComponent{},
+		SourceMap:         map[string][]string{},
+		packer: &mockPacker{
+			components: []srcpack.Component{
+				{},
+			},
+		},
+		libout: &mockBundleWriter{},
+	}
+	hotReloader := &mockHotReload{}
+	err := s.DoChangeRequest(fn, &ChangeRequestOpts{
+		SafeFileTimeout: time.Hour * 2,
+		HotReload:       hotReloader,
+		Hook:            srcpack.NewSyncHook(log.NewEmptyLogger()),
+	})
+
+	if err != nil {
+		t.Errorf("error should not have been thrown during processing of an unknown page")
+	}
+
+	if len(s.RootComponents) != 1 {
+		t.Errorf("page was not correctly identified")
 	}
 }

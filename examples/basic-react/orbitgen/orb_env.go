@@ -10,7 +10,7 @@ var react = []string{
 var bundleDir string = ".orbit/dist"
 
 var publicDir string = "./public/index.html"
-var hotReloadPort int = 0
+var hotReloadPort int = 3005
 type PageRender string
 
 const ( 
@@ -18,11 +18,14 @@ const (
 	ExamplePage PageRender = "496a05464c3f5aa89e1d8bed7afe59d4"
 	// orbit:page .//pages/example2.jsx
 	ExampleTwoPage PageRender = "fe9faa2750e8559c8c213c2c25c4ce73"
+	// orbit:page pages/example3.jsx
+	Example3Page PageRender = "ae9e0fe7bf9f5c3a808a06b31a71e7d2"
 )
 
 var wrapBody = map[PageRender][]string{
 	ExamplePage: react,
 	ExampleTwoPage: react,
+	Example3Page: react,
 }
 
 type BundleMode int32

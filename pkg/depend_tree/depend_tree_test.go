@@ -20,6 +20,24 @@ func (s *MockDependencyTree) DirList(path string) ([]string, error) {
 func (s *MockDependencyTree) PathDependencies(path string) ([]string, error) {
 	return s.Dependencies[path], nil
 }
+func TestMergeDependTree(t *testing.T) {
+	first := map[string][]string{
+		"thing": {"fish"},
+	}
+
+	final := DependencySourceMap(first).Merge(map[string][]string{
+		"thing2": {"stuff", "stuff2"},
+		"thing":  {"apple"},
+	})
+
+	if len(final) != 2 {
+		t.Errorf("final does not include merged items")
+	}
+
+	if len(final["thing"]) != 2 {
+		t.Errorf("did not merge initial keys with merge keys")
+	}
+}
 
 func TestCreateDependTree(t *testing.T) {
 	dep := make(map[string][]string)

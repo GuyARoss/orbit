@@ -13,6 +13,19 @@ type DependencyTreeNode struct {
 
 type DependencySourceMap map[string][]string
 
+func (d DependencySourceMap) Merge(m DependencySourceMap) DependencySourceMap {
+	for k, v := range m {
+		if len(d[k]) > 0 {
+			d[k] = append(d[k], v...)
+			continue
+		}
+
+		d[k] = v
+	}
+
+	return d
+}
+
 func (d DependencySourceMap) FindRoot(path string) []string {
 	return d[path]
 }
