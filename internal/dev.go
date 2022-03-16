@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/GuyARoss/orbit/internal/assets"
@@ -46,8 +47,9 @@ type devSession struct {
 
 	RootComponents    map[string]srcpack.PackComponent
 	SourceMap         dependtree.DependencySourceMap
+	packer            srcpack.Packer
 	lastProcessedFile *proccessedChangeRequest
-	packer            *srcpack.Packer
+	libout            libout.BundleWriter
 }
 
 // ChangeRequestOpts options used for processing a change request
@@ -73,9 +75,12 @@ func (s *devSession) DoChangeRequest(filePath string, opts *ChangeRequestOpts) e
 	// if components' bundle is the current bundle that is open in the browser
 	// recompute bundle and send refresh signal back to browser
 	if root != nil && root.BundleKey() == opts.HotReload.CurrentBundleKey() {
-		s.DirectFileChangeRequest(filePath, root, opts)
+		err := s.DirectFileChangeRequest(filePath, root, opts)
+		if err != nil {
+			return err
+		}
 
-		err := opts.HotReload.ReloadSignal()
+		err = opts.HotReload.ReloadSignal()
 		if err != nil {
 			return err
 		}
@@ -84,15 +89,25 @@ func (s *devSession) DoChangeRequest(filePath string, opts *ChangeRequestOpts) e
 		return nil
 	}
 
-	sources := s.SourceMap.FindRoot(filePath)
+	// if we assume that this is a new page, attempt to build it and add it to preexisting context
+	// @@todo(guy) magic string : "pages" allow support for this keyword from a flag
+	if strings.Contains(filePath, "pages/") {
+		err := s.NewPageFileChangeRequest(context.Background(), filePath)
+
+		return err
+	}
 
 	// component may exist as a page depencency, if so, recompute and send refresh signal
+	sources := s.SourceMap.FindRoot(filePath)
 	if len(sources) > 0 {
 		// component is not root, we need to find in which tree(s) the component exists & execute
 		// a repack for each of those components & their dependent branches.
-		s.IndirectFileChangeRequest(sources, filePath, opts)
+		err := s.IndirectFileChangeRequest(sources, filePath, opts)
+		if err != nil {
+			return err
+		}
 
-		err := opts.HotReload.ReloadSignal()
+		err = opts.HotReload.ReloadSignal()
 		if err != nil {
 			return err
 		}
@@ -140,8 +155,48 @@ func (s *devSession) IndirectFileChangeRequest(sources []string, indirectFile st
 	return nil
 }
 
-// verifyComponentPath is a utility that verifies
-// that the provided path is a file valid path
+// NewPageFileChangeRequest processes a change request for file that is detected as a new page
+func (s *devSession) NewPageFileChangeRequest(ctx context.Context, file string) error {
+	ats, err := assets.AssetKeys()
+	if err != nil {
+		panic(err)
+	}
+
+	component, err := s.packer.PackSingle(log.NewEmptyLogger(), file)
+	if err != nil {
+		return err
+	}
+
+	ctx = context.WithValue(ctx, bundler.BundlerID, s.Mode)
+	s.libout.AcceptComponent(ctx, component, &webwrapper.CacheDOMOpts{
+		CacheDir:  ".orbit/dist",
+		WebPrefix: "/p/",
+	})
+
+	err = s.libout.WriteLibout(libout.NewGOLibout(
+		ats.AssetKey(assets.Tests),
+		ats.AssetKey(assets.PrimaryPackage),
+	), &libout.FilePathOpts{
+		TestFile: fsutils.NormalizePath(fmt.Sprintf("%s/%s/orb_test.go", s.OutDir, s.Pacname)),
+		EnvFile:  fsutils.NormalizePath(fmt.Sprintf("%s/%s/orb_env.go", s.OutDir, s.Pacname)),
+		HTTPFile: fsutils.NormalizePath(fmt.Sprintf("%s/%s/orb_http.go", s.OutDir, s.Pacname)),
+	})
+	if err != nil {
+		return err
+	}
+
+	sourceMap, err := srcpack.New(s.WebDir, []srcpack.PackComponent{component}, s.WebDir)
+	if err != nil {
+		return err
+	}
+
+	s.SourceMap = s.SourceMap.Merge(sourceMap)
+	s.RootComponents[verifyComponentPath(component.OriginalFilePath())] = component
+
+	return nil
+}
+
+// verifyComponentPath is a utility that verifies that the provided path is a file valid path
 func verifyComponentPath(in string) string {
 	skip := 0
 	for _, c := range in {
@@ -188,6 +243,7 @@ func NewDevSession(ctx context.Context, opts *SessionOpts) (*devSession, error) 
 		CachedBundleKeys: c,
 	})
 
+	// @@todo(guy) magic string : "pages" allow support for this keyword from a flag
 	pageFiles := fsutils.DirFiles(fsutils.NormalizePath(fmt.Sprintf("%s/pages", opts.WebDir)))
 	components, err := packer.PackMany(pageFiles)
 	if err != nil {
@@ -240,5 +296,6 @@ func NewDevSession(ctx context.Context, opts *SessionOpts) (*devSession, error) 
 		SourceMap:         sourceMap,
 		lastProcessedFile: &proccessedChangeRequest{},
 		packer:            packer.ReattachLogger(log.NewDefaultLogger()),
+		libout:            bg,
 	}, nil
 }

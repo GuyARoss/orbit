@@ -44,6 +44,12 @@ type FilePathOpts struct {
 	EnvFile  string
 }
 
+type BundleWriter interface {
+	WriteLibout(files Libout, fOpts *FilePathOpts) error
+	AcceptComponent(ctx context.Context, c srcpack.PackComponent, cacheOpts *webwrapper.CacheDOMOpts)
+	AcceptComponents(ctx context.Context, comps []srcpack.PackComponent, cacheOpts *webwrapper.CacheDOMOpts)
+}
+
 type BundleGroup struct {
 	*BundleGroupOpts
 
@@ -90,6 +96,14 @@ func (opts *BundleGroup) WriteLibout(files Libout, fOpts *FilePathOpts) error {
 func parseVersionKey(k string) string {
 	f := strings.ReplaceAll(k, ".", "_")
 	return strings.ReplaceAll(f, "-", "")
+}
+
+// AcceptComponent collects the required DOM elements and applies it to the component body map
+func (l *BundleGroup) AcceptComponent(ctx context.Context, c srcpack.PackComponent, cacheOpts *webwrapper.CacheDOMOpts) {
+	v := parseVersionKey(c.WebWrapper().Version())
+	l.pages = append(l.pages, &page{c.Name(), c.BundleKey(), v, c.OriginalFilePath()})
+
+	l.componentBodyMap[v] = c.WebWrapper().RequiredBodyDOMElements(ctx, cacheOpts)
 }
 
 // AcceptComponents collects the required DOM elements and applies it to the component body map

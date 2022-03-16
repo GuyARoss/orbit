@@ -15,13 +15,19 @@ import (
 	webwrapper "github.com/GuyARoss/orbit/pkg/web_wrapper"
 )
 
+type Packer interface {
+	PackMany(pages []string) ([]PackComponent, error)
+	PackSingle(logger log.Logger, file string) (PackComponent, error)
+	ReattachLogger(logger log.Logger) Packer
+}
+
 // CachedEnvKeys represents a map where the key is the filepath
 // for the env setting and where the value is a bundler key
 type CachedEnvKeys map[string]string
 
 // packer is the primary struct used for packing a directory of javascript files into
 // valid web components.
-type Packer struct {
+type JSPacker struct {
 	Bundler          bundler.Bundler
 	JsParser         jsparse.JSParser
 	ValidWebWrappers webwrapper.JSWebWrapperMap
@@ -34,7 +40,7 @@ type Packer struct {
 
 // concpack is a private packing mechanism embedding the packer to pack a set of files concurrently.
 type concPack struct {
-	*Packer
+	*JSPacker
 	m sync.Mutex
 
 	packedPages      []PackComponent
@@ -43,9 +49,9 @@ type concPack struct {
 }
 
 // packs the provided file paths into the orbit root directory
-func (s *Packer) PackMany(pages []string) ([]PackComponent, error) {
+func (s *JSPacker) PackMany(pages []string) ([]PackComponent, error) {
 	cp := &concPack{
-		Packer:           s,
+		JSPacker:         s,
 		packedPages:      make([]PackComponent, 0),
 		packMap:          make(map[string]bool),
 		cachedBundleKeys: s.cachedBundleKeys,
@@ -79,7 +85,18 @@ func (s *Packer) PackMany(pages []string) ([]PackComponent, error) {
 	return cp.packedPages, nil
 }
 
-func (p *Packer) ReattachLogger(logger log.Logger) *Packer {
+func (p *JSPacker) PackSingle(logger log.Logger, file string) (PackComponent, error) {
+	return NewComponent(context.TODO(), &NewComponentOpts{
+		DefaultKey:    p.cachedBundleKeys[file],
+		FilePath:      file,
+		WebDir:        p.WebDir,
+		JSWebWrappers: p.ValidWebWrappers,
+		Bundler:       p.Bundler,
+		JSParser:      p.JsParser,
+	})
+}
+
+func (p *JSPacker) ReattachLogger(logger log.Logger) Packer {
 	p.Logger = logger
 	return p
 }
@@ -97,6 +114,12 @@ type DefaultPackerOpts struct {
 // 1. wrapping the component with the specified front-end web framework.
 // 2. bundling the component with the specified javascript bundler.
 func (p *concPack) PackSingle(errchan chan error, wg *sync.WaitGroup, path string) {
+	// this page has already been packed before and does not need to be repacked.
+	if p.packMap[path] {
+		wg.Done()
+		return
+	}
+
 	// @@todo: we should validate if these components exist on our source map yet, if so we should
 	// inherit the metadata, rather than generate new metadata.
 	page, err := NewComponent(context.TODO(), &NewComponentOpts{
@@ -116,16 +139,9 @@ func (p *concPack) PackSingle(errchan chan error, wg *sync.WaitGroup, path strin
 		return
 	}
 
-	if p.packMap[page.Name()] {
-		// this page has already been packed before
-		// and does not need to be repacked.
-		wg.Done()
-		return
-	}
-
 	p.m.Lock()
 	p.packedPages = append(p.packedPages, page)
-	p.packMap[page.Name()] = true
+	p.packMap[path] = true
 	p.m.Unlock()
 
 	wg.Done()
@@ -162,8 +178,8 @@ func (l *PackedComponentList) RepackMany(logger log.Logger) error {
 	return nil
 }
 
-func NewDefaultPacker(logger log.Logger, opts *DefaultPackerOpts) *Packer {
-	return &Packer{
+func NewDefaultPacker(logger log.Logger, opts *DefaultPackerOpts) Packer {
+	return &JSPacker{
 		Bundler: &bundler.WebPackBundler{
 			BaseBundler: &bundler.BaseBundler{
 				Mode:           bundler.BundlerMode(opts.BundlerMode),
