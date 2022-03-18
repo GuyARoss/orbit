@@ -124,7 +124,7 @@ func subsetRune(str string, subStart rune, subEnd rune) string {
 func pageExtension(importPath string) string {
 	split := strings.Split(importPath, ".")
 
-	if len(split) > 1 {
+	if len(split) > 2 {
 		// an extension is already present on the resource.
 		return split[len(split)-1]
 	}
@@ -235,7 +235,7 @@ func (p *DefaultJSDocument) formatImportLine(line string) *ImportDependency {
 	}
 
 	finalPath := strings.Join(cleanWebDirPaths, "/")
-	extension := pageExtension(finalPath)
+	extension := pageExtension(fmt.Sprintf(".%s", finalPath))
 
 	newPath := fsutils.NormalizePath(fmt.Sprintf("'../../../%s.%s'", strings.Join(cleanWebDirPaths, "/"), extension))
 	statementWithoutPath := strings.Replace(line, fmt.Sprintf("%c%s%c", pathChar, path, pathChar), newPath, 1)
@@ -346,8 +346,9 @@ func (p *JSFileParser) Parse(pageDir string, webDir string) (JSDocument, error) 
 	scanner.Split(bufio.ScanLines)
 
 	page := &DefaultJSDocument{
-		webDir:  webDir,
-		pageDir: pageDir,
+		webDir:    webDir,
+		pageDir:   pageDir,
+		extension: pageExtension(pageDir),
 	}
 
 	for scanner.Scan() {

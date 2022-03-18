@@ -66,7 +66,6 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, e
 	// this same js wrapper will be used when we go to repack.
 	webwrap := opts.JSWebWrappers.FirstMatch(page.Extension())
 
-	// no webwrapper is available
 	if webwrap == nil {
 		return nil, ErrInvalidComponentType
 	}
