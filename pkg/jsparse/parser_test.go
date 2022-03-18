@@ -48,25 +48,30 @@ func Test_lineImportType(t *testing.T) {
 	}
 }
 
-func TestCleanExportDefaultNameErrors(t *testing.T) {
-	_, err := extractDefaultExportName("export default () => {}")
-	if !errors.Is(ErrFunctionExport, err) {
-		t.Error("expected function export to raise error")
+func TestCleanExportDefaultName_Errors(t *testing.T) {
+	tt := []struct {
+		i string
+		o error
+	}{
+		{"export default", ErrFunctionExport},
 	}
 
-	_, err = extractDefaultExportName("export default test")
-	if !errors.Is(ErrExportNotCapitalized, err) {
-		t.Error("expected non capitalized component to raise exception")
+	for i, d := range tt {
+		_, err := extractDefaultExportName(d.i)
+		if !errors.Is(d.o, err) {
+			t.Errorf("(%d) expected error", i)
+		}
 	}
 }
 
-func TestCleanExportDefaultName(t *testing.T) {
+func TestExportDefaultName(t *testing.T) {
 	tt := []struct {
 		i string
 		o string
 	}{
 		{"export default Test", "Test"},
 		{"export default SomethingCool  ", "SomethingCool"},
+		{"export default () => {}", ""},
 	}
 
 	for i, c := range tt {
@@ -95,9 +100,7 @@ func TestDefaultPageName(t *testing.T) {
 }
 
 func TestExtension(t *testing.T) {
-	pn := &DefaultJSDocument{
-		pageDir: "thing.png",
-	}
+	pn := NewDocument("", "thing.png")
 
 	if pn.Extension() != "png" {
 		t.Errorf("got %s expected png", pn.Extension())
@@ -146,8 +149,8 @@ func TestPageExtension(t *testing.T) {
 		i string
 		o string
 	}{
-		{"test", ".jsx"},
-		{"test.jsx", ""},
+		{"test", "jsx"},
+		{"test.jsx", "jsx"},
 	}
 
 	for i, d := range tt {
@@ -170,10 +173,12 @@ func TestTokenizeLine(t *testing.T) {
 			},
 		}},
 		{"some random text", DefaultJSDocument{
-			other: []string{"some random text"},
+			extension: "jsx",
+			other:     []string{"some random text"},
 		}},
 		{"export default Thing", DefaultJSDocument{
-			name: "Thing",
+			extension: "jsx",
+			name:      "Thing",
 		}},
 	}
 

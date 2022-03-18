@@ -80,6 +80,7 @@ type JSWebWrapper interface {
 	NodeDependencies() map[string]string
 	DoesSatisfyConstraints(string) bool
 	Version() string
+	IsValid(jsparse.JSDocument) bool
 	RequiredBodyDOMElements(context.Context, *CacheDOMOpts) []string
 }
 

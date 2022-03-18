@@ -73,3 +73,14 @@ func (s *ReactWebWrapper) RequiredBodyDOMElements(ctx context.Context, cache *Ca
 
 	return files
 }
+
+func (s *ReactWebWrapper) IsValid(page jsparse.JSDocument) bool {
+	if page.Extension() == "jsx" {
+		// react components should always be capitalized.
+		if string(page.Name()[0]) != strings.ToUpper(string(page.Name()[0])) {
+			return false
+		}
+	}
+
+	return false
+}
