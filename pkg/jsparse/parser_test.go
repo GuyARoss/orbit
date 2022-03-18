@@ -100,7 +100,7 @@ func TestDefaultPageName(t *testing.T) {
 }
 
 func TestExtension(t *testing.T) {
-	pn := NewDocument("", "thing.png")
+	pn := NewDocument("", "./thing.png")
 
 	if pn.Extension() != "png" {
 		t.Errorf("got %s expected png", pn.Extension())
