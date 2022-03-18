@@ -71,7 +71,10 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, e
 		return nil, ErrInvalidComponentType
 	}
 
-	page = webwrap.Apply(page, opts.FilePath)
+	page, err = webwrap.Apply(page, opts.FilePath)
+	if err != nil {
+		return nil, err
+	}
 
 	bundleKey := opts.DefaultKey
 	if bundleKey == "" {
@@ -134,7 +137,11 @@ func (s *Component) Repack() error {
 	}
 
 	// apply the necessary requirements for the web framework to the original page
-	page = s.WebWrapper().Apply(page, s.originalFilePath)
+	page, err = s.WebWrapper().Apply(page, s.originalFilePath)
+	if err != nil {
+		return err
+	}
+
 	resource, err := s.Bundler.Setup(context.TODO(), &bundler.BundleOpts{
 		FileName:  s.originalFilePath,
 		BundleKey: s.BundleKey(),

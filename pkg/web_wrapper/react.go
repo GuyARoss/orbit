@@ -6,6 +6,7 @@ package webwrapper
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -17,7 +18,16 @@ type ReactWebWrapper struct {
 	*BaseWebWrapper
 }
 
-func (s *ReactWebWrapper) Apply(page jsparse.JSDocument, toFilePath string) jsparse.JSDocument {
+var ErrFunctionExport = errors.New("function export cannot be the name of the default export")
+
+func (s *ReactWebWrapper) Apply(page jsparse.JSDocument, toFilePath string) (jsparse.JSDocument, error) {
+	if page.Extension() == "jsx" {
+		// react components should always be capitalized.
+		if string(page.Name()[0]) != strings.ToUpper(string(page.Name()[0])) {
+			return nil, ErrFunctionExport
+		}
+	}
+
 	page.AddImport(&jsparse.ImportDependency{
 		FinalStatement: "import ReactDOM from 'react-dom'",
 		Type:           jsparse.ModuleImportType,
@@ -28,7 +38,7 @@ func (s *ReactWebWrapper) Apply(page jsparse.JSDocument, toFilePath string) jspa
 		page.Name()),
 	)
 
-	return page
+	return page, nil
 }
 
 func (s *ReactWebWrapper) NodeDependencies() map[string]string {
@@ -72,15 +82,4 @@ func (s *ReactWebWrapper) RequiredBodyDOMElements(ctx context.Context, cache *Ca
 	files = append(files, `<div id="root"></div>`)
 
 	return files
-}
-
-func (s *ReactWebWrapper) IsValid(page jsparse.JSDocument) bool {
-	if page.Extension() == "jsx" {
-		// react components should always be capitalized.
-		if string(page.Name()[0]) != strings.ToUpper(string(page.Name()[0])) {
-			return false
-		}
-	}
-
-	return false
 }
