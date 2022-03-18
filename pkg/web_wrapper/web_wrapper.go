@@ -76,7 +76,7 @@ func (c *CacheDOMOpts) CacheWebRequest(uris []string) ([]string, error) {
 }
 
 type JSWebWrapper interface {
-	Apply(jsparse.JSDocument, string) jsparse.JSDocument
+	Apply(jsparse.JSDocument, string) (jsparse.JSDocument, error)
 	NodeDependencies() map[string]string
 	DoesSatisfyConstraints(string) bool
 	Version() string

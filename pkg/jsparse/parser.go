@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"unicode"
 
 	"github.com/GuyARoss/orbit/pkg/fsutils"
 	"github.com/google/uuid"
@@ -61,8 +62,9 @@ type DefaultJSDocument struct {
 	name    string
 	other   []string
 
-	webDir  string
-	pageDir string
+	webDir    string
+	pageDir   string
+	extension string
 }
 
 // JSToken is some keyword(s) found in javascript used to tokenize js documents.
@@ -77,20 +79,18 @@ var declarationTokens = []JSToken{ImportToken, ExportToken}
 
 var ErrFunctionExport = errors.New("function export cannot be the name of the default export")
 
-var ErrExportNotCapitalized = errors.New("default export of component should be capitalized")
-
 // extractDefaultExportName finds and returns an export name
 // (if applicable) found within the provided line.
 func extractDefaultExportName(line string) (string, error) {
 	exportData := strings.Split(line, string(ExportToken))
-	possibleName := strings.Trim(exportData[1][1:], " ")
-
-	if string(possibleName[0]) != strings.ToUpper(string(possibleName[0])) {
-		return "", ErrExportNotCapitalized
+	if len(exportData[1]) == 0 {
+		return "", ErrFunctionExport
 	}
 
-	if len(strings.Split(possibleName, " ")) > 1 {
-		return "", ErrFunctionExport
+	possibleName := strings.Trim(exportData[1][1:], " ")
+
+	if !unicode.IsLetter(rune(possibleName[0])) {
+		return "", nil
 	}
 
 	return possibleName, nil
@@ -122,19 +122,19 @@ func subsetRune(str string, subStart rune, subEnd rune) string {
 // this can be used to determine an extension when one is not present on the file path
 // if one is present, it returns in empty string, rather than the one present on the line.
 func pageExtension(importPath string) string {
-	// todo(issue/#11): context should be used here to pass in a "defaultExtension" type
-	// provided by the pages web wrapper method.
 	split := strings.Split(importPath, ".")
 
-	if len(split) > 1 {
+	if len(split) > 2 {
 		// an extension is already present on the resource.
-		return ""
+		return split[len(split)-1]
 	}
 
-	extension := ".js"
+	extension := "js"
+	// todo(issue/#11): context should be used here to pass in a "defaultExtension" type
+	// provided by the pages web wrapper method.
 	_, err := os.Stat(fmt.Sprintf("%s.js", importPath))
 	if err != nil {
-		extension = ".jsx"
+		extension = "jsx"
 	}
 	return extension
 }
@@ -176,8 +176,9 @@ func NewEmptyDocument() *DefaultJSDocument {
 // NewDocument creates a new JS document
 func NewDocument(webDir string, pageDir string) *DefaultJSDocument {
 	return &DefaultJSDocument{
-		webDir:  webDir,
-		pageDir: pageDir,
+		webDir:    webDir,
+		pageDir:   pageDir,
+		extension: pageExtension(pageDir),
 	}
 }
 
@@ -234,14 +235,14 @@ func (p *DefaultJSDocument) formatImportLine(line string) *ImportDependency {
 	}
 
 	finalPath := strings.Join(cleanWebDirPaths, "/")
-	extension := pageExtension(finalPath)
+	extension := pageExtension(fmt.Sprintf(".%s", finalPath))
 
-	newPath := fsutils.NormalizePath(fmt.Sprintf("'../../../%s%s'", strings.Join(cleanWebDirPaths, "/"), extension))
+	newPath := fsutils.NormalizePath(fmt.Sprintf("'../../../%s.%s'", strings.Join(cleanWebDirPaths, "/"), extension))
 	statementWithoutPath := strings.Replace(line, fmt.Sprintf("%c%s%c", pathChar, path, pathChar), newPath, 1)
 
 	return &ImportDependency{
 		FinalStatement: statementWithoutPath,
-		InitialPath:    fsutils.NormalizePath(fmt.Sprintf("%s%s", strings.Join(cleanWebDirPaths, "/"), extension)),
+		InitialPath:    fsutils.NormalizePath(fmt.Sprintf("%s.%s", strings.Join(cleanWebDirPaths, "/"), extension)),
 		Type:           importType,
 	}
 }
@@ -345,8 +346,9 @@ func (p *JSFileParser) Parse(pageDir string, webDir string) (JSDocument, error) 
 	scanner.Split(bufio.ScanLines)
 
 	page := &DefaultJSDocument{
-		webDir:  webDir,
-		pageDir: pageDir,
+		webDir:    webDir,
+		pageDir:   pageDir,
+		extension: pageExtension(pageDir),
 	}
 
 	for scanner.Scan() {
@@ -366,6 +368,7 @@ func (p *DefaultJSDocument) Name() string { return p.name }
 
 func (p *DefaultJSDocument) Other() []string              { return p.other }
 func (p *DefaultJSDocument) Imports() []*ImportDependency { return p.imports }
+func (p *DefaultJSDocument) Extension() string            { return p.extension }
 
 func (p *DefaultJSDocument) Key() string {
 	id := uuid.NewSHA1(uuid.NameSpaceDNS, []byte(p.name))
@@ -383,14 +386,4 @@ func (p *DefaultJSDocument) AddOther(new string) []string {
 	p.other = append(p.other, new)
 
 	return p.other
-}
-
-func (p *DefaultJSDocument) Extension() string {
-	f := strings.Split(p.pageDir, ".")
-
-	if len(f) == 0 {
-		return ""
-	}
-
-	return f[len(f)-1]
 }

@@ -33,8 +33,8 @@ type mockWrapper struct {
 	satisfy bool
 }
 
-func (m *mockWrapper) Apply(doc jsparse.JSDocument, t string) jsparse.JSDocument {
-	return &mockJsDocument{}
+func (m *mockWrapper) Apply(doc jsparse.JSDocument, t string) (jsparse.JSDocument, error) {
+	return &mockJsDocument{}, nil
 }
 
 func (m *mockWrapper) NodeDependencies() map[string]string { return make(map[string]string) }
