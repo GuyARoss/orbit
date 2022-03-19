@@ -30,7 +30,7 @@ type CachedEnvKeys map[string]string
 type JSPacker struct {
 	Bundler          bundler.Bundler
 	JsParser         jsparse.JSParser
-	ValidWebWrappers webwrapper.JSWebWrapperMap
+	ValidWebWrappers webwrapper.JSWebWrapperList
 	Logger           log.Logger
 
 	AssetDir         string

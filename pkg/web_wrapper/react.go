@@ -18,14 +18,19 @@ type ReactWebWrapper struct {
 	*BaseWebWrapper
 }
 
-var ErrFunctionExport = errors.New("function export cannot be the name of the default export")
+var ErrComponentExport = errors.New("prefer capitalization for jsx components")
+var ErrInvalidComponent = errors.New("invalid jsx component")
 
-func (s *ReactWebWrapper) Apply(page jsparse.JSDocument, toFilePath string) (jsparse.JSDocument, error) {
-	if page.Extension() == "jsx" {
-		// react components should always be capitalized.
-		if string(page.Name()[0]) != strings.ToUpper(string(page.Name()[0])) {
-			return nil, ErrFunctionExport
-		}
+const reactExtension string = "jsx"
+
+func (s *ReactWebWrapper) Apply(page jsparse.JSDocument) (jsparse.JSDocument, error) {
+	if page.Extension() != reactExtension {
+		return nil, ErrInvalidComponent
+	}
+
+	// react components should always be capitalized.
+	if string(page.Name()[0]) != strings.ToUpper(string(page.Name()[0])) {
+		return nil, ErrComponentExport
 	}
 
 	page.AddImport(&jsparse.ImportDependency{
@@ -51,7 +56,7 @@ func (s *ReactWebWrapper) NodeDependencies() map[string]string {
 }
 
 func (s *ReactWebWrapper) DoesSatisfyConstraints(fileExtension string) bool {
-	return strings.Contains(fileExtension, "jsx")
+	return strings.Contains(fileExtension, reactExtension)
 }
 
 func (s *ReactWebWrapper) Version() string {

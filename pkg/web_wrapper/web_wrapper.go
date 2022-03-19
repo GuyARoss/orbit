@@ -76,22 +76,22 @@ func (c *CacheDOMOpts) CacheWebRequest(uris []string) ([]string, error) {
 }
 
 type JSWebWrapper interface {
-	Apply(jsparse.JSDocument, string) (jsparse.JSDocument, error)
+	Apply(jsparse.JSDocument) (jsparse.JSDocument, error)
 	NodeDependencies() map[string]string
 	DoesSatisfyConstraints(string) bool
 	Version() string
 	RequiredBodyDOMElements(context.Context, *CacheDOMOpts) []string
 }
 
-type JSWebWrapperMap []JSWebWrapper
+type JSWebWrapperList []JSWebWrapper
 
-func NewActiveMap() JSWebWrapperMap {
+func NewActiveMap() JSWebWrapperList {
 	return []JSWebWrapper{
 		&ReactWebWrapper{},
 	}
 }
 
-func (j *JSWebWrapperMap) FirstMatch(fileExtension string) JSWebWrapper {
+func (j *JSWebWrapperList) FirstMatch(fileExtension string) JSWebWrapper {
 	for _, f := range *j {
 		if f.DoesSatisfyConstraints(fileExtension) {
 			return f

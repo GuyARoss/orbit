@@ -33,7 +33,7 @@ type mockWrapper struct {
 	satisfy bool
 }
 
-func (m *mockWrapper) Apply(doc jsparse.JSDocument, t string) (jsparse.JSDocument, error) {
+func (m *mockWrapper) Apply(doc jsparse.JSDocument) (jsparse.JSDocument, error) {
 	return &mockJsDocument{}, nil
 }
 

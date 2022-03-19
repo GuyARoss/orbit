@@ -48,7 +48,7 @@ type NewComponentOpts struct {
 
 	JSParser      jsparse.JSParser
 	Bundler       bundler.Bundler
-	JSWebWrappers webwrapper.JSWebWrapperMap
+	JSWebWrappers webwrapper.JSWebWrapperList
 }
 
 var ErrInvalidComponentType = errors.New("invalid component type")
@@ -70,7 +70,7 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, e
 		return nil, ErrInvalidComponentType
 	}
 
-	page, err = webwrap.Apply(page, opts.FilePath)
+	page, err = webwrap.Apply(page)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +136,7 @@ func (s *Component) Repack() error {
 	}
 
 	// apply the necessary requirements for the web framework to the original page
-	page, err = s.WebWrapper().Apply(page, s.originalFilePath)
+	page, err = s.WebWrapper().Apply(page)
 	if err != nil {
 		return err
 	}
