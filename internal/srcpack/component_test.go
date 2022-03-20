@@ -6,66 +6,13 @@ package srcpack
 
 import (
 	"context"
-	"errors"
 	"testing"
 
-	"github.com/GuyARoss/orbit/pkg/bundler"
+	bundlermock "github.com/GuyARoss/orbit/pkg/bundler/mock"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
-	webwrapper "github.com/GuyARoss/orbit/pkg/web_wrapper"
+	"github.com/GuyARoss/orbit/pkg/webwrap"
+	webwrapmock "github.com/GuyARoss/orbit/pkg/webwrap/mock"
 )
-
-type mockJsDocument struct{}
-
-func (m *mockJsDocument) WriteFile(string) error { return nil }
-func (m *mockJsDocument) Key() string            { return "" }
-func (m *mockJsDocument) Name() string           { return "" }
-func (m *mockJsDocument) Imports() []*jsparse.ImportDependency {
-	return make([]*jsparse.ImportDependency, 0)
-}
-func (m *mockJsDocument) AddImport(*jsparse.ImportDependency) []*jsparse.ImportDependency {
-	return make([]*jsparse.ImportDependency, 0)
-}
-func (m *mockJsDocument) Other() []string          { return []string{} }
-func (m *mockJsDocument) AddOther(string) []string { return []string{} }
-func (m *mockJsDocument) Extension() string        { return "" }
-
-type mockWrapper struct {
-	satisfy bool
-}
-
-func (m *mockWrapper) Apply(doc jsparse.JSDocument) (jsparse.JSDocument, error) {
-	return &mockJsDocument{}, nil
-}
-
-func (m *mockWrapper) NodeDependencies() map[string]string { return make(map[string]string) }
-
-func (m *mockWrapper) DoesSatisfyConstraints(p string) bool { return m.satisfy }
-func (m *mockWrapper) Version() string                      { return "" }
-func (m *mockWrapper) RequiredBodyDOMElements(ctx context.Context, opts *webwrapper.CacheDOMOpts) []string {
-	return nil
-}
-
-type EmptyBundler struct {
-	FailBundle bool
-}
-
-func (b *EmptyBundler) Setup(context.Context, *bundler.BundleOpts) (*bundler.BundledResource, error) {
-	return &bundler.BundledResource{
-		ConfiguratorPage: &mockJsDocument{},
-	}, nil
-}
-
-func (b *EmptyBundler) Bundle(string) error {
-	if b.FailBundle {
-		return errors.New("fail")
-	}
-
-	return nil
-}
-
-func (b *EmptyBundler) NodeDependencies() map[string]string {
-	return make(map[string]string)
-}
 
 func TestNewComponent_BundleKey(t *testing.T) {
 	tt := []struct {
@@ -77,8 +24,8 @@ func TestNewComponent_BundleKey(t *testing.T) {
 			WebDir:        "./webDir",
 			DefaultKey:    "thing",
 			JSParser:      &jsparse.EmptyParser{},
-			Bundler:       &EmptyBundler{false},
-			JSWebWrappers: []webwrapper.JSWebWrapper{&mockWrapper{satisfy: true}},
+			Bundler:       &bundlermock.EmptyBundler{false},
+			JSWebWrappers: []webwrap.JSWebWrapper{&webwrapmock.MockWrapper{Satisfy: true}},
 		}, "thing"},
 	}
 
@@ -107,8 +54,8 @@ func TestNewComponent_Failures(t *testing.T) {
 
 		// bundler failure
 		{&NewComponentOpts{JSParser: &jsparse.EmptyParser{},
-			JSWebWrappers: []webwrapper.JSWebWrapper{&mockWrapper{satisfy: true}},
-			Bundler:       &EmptyBundler{true},
+			JSWebWrappers: []webwrap.JSWebWrapper{&webwrapmock.MockWrapper{Satisfy: true}},
+			Bundler:       &bundlermock.EmptyBundler{true},
 		}},
 	}
 

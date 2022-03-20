@@ -2,7 +2,11 @@
 // This source code is licensed under the GNU GPLv3 found in the
 // license file in the root directory of this source tree.
 
-package webwrapper
+// Copyright (c) 2021 Guy A. Ross
+// This source code is licensed under the GNU GPLv3 found in the
+// license file in the root directory of this source tree.
+
+package webwrap
 
 import (
 	"context"
@@ -85,12 +89,7 @@ type JSWebWrapper interface {
 
 type JSWebWrapperList []JSWebWrapper
 
-func NewActiveMap() JSWebWrapperList {
-	return []JSWebWrapper{
-		&ReactWebWrapper{},
-	}
-}
-
+// FirstMatch finds the first js web wrapper in the currently list that satisfies the file extension constraints
 func (j *JSWebWrapperList) FirstMatch(fileExtension string) JSWebWrapper {
 	for _, f := range *j {
 		if f.DoesSatisfyConstraints(fileExtension) {
@@ -99,4 +98,10 @@ func (j *JSWebWrapperList) FirstMatch(fileExtension string) JSWebWrapper {
 	}
 
 	return nil
+}
+
+func NewActiveMap() JSWebWrapperList {
+	return []JSWebWrapper{
+		&ReactWebWrapper{},
+	}
 }

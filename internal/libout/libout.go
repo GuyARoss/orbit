@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/GuyARoss/orbit/internal/srcpack"
-	webwrapper "github.com/GuyARoss/orbit/pkg/web_wrapper"
+	"github.com/GuyARoss/orbit/pkg/webwrap"
 )
 
 type BundleGroupOpts struct {
@@ -46,8 +46,8 @@ type FilePathOpts struct {
 
 type BundleWriter interface {
 	WriteLibout(files Libout, fOpts *FilePathOpts) error
-	AcceptComponent(ctx context.Context, c srcpack.PackComponent, cacheOpts *webwrapper.CacheDOMOpts)
-	AcceptComponents(ctx context.Context, comps []srcpack.PackComponent, cacheOpts *webwrapper.CacheDOMOpts)
+	AcceptComponent(ctx context.Context, c srcpack.PackComponent, cacheOpts *webwrap.CacheDOMOpts)
+	AcceptComponents(ctx context.Context, comps []srcpack.PackComponent, cacheOpts *webwrap.CacheDOMOpts)
 }
 
 type BundleGroup struct {
@@ -99,7 +99,7 @@ func parseVersionKey(k string) string {
 }
 
 // AcceptComponent collects the required DOM elements and applies it to the component body map
-func (l *BundleGroup) AcceptComponent(ctx context.Context, c srcpack.PackComponent, cacheOpts *webwrapper.CacheDOMOpts) {
+func (l *BundleGroup) AcceptComponent(ctx context.Context, c srcpack.PackComponent, cacheOpts *webwrap.CacheDOMOpts) {
 	v := parseVersionKey(c.WebWrapper().Version())
 	l.pages = append(l.pages, &page{c.Name(), c.BundleKey(), v, c.OriginalFilePath()})
 
@@ -107,7 +107,7 @@ func (l *BundleGroup) AcceptComponent(ctx context.Context, c srcpack.PackCompone
 }
 
 // AcceptComponents collects the required DOM elements and applies it to the component body map
-func (l *BundleGroup) AcceptComponents(ctx context.Context, comps []srcpack.PackComponent, cacheOpts *webwrapper.CacheDOMOpts) {
+func (l *BundleGroup) AcceptComponents(ctx context.Context, comps []srcpack.PackComponent, cacheOpts *webwrap.CacheDOMOpts) {
 	for _, c := range comps {
 		v := parseVersionKey(c.WebWrapper().Version())
 

@@ -1,18 +1,20 @@
+// Copyright (c) 2021 Guy A. Ross
+// This source code is licensed under the GNU GPLv3 found in the
+// license file in the root directory of this source tree.
+
 package internal
 
 import (
-	"context"
 	"errors"
-	"net/http"
-	"sync"
 	"testing"
 	"time"
 
-	"github.com/GuyARoss/orbit/internal/libout"
+	liboutmock "github.com/GuyARoss/orbit/internal/libout/mock"
+	srcpackmock "github.com/GuyARoss/orbit/internal/srcpack/mock"
+	hotreloadmock "github.com/GuyARoss/orbit/pkg/hotreload/mock"
+
 	"github.com/GuyARoss/orbit/internal/srcpack"
-	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/log"
-	webwrapper "github.com/GuyARoss/orbit/pkg/web_wrapper"
 )
 
 func TestProcessChangeRequest_TooRecentlyProcessed(t *testing.T) {
@@ -35,42 +37,9 @@ func TestProcessChangeRequest_TooRecentlyProcessed(t *testing.T) {
 	}
 }
 
-type mockHotReload struct {
-	didReload        bool
-	currentBundleKey string
-	reloadErr        error
-}
-
-func (m *mockHotReload) ReloadSignal() error {
-	m.didReload = true
-
-	return m.reloadErr
-}
-
-func (m *mockHotReload) HandleWebSocket(w http.ResponseWriter, r *http.Request) {}
-func (m *mockHotReload) CurrentBundleKey() string {
-	return m.currentBundleKey
-}
-
-type mockPackedComponent struct {
-	wasRepacked bool
-}
-
-func (m *mockPackedComponent) Repack() error {
-	m.wasRepacked = true
-	return nil
-}
-
-func (m *mockPackedComponent) RepackForWaitGroup(wg *sync.WaitGroup, c chan error) {}
-func (m *mockPackedComponent) OriginalFilePath() string                            { return "" }
-func (m *mockPackedComponent) Dependencies() []*jsparse.ImportDependency           { return nil }
-func (m *mockPackedComponent) BundleKey() string                                   { return "" }
-func (m *mockPackedComponent) Name() string                                        { return "" }
-func (m *mockPackedComponent) WebWrapper() webwrapper.JSWebWrapper                 { return nil }
-
 func TestDoChangeRequest_DirectFile(t *testing.T) {
 	fn := "direct_file_thing"
-	comp := &mockPackedComponent{}
+	comp := &srcpackmock.MockPackedComponent{}
 	s := devSession{
 		lastProcessedFile: &proccessedChangeRequest{},
 		SessionOpts:       &SessionOpts{},
@@ -79,7 +48,7 @@ func TestDoChangeRequest_DirectFile(t *testing.T) {
 		},
 	}
 
-	hotReloader := &mockHotReload{}
+	hotReloader := &hotreloadmock.MockHotReload{}
 	err := s.DoChangeRequest(fn, &ChangeRequestOpts{
 		SafeFileTimeout: time.Hour * 2,
 		HotReload:       hotReloader,
@@ -90,11 +59,11 @@ func TestDoChangeRequest_DirectFile(t *testing.T) {
 		t.Errorf("error should not have been thrown during direct file processing")
 	}
 
-	if hotReloader.didReload == false {
+	if hotReloader.DidReload == false {
 		t.Errorf("hot reloading did not occur after file processing")
 	}
 
-	if comp.wasRepacked == false {
+	if comp.WasRepacked == false {
 		t.Errorf("packing did not occur during direct file processing")
 	}
 }
@@ -102,7 +71,7 @@ func TestDoChangeRequest_DirectFile(t *testing.T) {
 func TestDoChangeRequest_IndirectFile(t *testing.T) {
 	fn := "direct_file_thing"
 
-	comp := &mockPackedComponent{}
+	comp := &srcpackmock.MockPackedComponent{}
 
 	s := devSession{
 		lastProcessedFile: &proccessedChangeRequest{},
@@ -114,7 +83,7 @@ func TestDoChangeRequest_IndirectFile(t *testing.T) {
 			fn: {"thing2"},
 		},
 	}
-	hotReloader := &mockHotReload{}
+	hotReloader := &hotreloadmock.MockHotReload{}
 	err := s.DoChangeRequest(fn, &ChangeRequestOpts{
 		SafeFileTimeout: time.Hour * 2,
 		HotReload:       hotReloader,
@@ -124,10 +93,10 @@ func TestDoChangeRequest_IndirectFile(t *testing.T) {
 		t.Errorf("error should not have been thrown during indirect file processing")
 	}
 
-	if hotReloader.didReload == false {
+	if hotReloader.DidReload == false {
 		t.Errorf("hot reloading did not occur after file processing")
 	}
-	if comp.wasRepacked == false {
+	if comp.WasRepacked == false {
 		t.Errorf("packing did not occur during direct file processing")
 	}
 }
@@ -142,16 +111,6 @@ func (m *mockPacker) PackSingle(logger log.Logger, file string) (srcpack.PackCom
 }
 func (m *mockPacker) ReattachLogger(logger log.Logger) srcpack.Packer { return nil }
 
-type mockBundleWriter struct{}
-
-func (m *mockBundleWriter) WriteLibout(files libout.Libout, fOpts *libout.FilePathOpts) error {
-	return nil
-}
-func (m *mockBundleWriter) AcceptComponent(ctx context.Context, c srcpack.PackComponent, cacheOpts *webwrapper.CacheDOMOpts) {
-}
-func (m *mockBundleWriter) AcceptComponents(ctx context.Context, comps []srcpack.PackComponent, cacheOpts *webwrapper.CacheDOMOpts) {
-}
-
 func TestDoChangeRequest_UnknownPage(t *testing.T) {
 	fn := "/pages/filename.jsx"
 
@@ -165,9 +124,9 @@ func TestDoChangeRequest_UnknownPage(t *testing.T) {
 				{},
 			},
 		},
-		libout: &mockBundleWriter{},
+		libout: &liboutmock.MockBundleWriter{},
 	}
-	hotReloader := &mockHotReload{}
+	hotReloader := &hotreloadmock.MockHotReload{}
 	err := s.DoChangeRequest(fn, &ChangeRequestOpts{
 		SafeFileTimeout: time.Hour * 2,
 		HotReload:       hotReloader,

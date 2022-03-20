@@ -21,7 +21,7 @@ import (
 	"github.com/GuyARoss/orbit/pkg/fsutils"
 	"github.com/GuyARoss/orbit/pkg/hotreload"
 	"github.com/GuyARoss/orbit/pkg/log"
-	webwrapper "github.com/GuyARoss/orbit/pkg/web_wrapper"
+	"github.com/GuyARoss/orbit/pkg/webwrap"
 )
 
 // SessionOpts are options used for creating a new session
@@ -168,7 +168,7 @@ func (s *devSession) NewPageFileChangeRequest(ctx context.Context, file string) 
 	}
 
 	ctx = context.WithValue(ctx, bundler.BundlerID, s.Mode)
-	s.libout.AcceptComponent(ctx, component, &webwrapper.CacheDOMOpts{
+	s.libout.AcceptComponent(ctx, component, &webwrap.CacheDOMOpts{
 		CacheDir:  ".orbit/dist",
 		WebPrefix: "/p/",
 	})
@@ -260,7 +260,7 @@ func NewDevSession(ctx context.Context, opts *SessionOpts) (*devSession, error) 
 
 	ctx = context.WithValue(ctx, bundler.BundlerID, opts.Mode)
 
-	bg.AcceptComponents(ctx, components, &webwrapper.CacheDOMOpts{
+	bg.AcceptComponents(ctx, components, &webwrap.CacheDOMOpts{
 		CacheDir:  ".orbit/dist",
 		WebPrefix: "/p/",
 	})
