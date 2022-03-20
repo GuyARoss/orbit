@@ -6,20 +6,10 @@ package dependtree
 
 import (
 	"testing"
+
+	"github.com/GuyARoss/orbit/pkg/depend_tree/mock"
 )
 
-type MockDependencyTree struct {
-	Dirs         []string
-	Dependencies map[string][]string
-}
-
-func (s *MockDependencyTree) DirList(path string) ([]string, error) {
-	return s.Dirs, nil
-}
-
-func (s *MockDependencyTree) PathDependencies(path string) ([]string, error) {
-	return s.Dependencies[path], nil
-}
 func TestMergeDependTree(t *testing.T) {
 	first := map[string][]string{
 		"thing": {"fish"},
@@ -46,7 +36,7 @@ func TestCreateDependTree(t *testing.T) {
 	dep["../components/layout.jsx"] = []string{"../components/header.jsx"}
 	dep["/files"] = []string{"../thing.jsx"}
 
-	f := &MockDependencyTree{
+	f := &mock.MockDependencyTree{
 		Dirs:         []string{"/pages"},
 		Dependencies: dep,
 	}

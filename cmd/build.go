@@ -18,7 +18,7 @@ import (
 	"github.com/GuyARoss/orbit/pkg/bundler"
 	"github.com/GuyARoss/orbit/pkg/fsutils"
 	"github.com/GuyARoss/orbit/pkg/log"
-	webwrapper "github.com/GuyARoss/orbit/pkg/web_wrapper"
+	"github.com/GuyARoss/orbit/pkg/webwrap"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -72,7 +72,7 @@ var buildCMD = &cobra.Command{
 		ctx := context.Background()
 		ctx = context.WithValue(ctx, bundler.BundlerID, viper.GetString("mode"))
 
-		bg.AcceptComponents(ctx, components, &webwrapper.CacheDOMOpts{
+		bg.AcceptComponents(ctx, components, &webwrap.CacheDOMOpts{
 			CacheDir:  fsutils.NormalizePath(".orbit/dist"),
 			WebPrefix: fsutils.NormalizePath("/p/"),
 		})

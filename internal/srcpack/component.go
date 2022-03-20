@@ -11,7 +11,7 @@ import (
 
 	"github.com/GuyARoss/orbit/pkg/bundler"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
-	webwrapper "github.com/GuyARoss/orbit/pkg/web_wrapper"
+	"github.com/GuyARoss/orbit/pkg/webwrap"
 )
 
 type PackComponent interface {
@@ -21,7 +21,7 @@ type PackComponent interface {
 	Dependencies() []*jsparse.ImportDependency
 	BundleKey() string
 	Name() string
-	WebWrapper() webwrapper.JSWebWrapper
+	WebWrapper() webwrap.JSWebWrapper
 }
 
 // component that has been successfully ran, and output from a packing method.
@@ -32,7 +32,7 @@ type Component struct {
 	Bundler  bundler.Bundler
 	JsParser jsparse.JSParser
 
-	webWrapper       webwrapper.JSWebWrapper
+	webWrapper       webwrap.JSWebWrapper
 	bundleKey        string
 	dependencies     []*jsparse.ImportDependency
 	originalFilePath string
@@ -48,7 +48,7 @@ type NewComponentOpts struct {
 
 	JSParser      jsparse.JSParser
 	Bundler       bundler.Bundler
-	JSWebWrappers webwrapper.JSWebWrapperMap
+	JSWebWrappers webwrap.JSWebWrapperList
 }
 
 var ErrInvalidComponentType = errors.New("invalid component type")
@@ -70,7 +70,7 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, e
 		return nil, ErrInvalidComponentType
 	}
 
-	page, err = webwrap.Apply(page, opts.FilePath)
+	page, err = webwrap.Apply(page)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +136,7 @@ func (s *Component) Repack() error {
 	}
 
 	// apply the necessary requirements for the web framework to the original page
-	page, err = s.WebWrapper().Apply(page, s.originalFilePath)
+	page, err = s.WebWrapper().Apply(page)
 	if err != nil {
 		return err
 	}
@@ -198,4 +198,4 @@ func (s *Component) BundleKey() string { return s.bundleKey }
 func (s *Component) Name() string { return s.name }
 
 // WebWrapper returns the instance of the webwrapper applied to the component
-func (s *Component) WebWrapper() webwrapper.JSWebWrapper { return s.webWrapper }
+func (s *Component) WebWrapper() webwrap.JSWebWrapper { return s.webWrapper }

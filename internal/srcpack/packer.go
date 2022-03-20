@@ -12,7 +12,7 @@ import (
 	"github.com/GuyARoss/orbit/pkg/bundler"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/log"
-	webwrapper "github.com/GuyARoss/orbit/pkg/web_wrapper"
+	"github.com/GuyARoss/orbit/pkg/webwrap"
 )
 
 type Packer interface {
@@ -30,7 +30,7 @@ type CachedEnvKeys map[string]string
 type JSPacker struct {
 	Bundler          bundler.Bundler
 	JsParser         jsparse.JSParser
-	ValidWebWrappers webwrapper.JSWebWrapperMap
+	ValidWebWrappers webwrap.JSWebWrapperList
 	Logger           log.Logger
 
 	AssetDir         string
@@ -191,7 +191,7 @@ func NewDefaultPacker(logger log.Logger, opts *DefaultPackerOpts) Packer {
 		},
 		WebDir:           opts.WebDir,
 		JsParser:         &jsparse.JSFileParser{},
-		ValidWebWrappers: webwrapper.NewActiveMap(),
+		ValidWebWrappers: webwrap.NewActiveMap(),
 		Logger:           logger,
 		cachedBundleKeys: opts.CachedBundleKeys,
 	}
