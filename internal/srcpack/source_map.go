@@ -88,12 +88,17 @@ func (s *JSDependencyTree) PathDependencies(path string) ([]string, error) {
 	return localDependencies(page.Imports()), nil
 }
 
-func New(path string, c []PackComponent, webDirPath string) (dependtree.DependencySourceMap, error) {
+type NewSourceMapOpts struct {
+	Parser     jsparse.JSParser
+	WebDirPath string
+}
+
+func New(path string, c []PackComponent, opts *NewSourceMapOpts) (dependtree.DependencySourceMap, error) {
 	var wg sync.WaitGroup
 
 	dependSettings := &JSDependencyTree{
-		WebDir:   webDirPath,
-		JsParser: &jsparse.JSFileParser{},
+		WebDir:   opts.WebDirPath,
+		JsParser: opts.Parser,
 	}
 
 	m := &dependtree.ManagedDependencyTree{

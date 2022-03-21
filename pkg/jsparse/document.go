@@ -96,10 +96,10 @@ func (p *DefaultJSDocument) formatImportLine(line string) *ImportDependency {
 	finalPath = strings.ReplaceAll(finalPath, fmt.Sprintf(".%s", extension), "")
 
 	newPath := fsutils.NormalizePath(fmt.Sprintf("'../../../%s.%s'", finalPath, extension))
-	statementWithoutPath := strings.Replace(line, fmt.Sprintf("%c%s%c", pathChar, path, pathChar), newPath, 1)
+	statementWithNewPath := strings.Replace(line, fmt.Sprintf("%c%s%c", pathChar, path, pathChar), newPath, 1)
 
 	return &ImportDependency{
-		FinalStatement: statementWithoutPath,
+		FinalStatement: statementWithNewPath,
 		InitialPath:    fsutils.NormalizePath(fmt.Sprintf("%s.%s", strings.Join(cleanWebDirPaths, "/"), extension)),
 		Type:           importType,
 	}
