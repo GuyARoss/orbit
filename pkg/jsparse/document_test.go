@@ -35,6 +35,27 @@ func TestFormatImportLine(t *testing.T) {
 	}
 }
 
+func TestVerifyPath(t *testing.T) {
+	var tt = []struct {
+		i string
+		o string
+	}{
+		{"./thing.jsx", "./thing.jsx"},
+		{".thing.jsx", "./thing.jsx"},
+		{"/cake.jsx", "./cake.jsx"},
+		{"cake.jsx", "./cake.jsx"},
+		{"../../cake.jsx", "../../cake.jsx"},
+	}
+
+	for i, d := range tt {
+		got := verifyPath(d.i)
+		if got != d.o {
+			t.Errorf("(%d) expected '%s' got '%s'", i, d.o, got)
+		}
+
+	}
+}
+
 func TestTokenizeLine(t *testing.T) {
 	var tt = []struct {
 		i string

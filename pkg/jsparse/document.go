@@ -38,6 +38,19 @@ type DefaultJSDocument struct {
 	extension string
 }
 
+func verifyPath(path string) string {
+	extra := path[:2]
+
+	if extra == ".." {
+		return path
+	}
+
+	extra = strings.Replace(extra, ".", "", 1)
+	extra = strings.Replace(extra, "/", "", 1)
+
+	return fmt.Sprintf("%s%s%s", "./", extra, path[2:])
+}
+
 // formatImportLine parses an import line to create an import dependency
 func (p *DefaultJSDocument) formatImportLine(line string) *ImportDependency {
 	importType := lineImportType(line)
@@ -91,7 +104,7 @@ func (p *DefaultJSDocument) formatImportLine(line string) *ImportDependency {
 	}
 
 	finalPath := strings.Join(cleanWebDirPaths, "/")
-	extension := pageExtension(fmt.Sprintf(".%s", finalPath))
+	extension := pageExtension(verifyPath(finalPath))
 
 	finalPath = strings.ReplaceAll(finalPath, fmt.Sprintf(".%s", extension), "")
 
