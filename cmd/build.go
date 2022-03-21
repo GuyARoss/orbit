@@ -89,6 +89,18 @@ var buildCMD = &cobra.Command{
 		if err != nil {
 			panic(err)
 		}
+
+		if viper.GetString("depout") != "" {
+			sourceMap, err := srcpack.New(viper.GetString("webdir"), components, viper.GetString("webdir"))
+			if err != nil {
+				panic(err)
+			}
+
+			err = sourceMap.Write(viper.GetString("depout"))
+			if err != nil {
+				panic(err)
+			}
+		}
 	},
 }
 
