@@ -63,7 +63,7 @@ func Execute() {
 
 	RootCMD.AddCommand(devCMD)
 	RootCMD.AddCommand(buildCMD)
-	RootCMD.AddCommand(toolsCMD)
+	RootCMD.AddCommand(toolCMD)
 
 	if err := RootCMD.Execute(); err != nil {
 		panic(err)
