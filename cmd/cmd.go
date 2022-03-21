@@ -61,6 +61,10 @@ func Execute() {
 	logger := log.NewDefaultLogger()
 	logger.Title("orbit-ssr")
 
+	RootCMD.AddCommand(devCMD)
+	RootCMD.AddCommand(buildCMD)
+	RootCMD.AddCommand(toolsCMD)
+
 	if err := RootCMD.Execute(); err != nil {
 		panic(err)
 	}

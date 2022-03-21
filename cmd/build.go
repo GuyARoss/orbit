@@ -103,7 +103,3 @@ var buildCMD = &cobra.Command{
 		}
 	},
 }
-
-func init() {
-	RootCMD.AddCommand(buildCMD)
-}

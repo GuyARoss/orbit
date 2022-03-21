@@ -112,6 +112,4 @@ func init() {
 
 	devCMD.PersistentFlags().IntVar(&port, "hotreloadport", 3005, "port used for hotreload")
 	viper.BindPFlag("hotreloadport", devCMD.PersistentFlags().Lookup("hotreloadport"))
-
-	RootCMD.AddCommand(devCMD)
 }
