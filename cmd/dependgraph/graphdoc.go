@@ -37,14 +37,6 @@ func RenderGraph(g GraphBuilder, page *GraphPage) error {
 	return g.Renderer()
 }
 
-type DraculaGraphBuilder struct {
-	edges        *strings.Builder
-	dependencies *strings.Builder
-	renderer     *strings.Builder
-
-	varmap map[string]bool
-}
-
 func varname(size int) string {
 	letters := []rune("abcdefghijklmnopqrstuvwxyz")
 
@@ -54,6 +46,79 @@ func varname(size int) string {
 	}
 
 	return string(s)
+}
+
+type CryptoScapeAVSDFGraphBuilderElementsNode struct {
+}
+type CryptoScapeAVSDFGraphBuilderElements struct {
+	Elements []struct {
+		Nodes []struct {
+			Data struct {
+				Id string `json:"id"`
+			} `json:"data"`
+		}
+	} `json:"elements"`
+}
+
+type CryptoScapeAVSDFGraphBuilder struct {
+	dependencies []string
+	renderer     strings.Builder
+	elements     strings.Builder
+}
+
+func (s *CryptoScapeAVSDFGraphBuilder) Graph(edges *GraphPage) error {
+	nodes := make(map[string]bool)
+
+	for _, e := range edges.Edges {
+		nodes[e.Key] = true
+	}
+
+	return nil
+}
+
+func (s *CryptoScapeAVSDFGraphBuilder) Write(path string) error {
+	out, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+
+	defer out.Close()
+
+	out.WriteString(fmt.Sprintf(`<html>
+	<head>%s</head>
+	<body><h1>filename</h1><div id="cy"></div><script></script></body>
+	</html>
+`, strings.Join(s.dependencies, " ")))
+
+	return nil
+}
+func (s *CryptoScapeAVSDFGraphBuilder) Renderer() error {
+	s.renderer.WriteString("document.addEventListener('DOMContentLoaded', function() {")
+	s.renderer.WriteString("var cy = window.cy = cytoscape({")
+	s.renderer.WriteString("container: document.getElementById('cy'),")
+	s.renderer.WriteString("layout: {name: 'avsdf',nodeSeparation: 120},")
+	s.renderer.WriteString("style: [{selector: 'node',style: {	'label': 'data(id)',	'text-valign': 'center',	'color': '#000000',	'background-color': '#3a7ecf'}},{selector: 'edge',style: {'width': 2,'line-color': '#3a7ecf','opacity': 0.5	}}],")
+
+	s.renderer.WriteString("})")
+	return nil
+}
+
+func (s *CryptoScapeAVSDFGraphBuilder) Dependencies() error {
+	s.dependencies = append(s.dependencies, `<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1, maximum-scale=1">`)
+	s.dependencies = append(s.dependencies, `<script src="https://unpkg.com/cytoscape/dist/cytoscape.min.js"></script>`)
+	s.dependencies = append(s.dependencies, `<script src="https://unpkg.com/layout-base/layout-base.js"></script>`)
+	s.dependencies = append(s.dependencies, `<script src="https://unpkg.com/cytoscape-avsdf@1.0.0/cytoscape-avsdf.js"></script>`)
+	s.dependencies = append(s.dependencies, `<style>body { font-family: helvetica; font-size: 15px; } h1 {opacity: 0.5;font-size: 1em;font-weight: bold;} #cy {width: 100%;height: 90%;z-index: 999;}</style>`)
+
+	return nil
+}
+
+type DraculaGraphBuilder struct {
+	edges        *strings.Builder
+	dependencies *strings.Builder
+	renderer     *strings.Builder
+
+	varmap map[string]bool
 }
 
 func (g *DraculaGraphBuilder) Graph(page *GraphPage) error {
