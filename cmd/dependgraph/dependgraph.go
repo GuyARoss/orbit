@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var CMD = &cobra.Command{
@@ -31,7 +32,16 @@ var CMD = &cobra.Command{
 			panic(err)
 		}
 
-		graph := NewDraculaGraph()
+		var graph GraphBuilder
+		switch viper.GetString("graph") {
+		case "avsd":
+			graph = NewCryptoScapeAVSDFGraphBuilder()
+		case "dracula":
+			graph = NewDraculaGraph()
+		default:
+			panic(fmt.Sprintf("invalid error mode '%s'", viper.GetString("graph")))
+		}
+
 		err = RenderGraph(graph, &GraphPage{
 			Edges: g.Edges(),
 		})
@@ -51,4 +61,11 @@ var CMD = &cobra.Command{
 			fmt.Printf("visit this link to view the graph file://%s", path)
 		}
 	},
+}
+
+func init() {
+	var graphmode string
+
+	CMD.PersistentFlags().StringVar(&graphmode, "graph", "avsd", "specifies the graph mode used for building the graph output")
+	viper.BindPFlag("graph", CMD.PersistentFlags().Lookup("graph"))
 }
