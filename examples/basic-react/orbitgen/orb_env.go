@@ -10,7 +10,7 @@ var react = []string{
 var bundleDir string = ".orbit/dist"
 
 var publicDir string = "./public/index.html"
-var hotReloadPort int = 0
+var hotReloadPort int = 3005
 type PageRender string
 
 const ( 
