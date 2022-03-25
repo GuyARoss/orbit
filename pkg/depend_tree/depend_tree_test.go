@@ -10,6 +10,25 @@ import (
 	"github.com/GuyARoss/orbit/pkg/depend_tree/mock"
 )
 
+func TestMergeOverKey(t *testing.T) {
+	first := map[string][]string{
+		"thing": {"fish"},
+	}
+
+	final := DependencySourceMap(first).MergeOverKey(map[string][]string{
+		"thing2": {"stuff", "stuff2"},
+		"thing":  {"apple"},
+	})
+
+	if len(final) != 2 {
+		t.Errorf("final does not overwrite preexisting items on merge")
+	}
+
+	if len(final["thing"]) != 1 {
+		t.Errorf("did not merge initial keys with merge keys")
+	}
+}
+
 func TestMergeDependTree(t *testing.T) {
 	first := map[string][]string{
 		"thing": {"fish"},

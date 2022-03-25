@@ -140,7 +140,7 @@ func (s *devSession) DirectFileChangeRequest(filePath string, component srcpack.
 		return err
 	}
 
-	s.SourceMap = s.SourceMap.Merge(sourceMap)
+	s.SourceMap = s.SourceMap.MergeOverKey(sourceMap)
 
 	return nil
 }
@@ -171,7 +171,7 @@ func (s *devSession) IndirectFileChangeRequest(sources []string, indirectFile st
 			return err
 		}
 
-		s.SourceMap = s.SourceMap.Merge(sourceMap)
+		s.SourceMap = s.SourceMap.MergeOverKey(sourceMap)
 		return nil
 	}
 
@@ -217,6 +217,7 @@ func (s *devSession) NewPageFileChangeRequest(ctx context.Context, file string) 
 	}
 
 	s.SourceMap = s.SourceMap.Merge(sourceMap)
+
 	s.RootComponents[verifyComponentPath(component.OriginalFilePath())] = component
 
 	return nil

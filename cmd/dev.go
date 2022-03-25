@@ -68,9 +68,9 @@ var devCMD = &cobra.Command{
 
 				select {
 				case e := <-watcher.Events:
-					s.DoChangeRequest(e.Name, fileChangeOpts)
+					err := s.DoChangeRequest(e.Name, fileChangeOpts)
 
-					if len(viper.GetString("depout")) > 0 {
+					if err == nil && len(viper.GetString("depout")) > 0 {
 						s.SourceMap.Write(viper.GetString("depout"))
 					}
 				case err := <-watcher.Errors:
