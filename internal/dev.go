@@ -76,7 +76,7 @@ func (s *devSession) DoChangeRequest(filePath string, opts *ChangeRequestOpts) e
 
 	// if components' bundle is the current bundle that is open in the browser
 	// recompute bundle and send refresh signal back to browser
-	if root != nil && root.BundleKey() == opts.HotReload.CurrentBundleKey() {
+	if root != nil && opts.HotReload.IsActiveBundle(root.BundleKey()) {
 		err := s.DirectFileChangeRequest(filePath, root, opts)
 		if err != nil {
 			return err

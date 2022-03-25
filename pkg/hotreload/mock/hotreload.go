@@ -10,6 +10,15 @@ type MockHotReload struct {
 	DidReload        bool
 	currentBundleKey string
 	reloadErr        error
+
+	Active bool
+}
+
+func (m *MockHotReload) IsActive() bool {
+	return m.Active
+}
+func (m *MockHotReload) IsActiveBundle(string) bool {
+	return m.Active
 }
 
 func (m *MockHotReload) ReloadSignal() error {
