@@ -48,7 +48,9 @@ func TestDoChangeRequest_DirectFile(t *testing.T) {
 		},
 	}
 
-	hotReloader := &hotreloadmock.MockHotReload{}
+	hotReloader := &hotreloadmock.MockHotReload{
+		Active: true,
+	}
 	err := s.DoChangeRequest(fn, &ChangeRequestOpts{
 		SafeFileTimeout: time.Hour * 2,
 		HotReload:       hotReloader,

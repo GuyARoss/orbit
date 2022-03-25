@@ -14,15 +14,15 @@ var hotReloadPort int = 3005
 type PageRender string
 
 const ( 
-	// orbit:page .//pages/example2.jsx
-	ExampleTwoPage PageRender = "fe9faa2750e8559c8c213c2c25c4ce73"
 	// orbit:page .//pages/example.jsx
 	ExamplePage PageRender = "496a05464c3f5aa89e1d8bed7afe59d4"
+	// orbit:page .//pages/example2.jsx
+	ExampleTwoPage PageRender = "fe9faa2750e8559c8c213c2c25c4ce73"
 )
 
 var wrapBody = map[PageRender][]string{
-	ExampleTwoPage: react,
 	ExamplePage: react,
+	ExampleTwoPage: react,
 }
 
 type BundleMode int32

@@ -15,6 +15,8 @@ type HotReloader interface {
 	ReloadSignal() error
 	HandleWebSocket(w http.ResponseWriter, r *http.Request)
 	CurrentBundleKey() string
+	IsActive() bool
+	IsActiveBundle(string) bool
 }
 
 type HotReload struct {
@@ -31,9 +33,25 @@ type SocketRequest struct {
 }
 
 func (s *HotReload) ReloadSignal() error {
-	return s.socket.WriteJSON(&SocketRequest{
-		Operation: "reload",
-	})
+	if s.IsActive() {
+		return s.socket.WriteJSON(&SocketRequest{
+			Operation: "reload",
+		})
+	}
+
+	return nil
+}
+
+func (s *HotReload) IsActiveBundle(key string) bool {
+	if s.IsActive() {
+		return s.currentBundleKey == key
+	}
+
+	return true
+}
+
+func (s *HotReload) IsActive() bool {
+	return s.socket != nil
 }
 
 func (s *HotReload) CurrentBundleKey() string {
