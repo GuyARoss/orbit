@@ -1,3 +1,5 @@
+import Thing from '../components/thing'
+
 const ExampleTwo = () => {
     return (
         <>
@@ -6,6 +8,7 @@ const ExampleTwo = () => {
 
             <h3>Things below</h3>
             <div>
+                <Thing />
             </div>
         </>
     )
