@@ -12,6 +12,8 @@ import (
 	liboutmock "github.com/GuyARoss/orbit/internal/libout/mock"
 	srcpackmock "github.com/GuyARoss/orbit/internal/srcpack/mock"
 	hotreloadmock "github.com/GuyARoss/orbit/pkg/hotreload/mock"
+	"github.com/GuyARoss/orbit/pkg/jsparse"
+	"github.com/GuyARoss/orbit/pkg/jsparse/mock"
 
 	"github.com/GuyARoss/orbit/internal/srcpack"
 	"github.com/GuyARoss/orbit/pkg/log"
@@ -39,13 +41,23 @@ func TestProcessChangeRequest_TooRecentlyProcessed(t *testing.T) {
 
 func TestDoChangeRequest_DirectFile(t *testing.T) {
 	fn := "direct_file_thing"
-	comp := &srcpackmock.MockPackedComponent{}
+	comp := &srcpackmock.MockPackedComponent{
+		FilePath: "./test/",
+		Depends: []*jsparse.ImportDependency{
+			{
+				FinalStatement: `import React from '../react.js'`,
+				InitialPath:    "./test/react.js",
+				Type:           jsparse.LocalImportType,
+			},
+		},
+	}
 	s := devSession{
 		lastProcessedFile: &proccessedChangeRequest{},
 		SessionOpts:       &SessionOpts{},
 		RootComponents: map[string]srcpack.PackComponent{
 			fn: comp,
 		},
+		SourceMap: map[string][]string{},
 	}
 
 	hotReloader := &hotreloadmock.MockHotReload{
@@ -55,6 +67,10 @@ func TestDoChangeRequest_DirectFile(t *testing.T) {
 		SafeFileTimeout: time.Hour * 2,
 		HotReload:       hotReloader,
 		Hook:            srcpack.NewSyncHook(log.NewEmptyLogger()),
+		Parser: &mock.MockJSParser{
+			ParseDocument: jsparse.NewEmptyDocument(),
+			Err:           nil,
+		},
 	})
 
 	if err != nil {
@@ -68,12 +84,25 @@ func TestDoChangeRequest_DirectFile(t *testing.T) {
 	if comp.WasRepacked == false {
 		t.Errorf("packing did not occur during direct file processing")
 	}
+
+	if len(s.SourceMap["./test/react.js"]) != 1 {
+		t.Errorf("did not merge dependent trees")
+	}
 }
 
 func TestDoChangeRequest_IndirectFile(t *testing.T) {
 	fn := "direct_file_thing"
 
-	comp := &srcpackmock.MockPackedComponent{}
+	comp := &srcpackmock.MockPackedComponent{
+		FilePath: "./test/",
+		Depends: []*jsparse.ImportDependency{
+			{
+				FinalStatement: `import React from '../react.js'`,
+				InitialPath:    "./test/react.js",
+				Type:           jsparse.LocalImportType,
+			},
+		},
+	}
 
 	s := devSession{
 		lastProcessedFile: &proccessedChangeRequest{},
@@ -85,14 +114,20 @@ func TestDoChangeRequest_IndirectFile(t *testing.T) {
 			fn: {"thing2"},
 		},
 	}
+
 	hotReloader := &hotreloadmock.MockHotReload{}
 	err := s.DoChangeRequest(fn, &ChangeRequestOpts{
 		SafeFileTimeout: time.Hour * 2,
 		HotReload:       hotReloader,
 		Hook:            srcpack.NewSyncHook(log.NewEmptyLogger()),
+		Parser: &mock.MockJSParser{
+			ParseDocument: jsparse.NewDocument("./test", "react.jsx"),
+			Err:           nil,
+		},
 	})
+
 	if err != nil {
-		t.Errorf("error should not have been thrown during indirect file processing")
+		t.Errorf("error should not have been thrown during indirect file processing '%s'", err)
 	}
 
 	if hotReloader.DidReload == false {
@@ -100,6 +135,10 @@ func TestDoChangeRequest_IndirectFile(t *testing.T) {
 	}
 	if comp.WasRepacked == false {
 		t.Errorf("packing did not occur during direct file processing")
+	}
+
+	if len(s.SourceMap["./test/react.js"]) != 1 {
+		t.Errorf("did not merge dependent trees")
 	}
 }
 
@@ -133,6 +172,10 @@ func TestDoChangeRequest_UnknownPage(t *testing.T) {
 		SafeFileTimeout: time.Hour * 2,
 		HotReload:       hotReloader,
 		Hook:            srcpack.NewSyncHook(log.NewEmptyLogger()),
+		Parser: &mock.MockJSParser{
+			ParseDocument: jsparse.NewEmptyDocument(),
+			Err:           nil,
+		},
 	})
 
 	if err != nil {

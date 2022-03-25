@@ -31,6 +31,14 @@ func (d DependencySourceMap) Merge(m DependencySourceMap) DependencySourceMap {
 	return d
 }
 
+func (d DependencySourceMap) MergeOverKey(m DependencySourceMap) DependencySourceMap {
+	for k, v := range m {
+		d[k] = v
+	}
+
+	return d
+}
+
 func (d DependencySourceMap) Write(path string) error {
 	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
 	if err != nil {

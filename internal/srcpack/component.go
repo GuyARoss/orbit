@@ -129,8 +129,6 @@ func (s *Component) Repack() error {
 		return err
 	}
 
-	// sometime during the repack process a component/ page found that does
-	// not contain a page name see issue #29
 	if page.Name() == "" {
 		return ErrInvalidPageName
 	}

@@ -16,6 +16,7 @@ import (
 	"github.com/GuyARoss/orbit/internal/srcpack"
 	"github.com/GuyARoss/orbit/pkg/fsutils"
 	"github.com/GuyARoss/orbit/pkg/hotreload"
+	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/log"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
@@ -59,6 +60,7 @@ var devCMD = &cobra.Command{
 				SafeFileTimeout: time.Duration(viper.GetInt("samefiletimeout")) * time.Millisecond,
 				Hook:            srcpack.NewSyncHook(log.NewDefaultLogger()),
 				HotReload:       hr,
+				Parser:          &jsparse.JSFileParser{},
 			}
 
 			for {
@@ -66,9 +68,9 @@ var devCMD = &cobra.Command{
 
 				select {
 				case e := <-watcher.Events:
-					s.DoChangeRequest(e.Name, fileChangeOpts)
+					err := s.DoChangeRequest(e.Name, fileChangeOpts)
 
-					if len(viper.GetString("depout")) > 0 {
+					if err == nil && len(viper.GetString("depout")) > 0 {
 						s.SourceMap.Write(viper.GetString("depout"))
 					}
 				case err := <-watcher.Errors:

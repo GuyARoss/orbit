@@ -20,6 +20,7 @@ import (
 	dependtree "github.com/GuyARoss/orbit/pkg/depend_tree"
 	"github.com/GuyARoss/orbit/pkg/fsutils"
 	"github.com/GuyARoss/orbit/pkg/hotreload"
+	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/log"
 	"github.com/GuyARoss/orbit/pkg/webwrap"
 )
@@ -57,6 +58,7 @@ type ChangeRequestOpts struct {
 	SafeFileTimeout time.Duration
 	HotReload       hotreload.HotReloader
 	Hook            *srcpack.SyncHook
+	Parser          jsparse.JSParser
 }
 
 var ErrFileTooRecentlyProcessed = errors.New("change not accepted, file too recently processed")
@@ -130,6 +132,16 @@ func (s *devSession) DirectFileChangeRequest(filePath string, component srcpack.
 		ProcessedAt: time.Now(),
 	}
 
+	sourceMap, err := srcpack.New(s.WebDir, []srcpack.PackComponent{component}, &srcpack.NewSourceMapOpts{
+		Parser:     opts.Parser,
+		WebDirPath: s.WebDir,
+	})
+	if err != nil {
+		return err
+	}
+
+	s.SourceMap = s.SourceMap.MergeOverKey(sourceMap)
+
 	return nil
 }
 
@@ -140,16 +152,27 @@ func (s *devSession) IndirectFileChangeRequest(sources []string, indirectFile st
 		source = verifyComponentPath(source)
 		component := s.RootComponents[source]
 
-		if component.BundleKey() == opts.HotReload.CurrentBundleKey() {
-			opts.Hook.WrapFunc(component.OriginalFilePath(), func() { component.Repack() })
-
-			s.lastProcessedFile = &proccessedChangeRequest{
-				FileName:    indirectFile,
-				ProcessedAt: time.Now(),
-			}
-
-			return nil
+		if component.BundleKey() != opts.HotReload.CurrentBundleKey() {
+			continue
 		}
+
+		opts.Hook.WrapFunc(component.OriginalFilePath(), func() { component.Repack() })
+
+		s.lastProcessedFile = &proccessedChangeRequest{
+			FileName:    indirectFile,
+			ProcessedAt: time.Now(),
+		}
+
+		sourceMap, err := srcpack.New(s.WebDir, []srcpack.PackComponent{component}, &srcpack.NewSourceMapOpts{
+			Parser:     opts.Parser,
+			WebDirPath: s.WebDir,
+		})
+		if err != nil {
+			return err
+		}
+
+		s.SourceMap = s.SourceMap.MergeOverKey(sourceMap)
+		return nil
 	}
 
 	return nil
@@ -185,12 +208,16 @@ func (s *devSession) NewPageFileChangeRequest(ctx context.Context, file string) 
 		return err
 	}
 
-	sourceMap, err := srcpack.New(s.WebDir, []srcpack.PackComponent{component}, s.WebDir)
+	sourceMap, err := srcpack.New(s.WebDir, []srcpack.PackComponent{component}, &srcpack.NewSourceMapOpts{
+		Parser:     &jsparse.JSFileParser{},
+		WebDirPath: s.WebDir,
+	})
 	if err != nil {
 		return err
 	}
 
 	s.SourceMap = s.SourceMap.Merge(sourceMap)
+
 	s.RootComponents[verifyComponentPath(component.OriginalFilePath())] = component
 
 	return nil
@@ -277,7 +304,10 @@ func NewDevSession(ctx context.Context, opts *SessionOpts) (*devSession, error) 
 		return nil, err
 	}
 
-	sourceMap, err := srcpack.New(opts.WebDir, components, opts.WebDir)
+	sourceMap, err := srcpack.New(opts.WebDir, components, &srcpack.NewSourceMapOpts{
+		Parser:     &jsparse.JSFileParser{},
+		WebDirPath: opts.WebDir,
+	})
 	if err != nil {
 		return nil, err
 	}
