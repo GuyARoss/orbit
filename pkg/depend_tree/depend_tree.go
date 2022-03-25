@@ -4,6 +4,11 @@
 
 package dependtree
 
+import (
+	"fmt"
+	"os"
+)
+
 type DependencyTreeNode struct {
 	Value  string
 	Right  *DependencyTreeNode
@@ -24,6 +29,30 @@ func (d DependencySourceMap) Merge(m DependencySourceMap) DependencySourceMap {
 	}
 
 	return d
+}
+
+func (d DependencySourceMap) Write(path string) error {
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
+	if err != nil {
+		return err
+	}
+
+	f.WriteString("mode: graph\n")
+
+	for k, v := range d {
+		for _, li := range v {
+			if li[0:2] == "./" {
+				li = li[2:]
+			}
+
+			f.WriteString(fmt.Sprintf("%s %s\n", li, k))
+		}
+	}
+
+	if err := f.Close(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (d DependencySourceMap) FindRoot(path string) []string {

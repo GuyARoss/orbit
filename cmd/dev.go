@@ -69,6 +69,10 @@ var devCMD = &cobra.Command{
 				select {
 				case e := <-watcher.Events:
 					s.DoChangeRequest(e.Name, fileChangeOpts)
+
+					if len(viper.GetString("depout")) > 0 {
+						s.SourceMap.Write(viper.GetString("depout"))
+					}
 				case err := <-watcher.Errors:
 					panic(fmt.Sprintf("watcher failed %s", err.Error()))
 				}
@@ -110,6 +114,4 @@ func init() {
 
 	devCMD.PersistentFlags().IntVar(&port, "hotreloadport", 3005, "port used for hotreload")
 	viper.BindPFlag("hotreloadport", devCMD.PersistentFlags().Lookup("hotreloadport"))
-
-	RootCMD.AddCommand(devCMD)
 }

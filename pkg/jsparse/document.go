@@ -38,6 +38,19 @@ type DefaultJSDocument struct {
 	extension string
 }
 
+func verifyPath(path string) string {
+	extra := path[:2]
+
+	if extra == ".." {
+		return path
+	}
+
+	extra = strings.Replace(extra, ".", "", 1)
+	extra = strings.Replace(extra, "/", "", 1)
+
+	return fmt.Sprintf("%s%s%s", "./", extra, path[2:])
+}
+
 // formatImportLine parses an import line to create an import dependency
 func (p *DefaultJSDocument) formatImportLine(line string) *ImportDependency {
 	importType := lineImportType(line)
@@ -91,16 +104,18 @@ func (p *DefaultJSDocument) formatImportLine(line string) *ImportDependency {
 	}
 
 	finalPath := strings.Join(cleanWebDirPaths, "/")
-	extension := pageExtension(fmt.Sprintf(".%s", finalPath))
+	extension := pageExtension(verifyPath(finalPath))
 
 	finalPath = strings.ReplaceAll(finalPath, fmt.Sprintf(".%s", extension), "")
 
 	newPath := fsutils.NormalizePath(fmt.Sprintf("'../../../%s.%s'", finalPath, extension))
-	statementWithNewPath := strings.Replace(line, fmt.Sprintf("%c%s%c", pathChar, path, pathChar), newPath, 1)
+	statementWithoutPath := strings.Replace(line, fmt.Sprintf("%c%s%c", pathChar, path, pathChar), newPath, 1)
+
+	initialPath := strings.ReplaceAll(strings.Join(cleanWebDirPaths, "/"), fmt.Sprintf(".%s", extension), "")
 
 	return &ImportDependency{
-		FinalStatement: statementWithNewPath,
-		InitialPath:    fsutils.NormalizePath(fmt.Sprintf("%s.%s", strings.Join(cleanWebDirPaths, "/"), extension)),
+		FinalStatement: statementWithoutPath,
+		InitialPath:    fsutils.NormalizePath(fmt.Sprintf("%s.%s", initialPath, extension)),
 		Type:           importType,
 	}
 }
