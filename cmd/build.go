@@ -17,6 +17,7 @@ import (
 	"github.com/GuyARoss/orbit/internal/srcpack"
 	"github.com/GuyARoss/orbit/pkg/bundler"
 	"github.com/GuyARoss/orbit/pkg/fsutils"
+	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/log"
 	"github.com/GuyARoss/orbit/pkg/webwrap"
 	"github.com/spf13/cobra"
@@ -91,7 +92,10 @@ var buildCMD = &cobra.Command{
 		}
 
 		if viper.GetString("depout") != "" {
-			sourceMap, err := srcpack.New(viper.GetString("webdir"), components, viper.GetString("webdir"))
+			sourceMap, err := srcpack.New(viper.GetString("webdir"), components, &srcpack.NewSourceMapOpts{
+				WebDirPath: viper.GetString("webdir"),
+				Parser:     &jsparse.JSFileParser{},
+			})
 			if err != nil {
 				panic(err)
 			}
