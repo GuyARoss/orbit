@@ -16,19 +16,28 @@ func NormalizePath(path string) string {
 	return strings.ReplaceAll(path, "/", fmt.Sprintf("%c", os.PathSeparator))
 }
 
-func DirFiles(dir string) []string {
+func depthFiles(dir string, maxDepth int, depth int) []string {
+	if depth == maxDepth {
+		return []string{}
+	}
+
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	simpleFiles := make([]string, len(files))
-	for idx, file := range files {
-		// @@todo add support for non-shallow directories
-		if !file.IsDir() {
-			simpleFiles[idx] = fmt.Sprintf("%s/%s", dir, file.Name())
+	simpleFiles := make([]string, 0)
+	for _, file := range files {
+		if file.IsDir() {
+			simpleFiles = append(simpleFiles, depthFiles(fmt.Sprintf("%s/%s", dir, file.Name()), maxDepth, depth+1)...)
+		} else {
+			simpleFiles = append(simpleFiles, fmt.Sprintf("%s/%s", dir, file.Name()))
 		}
 	}
 
 	return simpleFiles
+}
+
+func DirFiles(dir string) []string {
+	return depthFiles(dir, 2, 0)
 }
