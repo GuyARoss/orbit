@@ -83,6 +83,10 @@ var devCMD = &cobra.Command{
 			for {
 				event := <-hr.Redirected
 
+				if event.NewBundleKey == event.OldBundleKey {
+					continue
+				}
+
 				err := s.DoBundleKeyChangeRequest(event.NewBundleKey, fileChangeOpts)
 				if err != nil {
 					fmt.Println(err)
