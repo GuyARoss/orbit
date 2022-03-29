@@ -46,7 +46,7 @@ type proccessedChangeRequest struct {
 type devSession struct {
 	*SessionOpts
 
-	RootComponents    map[string]srcpack.PackComponent
+	RootComponents    srcpack.PackComponentFileMap
 	SourceMap         dependtree.DependencySourceMap
 	packer            srcpack.Packer
 	lastProcessedFile *proccessedChangeRequest
@@ -63,8 +63,21 @@ type ChangeRequestOpts struct {
 
 var ErrFileTooRecentlyProcessed = errors.New("change not accepted, file too recently processed")
 
+// DoBundleKeyChangeRequest processes a change request for a bundle key
+func (s *devSession) DoBundleKeyChangeRequest(bundleKey string, opts *ChangeRequestOpts) error {
+	component := s.RootComponents.FindBundleKey(bundleKey)
+
+	err := s.DirectFileChangeRequest("", component, opts)
+
+	if err != nil {
+		return err
+	}
+
+	return opts.HotReload.ReloadSignal()
+}
+
 // ProcessChangeRequest will determine which type of change request is required for computation of the request file
-func (s *devSession) DoChangeRequest(filePath string, opts *ChangeRequestOpts) error {
+func (s *devSession) DoFileChangeRequest(filePath string, opts *ChangeRequestOpts) error {
 	// if this file has been recently processed (specificed by the timeout flag), do not process it.
 	if filePath == s.lastProcessedFile.FileName &&
 		time.Since(s.lastProcessedFile.ProcessedAt).Seconds() < opts.SafeFileTimeout.Seconds() {
@@ -125,6 +138,10 @@ func (s *devSession) DirectFileChangeRequest(filePath string, component srcpack.
 		return nil
 	}
 
+	if filePath == "" {
+		filePath = component.OriginalFilePath()
+	}
+
 	opts.Hook.WrapFunc(component.OriginalFilePath(), func() { component.Repack() })
 
 	s.lastProcessedFile = &proccessedChangeRequest{
@@ -149,8 +166,7 @@ func (s *devSession) DirectFileChangeRequest(filePath string, component srcpack.
 func (s *devSession) IndirectFileChangeRequest(sources []string, indirectFile string, opts *ChangeRequestOpts) error {
 	// we iterate through each of the root sources for the source until the component bundle has been found.
 	for _, source := range sources {
-		source = verifyComponentPath(source)
-		component := s.RootComponents[source]
+		component := s.RootComponents.Find(source)
 
 		if component.BundleKey() != opts.HotReload.CurrentBundleKey() {
 			continue
@@ -217,31 +233,15 @@ func (s *devSession) NewPageFileChangeRequest(ctx context.Context, file string) 
 	}
 
 	s.SourceMap = s.SourceMap.Merge(sourceMap)
-
-	s.RootComponents[verifyComponentPath(component.OriginalFilePath())] = component
+	s.RootComponents.Set(component)
 
 	return nil
 }
 
-// verifyComponentPath is a utility that verifies that the provided path is a file valid path
-func verifyComponentPath(in string) string {
-	skip := 0
-	for _, c := range in {
-		if c == '.' || c == '/' {
-			skip += 1
-			continue
-		}
-
-		break
-	}
-
-	return in[skip:]
-}
-
-// NewDevSession creates a new active dev session with the following:
+// New creates a new active dev session with the following:
 //  1. a flat tree represented by a map of the root page in component form
 //  2. initializes the development build process
-func NewDevSession(ctx context.Context, opts *SessionOpts) (*devSession, error) {
+func New(ctx context.Context, opts *SessionOpts) (*devSession, error) {
 	ats, err := assets.AssetKeys()
 	if err != nil {
 		panic(err)
@@ -312,12 +312,9 @@ func NewDevSession(ctx context.Context, opts *SessionOpts) (*devSession, error) 
 		return nil, err
 	}
 
-	rootComponents := make(map[string]srcpack.PackComponent)
+	rootComponents := make(srcpack.PackComponentFileMap)
 	for _, p := range components {
-		// verify that the path is clean before we apply it to the root component map
-		path := verifyComponentPath(p.OriginalFilePath())
-
-		rootComponents[path] = p
+		rootComponents.Set(p)
 	}
 
 	return &devSession{

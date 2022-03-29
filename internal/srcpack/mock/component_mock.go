@@ -15,6 +15,7 @@ type MockPackedComponent struct {
 	WasRepacked bool
 	Depends     []*jsparse.ImportDependency
 	FilePath    string
+	Key         string
 }
 
 func (m *MockPackedComponent) Repack() error {
@@ -25,6 +26,6 @@ func (m *MockPackedComponent) Repack() error {
 func (m *MockPackedComponent) RepackForWaitGroup(wg *sync.WaitGroup, c chan error) {}
 func (m *MockPackedComponent) OriginalFilePath() string                            { return m.FilePath }
 func (m *MockPackedComponent) Dependencies() []*jsparse.ImportDependency           { return m.Depends }
-func (m *MockPackedComponent) BundleKey() string                                   { return "" }
+func (m *MockPackedComponent) BundleKey() string                                   { return m.Key }
 func (m *MockPackedComponent) Name() string                                        { return "" }
 func (m *MockPackedComponent) WebWrapper() webwrap.JSWebWrapper                    { return nil }

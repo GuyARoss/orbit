@@ -30,7 +30,7 @@ var devCMD = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		logger := log.NewDefaultLogger()
 
-		s, err := internal.NewDevSession(context.Background(), &internal.SessionOpts{
+		s, err := internal.New(context.Background(), &internal.SessionOpts{
 			WebDir:        viper.GetString("webdir"),
 			Mode:          viper.GetString("mode"),
 			Pacname:       viper.GetString("pacname"),
@@ -55,26 +55,41 @@ var devCMD = &cobra.Command{
 
 		timeout := time.Duration(viper.GetInt("timeout")) * time.Millisecond
 
-		go func(hr *hotreload.HotReload) {
-			fileChangeOpts := &internal.ChangeRequestOpts{
-				SafeFileTimeout: time.Duration(viper.GetInt("samefiletimeout")) * time.Millisecond,
-				Hook:            srcpack.NewSyncHook(log.NewDefaultLogger()),
-				HotReload:       hr,
-				Parser:          &jsparse.JSFileParser{},
-			}
+		fileChangeOpts := &internal.ChangeRequestOpts{
+			SafeFileTimeout: time.Duration(viper.GetInt("samefiletimeout")) * time.Millisecond,
+			Hook:            srcpack.NewSyncHook(log.NewDefaultLogger()),
+			HotReload:       hotReload,
+			Parser:          &jsparse.JSFileParser{},
+		}
 
+		go func() {
 			for {
 				time.Sleep(timeout)
 
 				select {
 				case e := <-watcher.Events:
-					err := s.DoChangeRequest(e.Name, fileChangeOpts)
+					err := s.DoFileChangeRequest(e.Name, fileChangeOpts)
 
 					if err == nil && len(viper.GetString("depout")) > 0 {
 						s.SourceMap.Write(viper.GetString("depout"))
 					}
 				case err := <-watcher.Errors:
 					panic(fmt.Sprintf("watcher failed %s", err.Error()))
+				}
+			}
+		}()
+
+		go func(hr *hotreload.HotReload) {
+			for {
+				event := <-hr.Redirected
+
+				if event.NewBundleKey == event.OldBundleKey {
+					continue
+				}
+
+				err := s.DoBundleKeyChangeRequest(event.NewBundleKey, fileChangeOpts)
+				if err != nil {
+					fmt.Println(err)
 				}
 			}
 		}(hotReload)
