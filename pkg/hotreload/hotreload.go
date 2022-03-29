@@ -19,12 +19,18 @@ type HotReloader interface {
 	IsActiveBundle(string) bool
 }
 
+type RedirectionEvent struct {
+	OldBundleKey string
+	NewBundleKey string
+}
+
 type HotReload struct {
 	m        *sync.Mutex
 	socket   *websocket.Conn
 	upgrader *websocket.Upgrader
 
 	currentBundleKey string
+	Redirected       chan RedirectionEvent
 }
 
 type SocketRequest struct {
@@ -82,6 +88,10 @@ func (s *HotReload) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	switch sockRequest.Operation {
 	case "page":
+		s.Redirected <- RedirectionEvent{
+			OldBundleKey: s.currentBundleKey,
+			NewBundleKey: sockRequest.Value,
+		}
 		s.currentBundleKey = sockRequest.Value
 	}
 
@@ -95,7 +105,8 @@ func New() *HotReload {
 	}
 
 	return &HotReload{
-		m:        &sync.Mutex{},
-		upgrader: u,
+		m:          &sync.Mutex{},
+		upgrader:   u,
+		Redirected: make(chan RedirectionEvent),
 	}
 }

@@ -197,3 +197,40 @@ func (s *Component) Name() string { return s.name }
 
 // WebWrapper returns the instance of the webwrapper applied to the component
 func (s *Component) WebWrapper() webwrap.JSWebWrapper { return s.webWrapper }
+
+// parsePath is a utility that verifies that the provided path is of a valid structure
+func parsePath(p string) string {
+	skip := 0
+	for _, c := range p {
+		if c == '.' || c == '/' {
+			skip += 1
+			continue
+		}
+
+		break
+	}
+	return p[skip:]
+}
+
+type PackComponentFileMap map[string]PackComponent
+
+// Find finds the provided key if one exists
+func (m PackComponentFileMap) Find(key string) PackComponent {
+	return m[parsePath(key)]
+}
+
+// Find finds and returns the the first component with provided bundle key
+func (m PackComponentFileMap) FindBundleKey(key string) PackComponent {
+	// @@todo(guy): optimize this
+	for _, c := range m {
+		if c.BundleKey() == key {
+			return c
+		}
+	}
+
+	return nil
+}
+
+func (m PackComponentFileMap) Set(component PackComponent) {
+	m[parsePath(component.OriginalFilePath())] = component
+}

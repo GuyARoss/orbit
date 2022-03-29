@@ -30,7 +30,7 @@ func TestProcessChangeRequest_TooRecentlyProcessed(t *testing.T) {
 		SessionOpts: &SessionOpts{},
 	}
 
-	err := s.DoChangeRequest(fn, &ChangeRequestOpts{
+	err := s.DoFileChangeRequest(fn, &ChangeRequestOpts{
 		SafeFileTimeout: time.Second * 50,
 	})
 
@@ -63,7 +63,7 @@ func TestDoChangeRequest_DirectFile(t *testing.T) {
 	hotReloader := &hotreloadmock.MockHotReload{
 		Active: true,
 	}
-	err := s.DoChangeRequest(fn, &ChangeRequestOpts{
+	err := s.DoFileChangeRequest(fn, &ChangeRequestOpts{
 		SafeFileTimeout: time.Hour * 2,
 		HotReload:       hotReloader,
 		Hook:            srcpack.NewSyncHook(log.NewEmptyLogger()),
@@ -116,7 +116,7 @@ func TestDoChangeRequest_IndirectFile(t *testing.T) {
 	}
 
 	hotReloader := &hotreloadmock.MockHotReload{}
-	err := s.DoChangeRequest(fn, &ChangeRequestOpts{
+	err := s.DoFileChangeRequest(fn, &ChangeRequestOpts{
 		SafeFileTimeout: time.Hour * 2,
 		HotReload:       hotReloader,
 		Hook:            srcpack.NewSyncHook(log.NewEmptyLogger()),
@@ -168,7 +168,55 @@ func TestDoChangeRequest_UnknownPage(t *testing.T) {
 		libout: &liboutmock.MockBundleWriter{},
 	}
 	hotReloader := &hotreloadmock.MockHotReload{}
-	err := s.DoChangeRequest(fn, &ChangeRequestOpts{
+	err := s.DoFileChangeRequest(fn, &ChangeRequestOpts{
+		SafeFileTimeout: time.Hour * 2,
+		HotReload:       hotReloader,
+		Hook:            srcpack.NewSyncHook(log.NewEmptyLogger()),
+		Parser: &mock.MockJSParser{
+			ParseDocument: jsparse.NewEmptyDocument(),
+			Err:           nil,
+		},
+	})
+
+	if err != nil {
+		t.Errorf("error should not have been thrown during processing of an unknown page")
+	}
+
+	if len(s.RootComponents) != 1 {
+		t.Errorf("page was not correctly identified")
+	}
+}
+
+func TestDoBundleChangeRequest(t *testing.T) {
+	bundle := "test_bundle"
+	comp := &srcpackmock.MockPackedComponent{
+		FilePath: "./test/",
+		Key:      bundle,
+		Depends: []*jsparse.ImportDependency{
+			{
+				FinalStatement: `import React from '../react.js'`,
+				InitialPath:    "./test/react.js",
+				Type:           jsparse.LocalImportType,
+			},
+		},
+	}
+
+	s := devSession{
+		lastProcessedFile: &proccessedChangeRequest{},
+		SessionOpts:       &SessionOpts{},
+		RootComponents: map[string]srcpack.PackComponent{
+			"test": comp,
+		},
+		SourceMap: map[string][]string{},
+		packer: &mockPacker{
+			components: []srcpack.Component{
+				{},
+			},
+		},
+		libout: &liboutmock.MockBundleWriter{},
+	}
+	hotReloader := &hotreloadmock.MockHotReload{}
+	err := s.DoBundleKeyChangeRequest(bundle, &ChangeRequestOpts{
 		SafeFileTimeout: time.Hour * 2,
 		HotReload:       hotReloader,
 		Hook:            srcpack.NewSyncHook(log.NewEmptyLogger()),

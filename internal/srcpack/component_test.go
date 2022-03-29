@@ -24,7 +24,7 @@ func TestNewComponent_BundleKey(t *testing.T) {
 			WebDir:        "./webDir",
 			DefaultKey:    "thing",
 			JSParser:      &jsparse.EmptyParser{},
-			Bundler:       &bundlermock.EmptyBundler{false},
+			Bundler:       &bundlermock.EmptyBundler{FailBundle: false},
 			JSWebWrappers: []webwrap.JSWebWrapper{&webwrapmock.MockWrapper{Satisfy: true}},
 		}, "thing"},
 	}
@@ -46,7 +46,7 @@ func TestNewComponent_Failures(t *testing.T) {
 	tt := []struct {
 		s *NewComponentOpts
 	}{
-		// cannot parse inital doc failure
+		// cannot parse initial doc failure
 		{&NewComponentOpts{JSParser: &jsparse.JSFileParser{}}},
 
 		// bad web wrap
@@ -55,7 +55,7 @@ func TestNewComponent_Failures(t *testing.T) {
 		// bundler failure
 		{&NewComponentOpts{JSParser: &jsparse.EmptyParser{},
 			JSWebWrappers: []webwrap.JSWebWrapper{&webwrapmock.MockWrapper{Satisfy: true}},
-			Bundler:       &bundlermock.EmptyBundler{true},
+			Bundler:       &bundlermock.EmptyBundler{FailBundle: true},
 		}},
 	}
 
