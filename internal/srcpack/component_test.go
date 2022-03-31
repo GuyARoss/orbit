@@ -8,7 +8,6 @@ import (
 	"context"
 	"testing"
 
-	bundlermock "github.com/GuyARoss/orbit/pkg/bundler/mock"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/webwrap"
 	webwrapmock "github.com/GuyARoss/orbit/pkg/webwrap/mock"
@@ -24,8 +23,7 @@ func TestNewComponent_BundleKey(t *testing.T) {
 			WebDir:        "./webDir",
 			DefaultKey:    "thing",
 			JSParser:      &jsparse.EmptyParser{},
-			Bundler:       &bundlermock.EmptyBundler{FailBundle: false},
-			JSWebWrappers: []webwrap.JSWebWrapper{&webwrapmock.MockWrapper{Satisfy: true}},
+			JSWebWrappers: []webwrap.JSWebWrapper{&webwrapmock.MockWrapper{Satisfy: true, FailBundle: false}},
 		}, "thing"},
 	}
 
@@ -54,8 +52,7 @@ func TestNewComponent_Failures(t *testing.T) {
 
 		// bundler failure
 		{&NewComponentOpts{JSParser: &jsparse.EmptyParser{},
-			JSWebWrappers: []webwrap.JSWebWrapper{&webwrapmock.MockWrapper{Satisfy: true}},
-			Bundler:       &bundlermock.EmptyBundler{FailBundle: true},
+			JSWebWrappers: []webwrap.JSWebWrapper{&webwrapmock.MockWrapper{Satisfy: true, FailBundle: true}},
 		}},
 	}
 

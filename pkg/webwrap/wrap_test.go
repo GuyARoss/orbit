@@ -12,7 +12,7 @@ import (
 )
 
 func TestFirstMatch(t *testing.T) {
-	l := webwrap.JSWebWrapperList([]webwrap.JSWebWrapper{&mock.MockWrapper{true}})
+	l := webwrap.JSWebWrapperList([]webwrap.JSWebWrapper{&mock.MockWrapper{true, false}})
 
 	if l.FirstMatch("tst") == nil {
 		t.Errorf("expected match ")

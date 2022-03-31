@@ -20,11 +20,81 @@ import (
 	"strings"
 
 	"github.com/GuyARoss/orbit/pkg/jsparse"
+	"github.com/GuyARoss/orbit/pkg/log"
 )
+
+type JSWebWrapper interface {
+	RequiredBodyDOMElements(context.Context, *CacheDOMOpts) []string
+	Setup(context.Context, *BundleOpts) (*BundledResource, error)
+	Apply(jsparse.JSDocument) (jsparse.JSDocument, error)
+	DoesSatisfyConstraints(string) bool
+	Version() string
+	Bundle(string) error
+}
+
+type JSWebWrapperList []JSWebWrapper
+
+// FirstMatch finds the first js web wrapper in the currently list that satisfies the file extension constraints
+func (j *JSWebWrapperList) FirstMatch(fileExtension string) JSWebWrapper {
+	for _, f := range *j {
+		if f.DoesSatisfyConstraints(fileExtension) {
+			return f
+		}
+	}
+
+	return nil
+}
+
+func NewActiveMap(bundler *BaseBundler) JSWebWrapperList {
+	return []JSWebWrapper{
+		&ReactWebWrapper{
+			BaseBundler: bundler,
+		},
+	}
+}
 
 type BaseWebWrapper struct {
 	WebDir string
 }
+
+type BundlerKey string
+
+const (
+	BundlerID BundlerKey = "bundlerID"
+)
+
+type BundlerMode string
+
+const (
+	ProductionBundle  BundlerMode = "production"
+	DevelopmentBundle BundlerMode = "development"
+)
+
+type BaseBundler struct {
+	Mode BundlerMode
+
+	WebDir         string
+	PageOutputDir  string
+	NodeModulesDir string
+	Logger         log.Logger
+}
+
+type BundleOpts struct {
+	FileName  string
+	BundleKey string
+}
+
+type BundledResource struct {
+	BundleFilePath       string
+	ConfiguratorFilePath string
+
+	// ConfiguratorPage represents a bundler setup file
+	ConfiguratorPage jsparse.JSDocument
+}
+
+const (
+	BundlerModeKey string = "bundler-mode"
+)
 
 type CacheDOMOpts struct {
 	CacheDir  string
@@ -77,31 +147,4 @@ func (c *CacheDOMOpts) CacheWebRequest(uris []string) ([]string, error) {
 	}
 
 	return final, nil
-}
-
-type JSWebWrapper interface {
-	Apply(jsparse.JSDocument) (jsparse.JSDocument, error)
-	NodeDependencies() map[string]string
-	DoesSatisfyConstraints(string) bool
-	Version() string
-	RequiredBodyDOMElements(context.Context, *CacheDOMOpts) []string
-}
-
-type JSWebWrapperList []JSWebWrapper
-
-// FirstMatch finds the first js web wrapper in the currently list that satisfies the file extension constraints
-func (j *JSWebWrapperList) FirstMatch(fileExtension string) JSWebWrapper {
-	for _, f := range *j {
-		if f.DoesSatisfyConstraints(fileExtension) {
-			return f
-		}
-	}
-
-	return nil
-}
-
-func NewActiveMap() JSWebWrapperList {
-	return []JSWebWrapper{
-		&ReactWebWrapper{},
-	}
 }

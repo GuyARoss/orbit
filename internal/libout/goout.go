@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/GuyARoss/orbit/internal/assets"
-	"github.com/GuyARoss/orbit/pkg/bundler"
+	"github.com/GuyARoss/orbit/pkg/webwrap"
 )
 
 // GOLibFile is an implementation of the libout.LiboutFile
@@ -142,7 +142,7 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 		out.WriteString("\n")
 	}
 
-	if bg.BundleMode == string(bundler.DevelopmentBundle) {
+	if bg.BundleMode == string(webwrap.DevelopmentBundle) {
 		out.WriteString(fmt.Sprintf(`var hotReloadPort int = %d`, bg.HotReloadPort))
 		out.WriteString("\n")
 	}
