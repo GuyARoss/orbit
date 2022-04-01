@@ -56,7 +56,7 @@ type BundleGroup struct {
 
 	pages            []*page
 	componentBodyMap map[string][]string
-	wrapDocRender    map[string]embedutils.FileReader
+	wrapDocRender    map[string][]embedutils.FileReader
 }
 
 func (opts *BundleGroup) WriteLibout(files Libout, fOpts *FilePathOpts) error {
@@ -139,6 +139,6 @@ func New(opts *BundleGroupOpts) *BundleGroup {
 
 		pages:            make([]*page, 0),
 		componentBodyMap: make(map[string][]string),
-		wrapDocRender:    make(map[string]embedutils.FileReader),
+		wrapDocRender:    make(map[string][]embedutils.FileReader),
 	}
 }

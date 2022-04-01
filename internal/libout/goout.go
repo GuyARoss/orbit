@@ -61,11 +61,47 @@ type GOLibout struct {
 	httpFile embedutils.FileReader
 }
 
-func parseFile(entry embedutils.FileReader) (string, error) {
+type parsedGoFile struct {
+	Body    string
+	Imports map[string]bool
+}
+
+func newParsedGoFile() *parsedGoFile {
+	return &parsedGoFile{
+		Body:    "",
+		Imports: make(map[string]bool),
+	}
+}
+
+func (g *parsedGoFile) Serialize() string {
+	s := strings.Builder{}
+
+	s.WriteString("import (" + "\n")
+	for i := range g.Imports {
+		s.WriteString(fmt.Sprintf(`"%s"`, i) + "\n")
+	}
+	s.WriteString(")" + "\n")
+
+	s.WriteString(g.Body)
+
+	return s.String()
+}
+
+func (g *parsedGoFile) MergeImports(imp map[string]bool) {
+	for i := range imp {
+		g.Imports[i] = true
+	}
+}
+
+func (g *parsedGoFile) MergeBody(body string) {
+	g.Body = g.Body + body
+}
+
+func parseFile(entry embedutils.FileReader) (*parsedGoFile, error) {
 	file, err := entry.Read()
 
 	if err != nil {
-		return "", err
+		return &parsedGoFile{}, err
 	}
 	defer file.Close()
 
@@ -74,6 +110,9 @@ func parseFile(entry embedutils.FileReader) (string, error) {
 
 	out := strings.Builder{}
 
+	imports := make(map[string]bool)
+
+	contextOfImport := false
 	for scanner.Scan() {
 		line := scanner.Text()
 
@@ -82,10 +121,40 @@ func parseFile(entry embedutils.FileReader) (string, error) {
 		if strings.Contains(line, "package") {
 			continue
 		}
+		if strings.Contains(line, "import") {
+			if !strings.Contains(line, "(") {
+				imp := strings.Split(line, `"`)
+
+				if len(imp) > 1 {
+					imports[imp[1]] = true
+				}
+				continue
+			} else {
+				contextOfImport = true
+				continue
+			}
+		}
+
+		if contextOfImport {
+			if strings.Contains(line, ")") {
+				contextOfImport = false
+			}
+
+			imp := strings.Split(line, `"`)
+
+			if len(imp) > 1 {
+				imports[imp[1]] = true
+			}
+			continue
+		}
+
 		out.WriteString(fmt.Sprintf("%s\n", line))
 	}
 
-	return out.String(), nil
+	return &parsedGoFile{
+		Imports: imports,
+		Body:    out.String(),
+	}, nil
 }
 
 func (l *GOLibout) TestFile(packageName string) (LiboutFile, error) {
@@ -96,7 +165,7 @@ func (l *GOLibout) TestFile(packageName string) (LiboutFile, error) {
 
 	return &GOLibFile{
 		PackageName: packageName,
-		Body:        body,
+		Body:        body.Serialize(),
 	}, nil
 }
 
@@ -108,21 +177,27 @@ func (l *GOLibout) HTTPFile(packageName string) (LiboutFile, error) {
 
 	return &GOLibFile{
 		PackageName: packageName,
-		Body:        body,
+		Body:        body.Serialize(),
 	}, nil
 }
 
 func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 	out := strings.Builder{}
 
-	for _, v := range bg.wrapDocRender {
-		str, err := parseFile(v)
-		if err != nil {
-			return nil, err
-		}
+	b := newParsedGoFile()
 
-		out.WriteString(str)
+	for _, v := range bg.wrapDocRender {
+		for _, f := range v {
+			str, err := parseFile(f)
+			if err != nil {
+				return nil, err
+			}
+			b.MergeImports(str.Imports)
+			b.MergeBody(str.Body)
+		}
 	}
+
+	out.WriteString(b.Serialize())
 
 	out.WriteString("var wrapDocRender = map[PageRender][]func(string, []byte, htmlDoc) htmlDoc{\n")
 	for _, p := range bg.pages {
