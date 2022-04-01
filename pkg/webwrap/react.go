@@ -10,10 +10,8 @@ package webwrap
 
 import (
 	"context"
-	"embed"
 	"errors"
 	"fmt"
-	"io/fs"
 	"os/exec"
 	"strings"
 
@@ -97,9 +95,6 @@ func (b *ReactWebWrapper) Setup(ctx context.Context, settings *BundleOpts) (*Bun
 		Type:           jsparse.ModuleImportType,
 	})
 
-	// @@todo(guy): this webpack config is currently based off of react, if we want to add support in the future
-	// we will need to update this to apply a type context depending on which of the frontend frameworks are selected.
-	// * we could also parse the file to determine which of the front-end frameworks are attached. then use the correct config *
 	page.AddImport(&jsparse.ImportDependency{
 		FinalStatement: "const baseConfig = require('../../assets/base.config.js')",
 		Type:           jsparse.ModuleImportType,
@@ -134,26 +129,15 @@ func (b *ReactWebWrapper) Bundle(configuratorFilePath string) error {
 	return err
 }
 
-//go:embed embed/react_hydrate.go
-var hydrateFile embed.FS
-
-type hydrateFileReader struct {
-	fileName string
-}
-
-func (r *hydrateFileReader) Read() (fs.File, error) {
-	return hydrateFile.Open(fsutils.NormalizePath(fmt.Sprintf("embed/%s", r.fileName)))
-}
-
 func (b *ReactWebWrapper) HydrationFile() embedutils.FileReader {
-	files, err := hydrateFile.ReadDir("embed")
+	files, err := embedFiles.ReadDir("embed")
 	if err != nil {
 		return nil
 	}
 
 	for _, file := range files {
 		if strings.Contains(file.Name(), "react_hydrate.go") {
-			return &hydrateFileReader{fileName: file.Name()}
+			return &embedFileReader{fileName: file.Name()}
 		}
 	}
 	return nil

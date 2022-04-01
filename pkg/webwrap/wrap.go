@@ -11,15 +11,18 @@ package webwrap
 import (
 	"context"
 	"crypto/md5"
+	"embed"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"strings"
 
 	"github.com/GuyARoss/orbit/pkg/embedutils"
+	"github.com/GuyARoss/orbit/pkg/fsutils"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/log"
 )
@@ -101,6 +104,17 @@ const (
 type CacheDOMOpts struct {
 	CacheDir  string
 	WebPrefix string
+}
+
+//go:embed embed/*
+var embedFiles embed.FS
+
+type embedFileReader struct {
+	fileName string
+}
+
+func (r *embedFileReader) Read() (fs.File, error) {
+	return embedFiles.Open(fsutils.NormalizePath(fmt.Sprintf("embed/%s", r.fileName)))
 }
 
 func (c *CacheDOMOpts) CacheWebRequest(uris []string) ([]string, error) {
