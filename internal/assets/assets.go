@@ -24,7 +24,7 @@ const (
 	HotReload      AssetKey = "hotreload.js"
 	Tests          AssetKey = "orbit_test.go"
 	PrimaryPackage AssetKey = "orbit.go"
-	HydrateReact   AssetKey = "react_hydrate.go"
+	SSRProtoFile   AssetKey = "com.proto"
 )
 
 func WriteFile(toDir string, f fs.DirEntry) error {

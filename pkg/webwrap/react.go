@@ -31,7 +31,7 @@ var ErrInvalidComponent = errors.New("invalid jsx component")
 const reactExtension string = "jsx"
 
 func (s *ReactWebWrapper) Apply(page jsparse.JSDocument) (jsparse.JSDocument, error) {
-	if page.Extension() != reactExtension {
+	if page.Extension() != reactExtension { // @@todo bad pattern fix this
 		return nil, ErrInvalidComponent
 	}
 

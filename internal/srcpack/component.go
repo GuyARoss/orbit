@@ -81,25 +81,28 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, e
 	resource, err := wrapMethod.Setup(ctx, &webwrap.BundleOpts{
 		FileName:  opts.FilePath,
 		BundleKey: bundleKey,
+		Name:      page.Name(),
 	})
 
 	if err != nil {
 		return nil, err
 	}
 
-	bundlePageErr := page.WriteFile(resource.BundleFilePath)
-	if bundlePageErr != nil {
-		return nil, bundlePageErr
-	}
+	for _, r := range resource {
+		bundlePageErr := page.WriteFile(r.BundleFilePath)
+		if bundlePageErr != nil {
+			return nil, bundlePageErr
+		}
 
-	configErr := resource.ConfiguratorPage.WriteFile(resource.ConfiguratorFilePath)
-	if configErr != nil {
-		return nil, configErr
-	}
+		configErr := r.ConfiguratorPage.WriteFile(r.ConfiguratorFilePath)
+		if configErr != nil {
+			return nil, configErr
+		}
 
-	bundleErr := wrapMethod.Bundle(resource.ConfiguratorFilePath)
-	if bundleErr != nil {
-		return nil, bundleErr
+		bundleErr := wrapMethod.Bundle(r.ConfiguratorFilePath)
+		if bundleErr != nil {
+			return nil, bundleErr
+		}
 	}
 
 	return &Component{
@@ -139,6 +142,7 @@ func (s *Component) Repack() error {
 	resource, err := s.webWrapper.Setup(context.TODO(), &webwrap.BundleOpts{
 		FileName:  s.originalFilePath,
 		BundleKey: s.BundleKey(),
+		Name:      page.Name(),
 	})
 
 	if err != nil {
@@ -146,25 +150,27 @@ func (s *Component) Repack() error {
 	}
 
 	s.m.Lock()
-	bundlePageErr := page.WriteFile(resource.BundleFilePath)
-	s.m.Unlock()
+	for _, b := range resource {
+		err = page.WriteFile(b.BundleFilePath)
+		if err != nil {
+			return err
+		}
 
-	if bundlePageErr != nil {
-		return bundlePageErr
+		err = b.ConfiguratorPage.WriteFile(b.ConfiguratorFilePath)
+		if err != nil {
+			return err
+		}
+
+		err = s.webWrapper.Bundle(b.ConfiguratorFilePath)
+		if err != nil {
+			return err
+		}
 	}
+
+	s.m.Unlock()
 
 	s.m.Lock()
-	configErr := resource.ConfiguratorPage.WriteFile(resource.ConfiguratorFilePath)
 	s.m.Unlock()
-
-	if configErr != nil {
-		return configErr
-	}
-
-	bundleErr := s.webWrapper.Bundle(resource.ConfiguratorFilePath)
-	if bundleErr != nil {
-		return bundleErr
-	}
 
 	return nil
 }

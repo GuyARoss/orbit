@@ -29,12 +29,12 @@ import (
 
 type JSWebWrapper interface {
 	RequiredBodyDOMElements(context.Context, *CacheDOMOpts) []string
-	Setup(context.Context, *BundleOpts) (*BundledResource, error)
+	Setup(context.Context, *BundleOpts) ([]*BundledResource, error)
 	Apply(jsparse.JSDocument) (jsparse.JSDocument, error)
 	DoesSatisfyConstraints(string) bool
 	Version() string
 	Bundle(string) error
-	HydrationFile() embedutils.FileReader
+	HydrationFile() []embedutils.FileReader
 }
 
 type JSWebWrapperList []JSWebWrapper
@@ -51,10 +51,19 @@ func (j *JSWebWrapperList) FirstMatch(fileExtension string) JSWebWrapper {
 }
 
 func NewActiveMap(bundler *BaseBundler) JSWebWrapperList {
+	sourcedoc := jsparse.NewEmptyDocument()
+	initdoc := jsparse.NewEmptyDocument()
+
 	return []JSWebWrapper{
-		&ReactWebWrapper{
-			BaseBundler: bundler,
-		},
+		// &ReactWebWrapper{
+		// 	BaseBundler: bundler,
+		// },
+
+		NewReactSSR(&NewReactSSROpts{
+			Bundler:      bundler,
+			SourceMapDoc: sourcedoc,
+			InitDoc:      initdoc,
+		}),
 	}
 }
 
@@ -87,6 +96,7 @@ type BaseBundler struct {
 type BundleOpts struct {
 	FileName  string
 	BundleKey string
+	Name      string
 }
 
 type BundledResource struct {

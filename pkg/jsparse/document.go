@@ -24,31 +24,20 @@ type JSDocument interface {
 	Other() []string
 	AddOther(string) []string
 	Extension() string
+	AddSerializable(s JSSerialize)
 }
 
 // DefaultJSDocument is a struct that implements the JSDocument interface
 // this struct can be used as an output for JSDocument parsing.
 type DefaultJSDocument struct {
-	imports []*ImportDependency
-	name    string
-	other   []string
+	imports      []*ImportDependency
+	name         string
+	other        []string
+	serializable []JSSerialize
 
 	webDir    string
 	pageDir   string
 	extension string
-}
-
-func verifyPath(path string) string {
-	extra := path[:2]
-
-	if extra == ".." {
-		return path
-	}
-
-	extra = strings.Replace(extra, ".", "", 1)
-	extra = strings.Replace(extra, "/", "", 1)
-
-	return fmt.Sprintf("%s%s%s", "./", extra, path[2:])
 }
 
 // formatImportLine parses an import line to create an import dependency
@@ -155,6 +144,10 @@ func (p *DefaultJSDocument) WriteFile(dir string) error {
 		out.WriteString(fsutils.NormalizePath(fmt.Sprintf("%s\n", other)))
 	}
 
+	for _, s := range p.serializable {
+		out.WriteString(s.Serialize())
+	}
+
 	f, err := os.OpenFile(dir, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
@@ -198,16 +191,126 @@ func (p *DefaultJSDocument) AddOther(new string) []string {
 	return p.other
 }
 
+func (p *DefaultJSDocument) AddSerializable(s JSSerialize) {
+	p.serializable = append(p.serializable, s)
+}
+
 // NewEmptyDocument creates a new empty JSDocument
 func NewEmptyDocument() *DefaultJSDocument {
 	return &DefaultJSDocument{}
 }
 
+func NewImportDocument(imports ...*ImportDependency) *DefaultJSDocument {
+	doc := NewEmptyDocument()
+
+	for _, i := range imports {
+		doc.AddImport(i)
+	}
+	return doc
+}
+
 // NewDocument creates a new JS document
 func NewDocument(webDir string, pageDir string) *DefaultJSDocument {
 	return &DefaultJSDocument{
-		webDir:    webDir,
-		pageDir:   pageDir,
-		extension: pageExtension(pageDir),
+		webDir:       webDir,
+		pageDir:      pageDir,
+		extension:    pageExtension(pageDir),
+		serializable: make([]JSSerialize, 0),
 	}
+}
+
+type JSSerialize interface {
+	Serialize() string
+}
+
+type jsSwitchValue struct {
+	Value  string
+	JSType JSType
+	Body   string
+}
+
+type JsDocSwitch struct {
+	varname      string
+	valueBodyMap map[string]jsSwitchValue
+}
+
+func (s *JsDocSwitch) Serialize() string {
+	w := strings.Builder{}
+
+	w.WriteString(fmt.Sprintf("switch (%s) {", s.varname))
+
+	for _, v := range s.valueBodyMap {
+		var e string
+
+		switch v.JSType {
+		case JSNumber:
+			e = fmt.Sprintf("%s", v.Value)
+		default:
+			e = fmt.Sprintf("'%s'", v.Value)
+		}
+
+		w.WriteString(fmt.Sprintf(`case %s: { %s }`, e, v.Body))
+	}
+
+	w.WriteString("}")
+
+	return w.String()
+}
+
+func NewSwitch(varname string) *JsDocSwitch {
+	return &JsDocSwitch{
+		varname:      varname,
+		valueBodyMap: make(map[string]jsSwitchValue),
+	}
+}
+
+type JSType string
+
+const (
+	JSString JSType = "string"
+	JSNumber JSType = "number"
+)
+
+func (s *JsDocSwitch) Add(t JSType, value string, body string) {
+	s.valueBodyMap[value] = jsSwitchValue{
+		Value:  value,
+		JSType: t,
+		Body:   body,
+	}
+}
+
+type JsDocFunc struct {
+	Declaration string
+	body        JSSerialize
+}
+
+func (s *JsDocFunc) Serialize() string {
+	w := strings.Builder{}
+
+	w.WriteString(s.Declaration)
+	w.WriteString("{")
+	w.WriteString(s.body.Serialize())
+	w.WriteString("}")
+
+	return w.String()
+}
+
+func NewFunc(declaration string, body JSSerialize) *JsDocFunc {
+	return &JsDocFunc{
+		Declaration: declaration,
+		body:        body,
+	}
+}
+
+func verifyPath(path string) string {
+	extra := path[:2]
+
+	if extra == ".." {
+		return path
+	}
+
+	extra = strings.Replace(extra, ".", "", 1)
+	extra = strings.Replace(extra, "/", "", 1)
+
+	return fmt.Sprintf("%s%s%s", "./", extra, path[2:])
 }

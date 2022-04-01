@@ -11,7 +11,7 @@ import (
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 )
 
-// javascript dependency tree, used to create a dependency tree from javascript files
+// JSDependencyTree is a javascript dependency tree, used to create a dependency tree from javascript files
 // this struct should salsify the requirements for "DependencyTree" interface
 type JSDependencyTree struct {
 	WebDir            string

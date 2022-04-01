@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/GuyARoss/orbit/pkg/embedutils"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	jsparsemock "github.com/GuyARoss/orbit/pkg/jsparse/mock"
 	"github.com/GuyARoss/orbit/pkg/webwrap"
@@ -28,10 +29,14 @@ func (m *MockWrapper) RequiredBodyDOMElements(ctx context.Context, opts *webwrap
 	return nil
 }
 
-func (b *MockWrapper) Setup(context.Context, *webwrap.BundleOpts) (*webwrap.BundledResource, error) {
-	return &webwrap.BundledResource{
+func (b *MockWrapper) Setup(context.Context, *webwrap.BundleOpts) ([]*webwrap.BundledResource, error) {
+	return []*webwrap.BundledResource{{
 		ConfiguratorPage: &jsparsemock.MockJsDocument{},
-	}, nil
+	}}, nil
+}
+
+func (b *MockWrapper) HydrationFile() []embedutils.FileReader {
+	return nil
 }
 
 func (b *MockWrapper) Bundle(string) error {
