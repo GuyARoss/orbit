@@ -7,11 +7,10 @@ package libout
 import (
 	"bufio"
 	"fmt"
-	"io/fs"
 	"os"
 	"strings"
 
-	"github.com/GuyARoss/orbit/internal/assets"
+	"github.com/GuyARoss/orbit/pkg/embedutils"
 	"github.com/GuyARoss/orbit/pkg/webwrap"
 )
 
@@ -58,12 +57,12 @@ func (l *GOLibFile) Write(path string) error {
 // GOLibOut is an implementation of the libout.Libout interface
 // which is an auto generated set of files that represent some bundling process.
 type GOLibout struct {
-	testFile fs.DirEntry
-	httpFile fs.DirEntry
+	testFile embedutils.FileReader
+	httpFile embedutils.FileReader
 }
 
-func parseFile(entry fs.DirEntry) (string, error) {
-	file, err := assets.OpenFile(entry)
+func parseFile(entry embedutils.FileReader) (string, error) {
+	file, err := entry.Read()
 
 	if err != nil {
 		return "", err
@@ -116,9 +115,32 @@ func (l *GOLibout) HTTPFile(packageName string) (LiboutFile, error) {
 func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 	out := strings.Builder{}
 
+	for _, v := range bg.wrapDocRender {
+		str, err := parseFile(v)
+		if err != nil {
+			return nil, err
+		}
+
+		out.WriteString(str)
+	}
+
+	out.WriteString("var wrapDocRender = map[PageRender][]func(string, []byte, htmlDoc) htmlDoc{\n")
+	for _, p := range bg.pages {
+		// since all of the the valid bundle names can only be refererred to "pages"
+		// we ensure that page does not already exist on the string
+		if !strings.Contains(p.name, "Page") {
+			p.name = fmt.Sprintf("%sPage", p.name)
+		}
+
+		out.WriteString(fmt.Sprintf("	%s: {%s},", p.name, p.wrapVersion))
+		out.WriteString("\n")
+
+	}
+	out.WriteString("}\n")
+
 	for rd, v := range bg.componentBodyMap {
 		out.WriteString("\n")
-		out.WriteString(fmt.Sprintf(`var %s = []string{`, rd))
+		out.WriteString(fmt.Sprintf(`var %s_bodywrap = []string{`, rd))
 		out.WriteString("\n")
 
 		for _, b := range v {
@@ -171,7 +193,7 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 	out.WriteString("\nvar wrapBody = map[PageRender][]string{\n")
 
 	for _, p := range bg.pages {
-		out.WriteString(fmt.Sprintf(`	%s: %s,`, p.name, p.wrapVersion))
+		out.WriteString(fmt.Sprintf(`	%s: %s_bodywrap,`, p.name, p.wrapVersion))
 		out.WriteString("\n")
 	}
 
@@ -201,7 +223,7 @@ const (
 	}, nil
 }
 
-func NewGOLibout(testFile fs.DirEntry, httpFile fs.DirEntry) Libout {
+func NewGOLibout(testFile embedutils.FileReader, httpFile embedutils.FileReader) Libout {
 	return &GOLibout{
 		testFile: testFile,
 		httpFile: httpFile,

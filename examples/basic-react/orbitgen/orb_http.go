@@ -34,16 +34,21 @@ type htmlDoc struct {
 // build builds the htmldocument given data for orbits manifest and the page's
 // javascript bundle key to render the document out to a single string
 func (s *htmlDoc) build(data []byte, page PageRender) string {
-	body := append(s.Body, wrapBody[page]...)
+	ops := wrapDocRender[page]
 
-	// the "orbit_manifest" refers to the object content that the specified
-	// web javascript bundle can make use of
+	doc := *s
+	for _, r := range ops {
+		doc = r(string(page), data, doc)
+	}
+
+	body := append(wrapBody[page], doc.Body...)
+
 	return fmt.Sprintf(`
 	<!doctype html>
 	<html lang="en">
-	<head>%s<script id="orbit_manifest" type="application/json">%s</script></head>
-	<body>%s<script id="orbit_bk" src="/p/%s.js"></script></body>
-	</html>`, strings.Join(s.Head, ""), string(data), strings.Join(body, ""), page)
+	<head>%s</head>
+	<body>%s</body>
+	</html>`, strings.Join(doc.Head, ""), strings.Join(body, ""))
 }
 
 // innerHTML is a utility function that assists with the parsing the content of html tags

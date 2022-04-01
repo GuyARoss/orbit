@@ -10,11 +10,14 @@ package webwrap
 
 import (
 	"context"
+	"embed"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os/exec"
 	"strings"
 
+	"github.com/GuyARoss/orbit/pkg/embedutils"
 	"github.com/GuyARoss/orbit/pkg/fsutils"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 )
@@ -57,7 +60,7 @@ func (s *ReactWebWrapper) DoesSatisfyConstraints(fileExtension string) bool {
 }
 
 func (s *ReactWebWrapper) Version() string {
-	return "react"
+	return "reactManifestFallback"
 }
 
 func (s *ReactWebWrapper) RequiredBodyDOMElements(ctx context.Context, cache *CacheDOMOpts) []string {
@@ -129,4 +132,29 @@ func (b *ReactWebWrapper) Bundle(configuratorFilePath string) error {
 	}
 
 	return err
+}
+
+//go:embed embed/react_hydrate.go
+var hydrateFile embed.FS
+
+type hydrateFileReader struct {
+	fileName string
+}
+
+func (r *hydrateFileReader) Read() (fs.File, error) {
+	return hydrateFile.Open(fsutils.NormalizePath(fmt.Sprintf("embed/%s", r.fileName)))
+}
+
+func (b *ReactWebWrapper) HydrationFile() embedutils.FileReader {
+	files, err := hydrateFile.ReadDir("embed")
+	if err != nil {
+		return nil
+	}
+
+	for _, file := range files {
+		if strings.Contains(file.Name(), "react_hydrate.go") {
+			return &hydrateFileReader{fileName: file.Name()}
+		}
+	}
+	return nil
 }

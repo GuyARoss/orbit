@@ -19,6 +19,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/GuyARoss/orbit/pkg/embedutils"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/log"
 )
@@ -30,6 +31,7 @@ type JSWebWrapper interface {
 	DoesSatisfyConstraints(string) bool
 	Version() string
 	Bundle(string) error
+	HydrationFile() embedutils.FileReader
 }
 
 type JSWebWrapperList []JSWebWrapper

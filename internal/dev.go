@@ -249,8 +249,8 @@ func New(ctx context.Context, opts *SessionOpts) (*devSession, error) {
 	err = OrbitFileStructure(&FileStructureOpts{
 		PackageName: opts.Pacname,
 		OutDir:      opts.OutDir,
-		Assets:      []fs.DirEntry{ats.AssetKey(assets.WebPackConfig)},
-		Dist:        []fs.DirEntry{ats.AssetKey(assets.HotReload)},
+		Assets:      []fs.DirEntry{ats.AssetEntry(assets.WebPackConfig)},
+		Dist:        []fs.DirEntry{ats.AssetEntry(assets.HotReload)},
 	})
 
 	if err != nil {

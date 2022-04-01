@@ -68,7 +68,7 @@ var initCMD = &cobra.Command{
 		err = internal.OrbitFileStructure(&internal.FileStructureOpts{
 			PackageName: viper.GetString("pacname"),
 			OutDir:      viper.GetString("out"),
-			Assets:      []fs.DirEntry{ats.AssetKey(assets.WebPackConfig)},
+			Assets:      []fs.DirEntry{ats.AssetEntry(assets.WebPackConfig)},
 		})
 
 		if err != nil {
