@@ -27,6 +27,12 @@ type JSDocument interface {
 	AddSerializable(s JSSerialize)
 }
 
+type JSExport struct {
+	IsDefault bool
+	Name      string
+	HasArgs   bool
+}
+
 // DefaultJSDocument is a struct that implements the JSDocument interface
 // this struct can be used as an output for JSDocument parsing.
 type DefaultJSDocument struct {
@@ -38,6 +44,7 @@ type DefaultJSDocument struct {
 	webDir    string
 	pageDir   string
 	extension string
+	exports   []JSExport
 }
 
 // formatImportLine parses an import line to create an import dependency
@@ -216,6 +223,7 @@ func NewDocument(webDir string, pageDir string) *DefaultJSDocument {
 		pageDir:      pageDir,
 		extension:    pageExtension(pageDir),
 		serializable: make([]JSSerialize, 0),
+		exports:      make([]JSExport, 0),
 	}
 }
 

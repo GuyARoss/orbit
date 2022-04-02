@@ -96,7 +96,6 @@ func (r *ReactSSR) RequiredBodyDOMElements(context.Context, *CacheDOMOpts) []str
 	return []string{}
 }
 
-// @@ add support for multiple bundled resources?
 func (r *ReactSSR) Setup(ctx context.Context, settings *BundleOpts) ([]*BundledResource, error) {
 	bundleFilePath := fmt.Sprintf("%s/%s.js", r.PageOutputDir, settings.BundleKey)
 	r.sourceMapDoc.AddImport(&jsparse.ImportDependency{
@@ -142,14 +141,6 @@ func (r *ReactSSR) DoesSatisfyConstraints(fileExtension string) bool {
 func (r *ReactSSR) Version() string {
 	return "reactSSR"
 }
-
-var reactSSRParentDocument = jsparse.NewImportDocument(&jsparse.ImportDependency{
-	FinalStatement: "import React from 'react'",
-	Type:           jsparse.ModuleImportType,
-}, &jsparse.ImportDependency{
-	FinalStatement: "import ReactDOMServer from 'react-dom/server'",
-	Type:           jsparse.ModuleImportType,
-})
 
 func (r *ReactSSR) Bundle(configuratorFilePath string) error {
 	return nil
