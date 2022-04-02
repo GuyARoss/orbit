@@ -76,10 +76,9 @@ func NewReactSSR(opts *NewReactSSROpts) *ReactSSR {
 	})
 
 	server.bindAsync(
-		"0.0.0.0:50051",
+		"0.0.0.0:30032",
 		grpc.ServerCredentials.createInsecure(),
-		(error, port) => {
-			console.log("Server running at http://0.0.0.0:50051")
+		(error, port) => {			
 			server.start()
 		}
 	)
@@ -101,17 +100,17 @@ func (r *ReactSSR) RequiredBodyDOMElements(context.Context, *CacheDOMOpts) []str
 func (r *ReactSSR) Setup(ctx context.Context, settings *BundleOpts) ([]*BundledResource, error) {
 	bundleFilePath := fmt.Sprintf("%s/%s.js", r.PageOutputDir, settings.BundleKey)
 	r.sourceMapDoc.AddImport(&jsparse.ImportDependency{
-		FinalStatement: fmt.Sprintf("import {%s} from '%s'", settings.Name, fmt.Sprintf("./%s", settings.BundleKey)),
+		FinalStatement: fmt.Sprintf("import %s from '%s'", settings.Name, fmt.Sprintf("./%s", settings.BundleKey)),
 		Type:           jsparse.LocalImportType,
 	})
 
 	r.sourceMapDoc.AddOther(fmt.Sprintf(`export const %s = (d) => ReactDOMServer.renderToString(<%s {...d}/>)`, strings.ToLower(settings.Name), settings.Name))
 	r.initDoc.AddImport(&jsparse.ImportDependency{
-		FinalStatement: fmt.Sprintf("import %s from '%s'", strings.ToLower(settings.Name), fmt.Sprintf("./%s", "react_ssr.map.js")),
+		FinalStatement: fmt.Sprintf("import { %s } from '%s'", strings.ToLower(settings.Name), fmt.Sprintf("./%s", "react_ssr.map.js")),
 		Type:           jsparse.LocalImportType,
 	})
 
-	r.jsSwitch.Add(jsparse.JSString, settings.BundleKey, fmt.Sprintf(`return %s(JSONData)`, strings.ToLower(settings.Name)))
+	r.jsSwitch.Add(jsparse.JSString, settings.BundleKey, fmt.Sprintf(`return %s(JSON.parse(JSONData))`, strings.ToLower(settings.Name)))
 
 	return []*BundledResource{
 		{BundleFilePath: bundleFilePath,
@@ -123,6 +122,11 @@ func (r *ReactSSR) Setup(ctx context.Context, settings *BundleOpts) ([]*BundledR
 	}, nil
 }
 func (r *ReactSSR) Apply(doc jsparse.JSDocument) (jsparse.JSDocument, error) {
+	doc.AddImport(&jsparse.ImportDependency{
+		FinalStatement: "import React from 'react'",
+		Type:           jsparse.ModuleImportType,
+	})
+
 	doc.AddOther(fmt.Sprintf(
 		"export default %s",
 		doc.Name()),

@@ -78,7 +78,7 @@ func (g *parsedGoFile) Serialize() string {
 
 	s.WriteString("import (" + "\n")
 	for i := range g.Imports {
-		s.WriteString(fmt.Sprintf(`"%s"`, i) + "\n")
+		s.WriteString(fmt.Sprintf(`	"%s"`, i) + "\n")
 	}
 	s.WriteString(")" + "\n")
 
