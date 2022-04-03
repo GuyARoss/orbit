@@ -1,13 +1,13 @@
 package orbitgen
 
-
 import (
+	"testing"
 	"fmt"
 	"net/http"
 	"os"
 	"strings"
-	"testing"
 )
+
 
 func TestInnerHTML(t *testing.T) {
 	var tt = []struct {
@@ -40,8 +40,6 @@ func TestHTMLDocBuild(t *testing.T) {
 		l      string
 		r      string
 	}{
-		{data, `<script id="orbit_manifest" type="application/json">`, "</script>"},
-		{page, `script id="orbit_bk" src="/p/`, `.js">`},
 		{head, "<head>", "</head>"},
 		{body, "<body>", "</body>"},
 	}

@@ -24,11 +24,8 @@ const (
 	HotReload      AssetKey = "hotreload.js"
 	Tests          AssetKey = "orbit_test.go"
 	PrimaryPackage AssetKey = "orbit.go"
+	SSRProtoFile   AssetKey = "com.proto"
 )
-
-func OpenFile(f fs.DirEntry) (fs.File, error) {
-	return content.Open(fsutils.NormalizePath(fmt.Sprintf("embed/%s", f.Name())))
-}
 
 func WriteFile(toDir string, f fs.DirEntry) error {
 	newFile, err := os.Create(fsutils.NormalizePath(fmt.Sprintf("%s/%s", toDir, f.Name())))
@@ -49,10 +46,22 @@ func WriteFile(toDir string, f fs.DirEntry) error {
 	return nil
 }
 
+type AssetFileReader struct {
+	dirEntry fs.DirEntry
+}
+
+func (s *AssetFileReader) Read() (fs.File, error) {
+	return content.Open(fsutils.NormalizePath(fmt.Sprintf("embed/%s", s.dirEntry.Name())))
+}
+
 type AssetMap map[AssetKey]fs.DirEntry
 
-func (m AssetMap) AssetKey(key AssetKey) fs.DirEntry {
+func (m AssetMap) AssetEntry(key AssetKey) fs.DirEntry {
 	return m[key]
+}
+
+func (m AssetMap) AssetKey(key AssetKey) *AssetFileReader {
+	return &AssetFileReader{dirEntry: m[key]}
 }
 
 func AssetKeys() (AssetMap, error) {

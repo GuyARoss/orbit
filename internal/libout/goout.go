@@ -7,12 +7,11 @@ package libout
 import (
 	"bufio"
 	"fmt"
-	"io/fs"
 	"os"
 	"strings"
 
-	"github.com/GuyARoss/orbit/internal/assets"
-	"github.com/GuyARoss/orbit/pkg/bundler"
+	"github.com/GuyARoss/orbit/pkg/embedutils"
+	"github.com/GuyARoss/orbit/pkg/webwrap"
 )
 
 // GOLibFile is an implementation of the libout.LiboutFile
@@ -58,15 +57,51 @@ func (l *GOLibFile) Write(path string) error {
 // GOLibOut is an implementation of the libout.Libout interface
 // which is an auto generated set of files that represent some bundling process.
 type GOLibout struct {
-	testFile fs.DirEntry
-	httpFile fs.DirEntry
+	testFile embedutils.FileReader
+	httpFile embedutils.FileReader
 }
 
-func parseFile(entry fs.DirEntry) (string, error) {
-	file, err := assets.OpenFile(entry)
+type parsedGoFile struct {
+	Body    string
+	Imports map[string]bool
+}
+
+func newParsedGoFile() *parsedGoFile {
+	return &parsedGoFile{
+		Body:    "",
+		Imports: make(map[string]bool),
+	}
+}
+
+func (g *parsedGoFile) Serialize() string {
+	s := strings.Builder{}
+
+	s.WriteString("import (" + "\n")
+	for i := range g.Imports {
+		s.WriteString(fmt.Sprintf(`	"%s"`, i) + "\n")
+	}
+	s.WriteString(")" + "\n")
+
+	s.WriteString(g.Body)
+
+	return s.String()
+}
+
+func (g *parsedGoFile) MergeImports(imp map[string]bool) {
+	for i := range imp {
+		g.Imports[i] = true
+	}
+}
+
+func (g *parsedGoFile) MergeBody(body string) {
+	g.Body = g.Body + body
+}
+
+func parseFile(entry embedutils.FileReader) (*parsedGoFile, error) {
+	file, err := entry.Read()
 
 	if err != nil {
-		return "", err
+		return &parsedGoFile{}, err
 	}
 	defer file.Close()
 
@@ -75,6 +110,9 @@ func parseFile(entry fs.DirEntry) (string, error) {
 
 	out := strings.Builder{}
 
+	imports := make(map[string]bool)
+
+	contextOfImport := false
 	for scanner.Scan() {
 		line := scanner.Text()
 
@@ -83,10 +121,40 @@ func parseFile(entry fs.DirEntry) (string, error) {
 		if strings.Contains(line, "package") {
 			continue
 		}
+		if strings.Contains(line, "import") {
+			if !strings.Contains(line, "(") {
+				imp := strings.Split(line, `"`)
+
+				if len(imp) > 1 {
+					imports[imp[1]] = true
+				}
+				continue
+			} else {
+				contextOfImport = true
+				continue
+			}
+		}
+
+		if contextOfImport {
+			if strings.Contains(line, ")") {
+				contextOfImport = false
+			}
+
+			imp := strings.Split(line, `"`)
+
+			if len(imp) > 1 {
+				imports[imp[1]] = true
+			}
+			continue
+		}
+
 		out.WriteString(fmt.Sprintf("%s\n", line))
 	}
 
-	return out.String(), nil
+	return &parsedGoFile{
+		Imports: imports,
+		Body:    out.String(),
+	}, nil
 }
 
 func (l *GOLibout) TestFile(packageName string) (LiboutFile, error) {
@@ -97,7 +165,7 @@ func (l *GOLibout) TestFile(packageName string) (LiboutFile, error) {
 
 	return &GOLibFile{
 		PackageName: packageName,
-		Body:        body,
+		Body:        body.Serialize(),
 	}, nil
 }
 
@@ -109,16 +177,67 @@ func (l *GOLibout) HTTPFile(packageName string) (LiboutFile, error) {
 
 	return &GOLibFile{
 		PackageName: packageName,
-		Body:        body,
+		Body:        body.Serialize(),
 	}, nil
 }
 
 func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 	out := strings.Builder{}
 
+	b := newParsedGoFile()
+
+	for _, v := range bg.wrapDocRender {
+		for _, f := range v {
+			str, err := parseFile(f)
+			if err != nil {
+				return nil, err
+			}
+			b.MergeImports(str.Imports)
+			b.MergeBody(str.Body)
+		}
+	}
+
+	out.WriteString(b.Serialize())
+
+	out.WriteString("var staticResourceMap = map[PageRender]bool{\n")
+
+	for _, p := range bg.pages {
+		// since all of the the valid bundle names can only be refererred to "pages"
+		// we ensure that page does not already exist on the string
+		if !strings.Contains(p.name, "Page") {
+			p.name = fmt.Sprintf("%sPage", p.name)
+		}
+
+		staticResourceStr := "false"
+		if p.isStaticResource {
+			staticResourceStr = "true"
+		}
+
+		out.WriteString(fmt.Sprintf("	%s: %s,", p.name, staticResourceStr))
+		out.WriteString("\n")
+	}
+
+	out.WriteString("}\n")
+
+	out.WriteString("var serverStartupTasks = []func(){}\n")
+
+	out.WriteString("var wrapDocRender = map[PageRender][]func(string, []byte, htmlDoc) htmlDoc{\n")
+	for _, p := range bg.pages {
+		// since all of the the valid bundle names can only be refererred to "pages"
+		// we ensure that page does not already exist on the string
+		if !strings.Contains(p.name, "Page") {
+			p.name = fmt.Sprintf("%sPage", p.name)
+		}
+
+		out.WriteString(fmt.Sprintf("	%s: {%s},", p.name, p.wrapVersion))
+		out.WriteString("\n")
+
+	}
+	out.WriteString("}\n")
+
 	for rd, v := range bg.componentBodyMap {
 		out.WriteString("\n")
-		out.WriteString(fmt.Sprintf(`var %s = []string{`, rd))
+		out.WriteString(fmt.Sprintf(`var %s_bodywrap = []string{`, rd))
 		out.WriteString("\n")
 
 		for _, b := range v {
@@ -142,7 +261,7 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 		out.WriteString("\n")
 	}
 
-	if bg.BundleMode == string(bundler.DevelopmentBundle) {
+	if bg.BundleMode == string(webwrap.DevelopmentBundle) {
 		out.WriteString(fmt.Sprintf(`var hotReloadPort int = %d`, bg.HotReloadPort))
 		out.WriteString("\n")
 	}
@@ -171,7 +290,7 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 	out.WriteString("\nvar wrapBody = map[PageRender][]string{\n")
 
 	for _, p := range bg.pages {
-		out.WriteString(fmt.Sprintf(`	%s: %s,`, p.name, p.wrapVersion))
+		out.WriteString(fmt.Sprintf(`	%s: %s_bodywrap,`, p.name, p.wrapVersion))
 		out.WriteString("\n")
 	}
 
@@ -201,7 +320,7 @@ const (
 	}, nil
 }
 
-func NewGOLibout(testFile fs.DirEntry, httpFile fs.DirEntry) Libout {
+func NewGOLibout(testFile embedutils.FileReader, httpFile embedutils.FileReader) Libout {
 	return &GOLibout{
 		testFile: testFile,
 		httpFile: httpFile,

@@ -33,16 +33,21 @@ type htmlDoc struct {
 // build builds the htmldocument given data for orbits manifest and the page's
 // javascript bundle key to render the document out to a single string
 func (s *htmlDoc) build(data []byte, page PageRender) string {
-	body := append(s.Body, wrapBody[page]...)
+	ops := wrapDocRender[page]
 
-	// the "orbit_manifest" refers to the object content that the specified
-	// web javascript bundle can make use of
+	doc := *s
+	for _, r := range ops {
+		doc = r(string(page), data, doc)
+	}
+
+	body := append(wrapBody[page], doc.Body...)
+
 	return fmt.Sprintf(`
 	<!doctype html>
 	<html lang="en">
-	<head>%s<script id="orbit_manifest" type="application/json">%s</script></head>
-	<body>%s<script id="orbit_bk" src="/p/%s.js"></script></body>
-	</html>`, strings.Join(s.Head, ""), string(data), strings.Join(body, ""), page)
+	<head>%s</head>
+	<body>%s</body>
+	</html>`, strings.Join(doc.Head, ""), strings.Join(body, ""))
 }
 
 // innerHTML is a utility function that assists with the parsing the content of html tags
@@ -150,6 +155,20 @@ func (s *Serve) HandleFunc(path string, handler func(c *Request)) {
 		}
 
 		renderPage := func(page PageRender, data interface{}) {
+			if staticResourceMap[page] {
+				_, err := os.Stat(publicDir)
+				if !os.IsNotExist(err) {
+					f, err := ioutil.ReadFile(fmt.Sprintf("%s%c%s", http.Dir(bundleDir), os.PathSeparator, page))
+					if err != nil {
+						rw.WriteHeader(http.StatusNotFound)
+						return
+					}
+
+					rw.Write(f)
+					return
+				}
+			}
+
 			d, err := json.Marshal(data)
 			if err != nil {
 				rw.WriteHeader(http.StatusInternalServerError)
@@ -192,8 +211,7 @@ func (s *Serve) Serve() MuxHandler {
 	return s.mux
 }
 
-// NewServe creates a new default orbit server
-func New() (*Serve, error) {
+func setupDoc() *htmlDoc {
 	html := ""
 
 	_, err := os.Stat(publicDir)
@@ -204,9 +222,16 @@ func New() (*Serve, error) {
 		html = string(data)
 	}
 
-	doc := defaultHTMLDoc(html)
+	return defaultHTMLDoc(html)
+}
+
+func New() (*Serve, error) {
+	for _, sfn := range serverStartupTasks {
+		sfn()
+	}
+
 	return (&Serve{
 		mux: http.NewServeMux(),
-		doc: doc,
+		doc: setupDoc(),
 	}).setupMuxRequirements(), nil
 }

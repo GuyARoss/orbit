@@ -23,6 +23,7 @@ func (m *MockPackedComponent) Repack() error {
 	return nil
 }
 
+func (m *MockPackedComponent) IsStaticResource() bool                              { return false }
 func (m *MockPackedComponent) RepackForWaitGroup(wg *sync.WaitGroup, c chan error) {}
 func (m *MockPackedComponent) OriginalFilePath() string                            { return m.FilePath }
 func (m *MockPackedComponent) Dependencies() []*jsparse.ImportDependency           { return m.Depends }

@@ -11,24 +11,133 @@ package webwrap
 import (
 	"context"
 	"crypto/md5"
+	"embed"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"strings"
 
+	"github.com/GuyARoss/orbit/pkg/embedutils"
+	"github.com/GuyARoss/orbit/pkg/fsutils"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
+	"github.com/GuyARoss/orbit/pkg/log"
+	"github.com/spf13/viper"
 )
+
+type JSWebWrapper interface {
+	RequiredBodyDOMElements(context.Context, *CacheDOMOpts) []string
+	Setup(context.Context, *BundleOpts) ([]*BundledResource, error)
+	Apply(jsparse.JSDocument) (jsparse.JSDocument, error)
+	DoesSatisfyConstraints(string) bool
+	Version() string
+	Bundle(string) error
+	HydrationFile() []embedutils.FileReader
+}
+
+type JSWebWrapperList []JSWebWrapper
+
+// FirstMatch finds the first js web wrapper in the currently list that satisfies the file extension constraints
+func (j *JSWebWrapperList) FirstMatch(fileExtension string) JSWebWrapper {
+	for _, f := range *j {
+		if f.DoesSatisfyConstraints(fileExtension) {
+			return f
+		}
+	}
+
+	return nil
+}
+
+func NewActiveMap(bundler *BaseBundler) JSWebWrapperList {
+	sourcedoc := jsparse.NewEmptyDocument()
+	initdoc := jsparse.NewEmptyDocument()
+
+	experimentalFeatures := viper.GetStringSlice("experimental")
+	ssrExperiment := false
+
+	for _, e := range experimentalFeatures {
+		if e == "ssr" {
+			ssrExperiment = true
+		}
+	}
+	baseList := []JSWebWrapper{}
+
+	if ssrExperiment {
+		baseList = append(baseList, NewReactSSR(&NewReactSSROpts{
+			Bundler:      bundler,
+			SourceMapDoc: sourcedoc,
+			InitDoc:      initdoc,
+		}))
+	} else {
+		baseList = append(baseList, &ReactWebWrapper{
+			BaseBundler: bundler,
+		})
+	}
+
+	return baseList
+}
 
 type BaseWebWrapper struct {
 	WebDir string
 }
 
+type BundlerKey string
+
+const (
+	BundlerID BundlerKey = "bundlerID"
+)
+
+type BundlerMode string
+
+const (
+	ProductionBundle  BundlerMode = "production"
+	DevelopmentBundle BundlerMode = "development"
+)
+
+type BaseBundler struct {
+	Mode BundlerMode
+
+	WebDir         string
+	PageOutputDir  string
+	NodeModulesDir string
+	Logger         log.Logger
+}
+
+type BundleOpts struct {
+	FileName  string
+	BundleKey string
+	Name      string
+}
+
+type BundledResource struct {
+	BundleFilePath       string
+	ConfiguratorFilePath string
+
+	// ConfiguratorPage represents a bundler setup file
+	ConfiguratorPage jsparse.JSDocument
+}
+
+const (
+	BundlerModeKey string = "bundler-mode"
+)
+
 type CacheDOMOpts struct {
 	CacheDir  string
 	WebPrefix string
+}
+
+//go:embed embed/*
+var embedFiles embed.FS
+
+type embedFileReader struct {
+	fileName string
+}
+
+func (r *embedFileReader) Read() (fs.File, error) {
+	return embedFiles.Open(fsutils.NormalizePath(fmt.Sprintf("embed/%s", r.fileName)))
 }
 
 func (c *CacheDOMOpts) CacheWebRequest(uris []string) ([]string, error) {
@@ -77,31 +186,4 @@ func (c *CacheDOMOpts) CacheWebRequest(uris []string) ([]string, error) {
 	}
 
 	return final, nil
-}
-
-type JSWebWrapper interface {
-	Apply(jsparse.JSDocument) (jsparse.JSDocument, error)
-	NodeDependencies() map[string]string
-	DoesSatisfyConstraints(string) bool
-	Version() string
-	RequiredBodyDOMElements(context.Context, *CacheDOMOpts) []string
-}
-
-type JSWebWrapperList []JSWebWrapper
-
-// FirstMatch finds the first js web wrapper in the currently list that satisfies the file extension constraints
-func (j *JSWebWrapperList) FirstMatch(fileExtension string) JSWebWrapper {
-	for _, f := range *j {
-		if f.DoesSatisfyConstraints(fileExtension) {
-			return f
-		}
-	}
-
-	return nil
-}
-
-func NewActiveMap() JSWebWrapperList {
-	return []JSWebWrapper{
-		&ReactWebWrapper{},
-	}
 }

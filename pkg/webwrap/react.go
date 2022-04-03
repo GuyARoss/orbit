@@ -12,14 +12,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os/exec"
 	"strings"
 
-	"github.com/GuyARoss/orbit/pkg/bundler"
+	"github.com/GuyARoss/orbit/pkg/embedutils"
+	"github.com/GuyARoss/orbit/pkg/fsutils"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 )
 
 type ReactWebWrapper struct {
 	*BaseWebWrapper
+	*BaseBundler
 }
 
 var ErrComponentExport = errors.New("prefer capitalization for jsx components")
@@ -28,7 +31,7 @@ var ErrInvalidComponent = errors.New("invalid jsx component")
 const reactExtension string = "jsx"
 
 func (s *ReactWebWrapper) Apply(page jsparse.JSDocument) (jsparse.JSDocument, error) {
-	if page.Extension() != reactExtension {
+	if page.Extension() != reactExtension { // @@todo bad pattern fix this
 		return nil, ErrInvalidComponent
 	}
 
@@ -50,32 +53,23 @@ func (s *ReactWebWrapper) Apply(page jsparse.JSDocument) (jsparse.JSDocument, er
 	return page, nil
 }
 
-func (s *ReactWebWrapper) NodeDependencies() map[string]string {
-	return map[string]string{
-		"react":            "latest",
-		"react-dom":        "latest",
-		"react-hot-loader": "latest",
-		"react-router-dom": "latest",
-	}
-}
-
 func (s *ReactWebWrapper) DoesSatisfyConstraints(fileExtension string) bool {
 	return strings.Contains(fileExtension, reactExtension)
 }
 
 func (s *ReactWebWrapper) Version() string {
-	return "react"
+	return "reactManifestFallback"
 }
 
 func (s *ReactWebWrapper) RequiredBodyDOMElements(ctx context.Context, cache *CacheDOMOpts) []string {
-	mode := ctx.Value(bundler.BundlerID).(string)
+	mode := ctx.Value(BundlerID).(string)
 
 	uris := make([]string, 0)
-	switch bundler.BundlerMode(mode) {
-	case bundler.DevelopmentBundle:
+	switch BundlerMode(mode) {
+	case DevelopmentBundle:
 		uris = append(uris, "https://unpkg.com/react/umd/react.development.js")
 		uris = append(uris, "https://unpkg.com/react-dom/umd/react-dom.development.js")
-	case bundler.ProductionBundle:
+	case ProductionBundle:
 		uris = append(uris, "https://unpkg.com/react/umd/react.production.min.js")
 		uris = append(uris, "https://unpkg.com/react-dom/umd/react-dom.production.min.js")
 	}
@@ -91,4 +85,60 @@ func (s *ReactWebWrapper) RequiredBodyDOMElements(ctx context.Context, cache *Ca
 	files = append(files, `<div id="root"></div>`)
 
 	return files
+}
+
+func (b *ReactWebWrapper) Setup(ctx context.Context, settings *BundleOpts) ([]*BundledResource, error) {
+	page := jsparse.NewEmptyDocument()
+
+	page.AddImport(&jsparse.ImportDependency{
+		FinalStatement: "const {merge} = require('webpack-merge')",
+		Type:           jsparse.ModuleImportType,
+	})
+
+	page.AddImport(&jsparse.ImportDependency{
+		FinalStatement: "const baseConfig = require('../../assets/base.config.js')",
+		Type:           jsparse.ModuleImportType,
+	})
+
+	outputFileName := fmt.Sprintf("%s.js", settings.BundleKey)
+	bundleFilePath := fmt.Sprintf("%s/%s.js", b.PageOutputDir, settings.BundleKey)
+
+	page.AddOther(fmt.Sprintf(`module.exports = merge(baseConfig, {
+		entry: ['./%s'],
+		mode: '%s',
+		output: {
+			filename: '%s'
+		},
+	})`, bundleFilePath, string(b.Mode), outputFileName))
+
+	return []*BundledResource{{
+		BundleFilePath:       bundleFilePath,
+		ConfiguratorFilePath: fmt.Sprintf("%s/%s.config.js", b.PageOutputDir, settings.BundleKey),
+		ConfiguratorPage:     page,
+	}}, nil
+}
+
+func (b *ReactWebWrapper) Bundle(configuratorFilePath string) error {
+	cmd := exec.Command("node", fsutils.NormalizePath(fmt.Sprintf("%s/.bin/webpack", b.NodeModulesDir)), "--config", configuratorFilePath)
+	_, err := cmd.Output()
+
+	if err != nil {
+		b.Logger.Warn(fmt.Sprintf(`invalid pack: "node %s --config %s"`, fsutils.NormalizePath(fmt.Sprintf("%s/.bin/webpack", b.NodeModulesDir)), configuratorFilePath))
+	}
+
+	return err
+}
+
+func (b *ReactWebWrapper) HydrationFile() []embedutils.FileReader {
+	files, err := embedFiles.ReadDir("embed")
+	if err != nil {
+		return nil
+	}
+
+	for _, file := range files {
+		if strings.Contains(file.Name(), "react_hydrate.go") {
+			return []embedutils.FileReader{&embedFileReader{fileName: file.Name()}}
+		}
+	}
+	return nil
 }

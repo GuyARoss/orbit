@@ -5,6 +5,7 @@
 package jsparse
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -32,10 +33,13 @@ func pageExtension(importPath string) string {
 	return extension
 }
 
+var ErrFunctionExport = errors.New("function export cannot be the name of the default export")
+var ErrInvalidName = errors.New("variable name is invalid")
+
 // extractDefaultExportName finds and returns an export name
 // (if applicable) found within the provided line.
 func extractDefaultExportName(line string) (string, error) {
-	exportData := strings.Split(line, string(ExportToken))
+	exportData := strings.Split(line, string(ExportDefaultToken))
 	if len(exportData[1]) == 0 {
 		return "", ErrFunctionExport
 	}
@@ -47,6 +51,83 @@ func extractDefaultExportName(line string) (string, error) {
 	}
 
 	return possibleName, nil
+}
+
+func parseArgs(line string) (JSDocArgList, error) {
+	isInCtx := false
+	args := make(JSDocArgList, 0)
+
+	vname := []rune{}
+	anonLen := 0
+	inAnonCtx := false
+	for _, c := range line {
+		if !isInCtx && c == '(' {
+			isInCtx = true
+		}
+
+		if !isInCtx && c != '(' {
+			continue
+		}
+
+		if c == ')' {
+			isInCtx = false
+		}
+
+		if c == '{' {
+			inAnonCtx = true
+		}
+		if inAnonCtx && c == '}' {
+			inAnonCtx = false
+			args = append(args, fmt.Sprintf("anon_%d", anonLen))
+			anonLen += 1
+		}
+
+		if unicode.IsLetter(c) {
+			vname = append(vname, c)
+			continue
+		}
+
+		if len(vname) > 0 && unicode.IsNumber(c) {
+			vname = append(vname, c)
+			continue
+		}
+
+		if len(vname) > 0 {
+			args = append(args, string(vname))
+			vname = []rune{}
+		}
+
+		if inAnonCtx && c != '{' {
+			inAnonCtx = false
+			args = append(args, fmt.Sprintf("anon_%d", anonLen))
+			anonLen += 1
+		}
+	}
+
+	return args, nil
+}
+
+func extractJSTokenName(line string, token JSToken) (string, error) {
+	exportData := strings.Split(line, string(token))
+	if len(exportData) == 0 {
+		return "", nil
+	}
+
+	if len(exportData[1]) == 0 {
+		return "", ErrFunctionExport
+	}
+
+	valid := []rune{}
+	for _, k := range exportData[1][1:] {
+		// @@todo validate i of 0 to ensure it is letter
+		if unicode.IsLetter(k) || unicode.IsNumber(k) {
+			valid = append(valid, k)
+			continue
+		}
+		break
+	}
+
+	return string(valid), nil
 }
 
 // subsetRune returns a string subset found within two runes (subStart & subEnd)

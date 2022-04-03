@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/GuyARoss/orbit/pkg/bundler"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/log"
 	"github.com/GuyARoss/orbit/pkg/webwrap"
@@ -28,7 +27,6 @@ type CachedEnvKeys map[string]string
 // packer is the primary struct used for packing a directory of javascript files into
 // valid web components.
 type JSPacker struct {
-	Bundler          bundler.Bundler
 	JsParser         jsparse.JSParser
 	ValidWebWrappers webwrap.JSWebWrapperList
 	Logger           log.Logger
@@ -91,7 +89,6 @@ func (p *JSPacker) PackSingle(logger log.Logger, file string) (PackComponent, er
 		FilePath:      file,
 		WebDir:        p.WebDir,
 		JSWebWrappers: p.ValidWebWrappers,
-		Bundler:       p.Bundler,
 		JSParser:      p.JsParser,
 	})
 }
@@ -127,7 +124,6 @@ func (p *concPack) PackSingle(errchan chan error, wg *sync.WaitGroup, path strin
 		FilePath:      path,
 		WebDir:        p.WebDir,
 		JSWebWrappers: p.ValidWebWrappers,
-		Bundler:       p.Bundler,
 		JSParser:      p.JsParser,
 	})
 
@@ -180,18 +176,15 @@ func (l *PackedComponentList) RepackMany(logger log.Logger) error {
 
 func NewDefaultPacker(logger log.Logger, opts *DefaultPackerOpts) Packer {
 	return &JSPacker{
-		Bundler: &bundler.WebPackBundler{
-			BaseBundler: &bundler.BaseBundler{
-				Mode:           bundler.BundlerMode(opts.BundlerMode),
-				WebDir:         opts.WebDir,
-				PageOutputDir:  ".orbit/base/pages",
-				NodeModulesDir: opts.NodeModuleDir,
-				Logger:         logger,
-			},
-		},
-		WebDir:           opts.WebDir,
-		JsParser:         &jsparse.JSFileParser{},
-		ValidWebWrappers: webwrap.NewActiveMap(),
+		WebDir:   opts.WebDir,
+		JsParser: &jsparse.JSFileParser{},
+		ValidWebWrappers: webwrap.NewActiveMap(&webwrap.BaseBundler{
+			Mode:           webwrap.BundlerMode(opts.BundlerMode),
+			WebDir:         opts.WebDir,
+			PageOutputDir:  ".orbit/base/pages",
+			NodeModulesDir: opts.NodeModuleDir,
+			Logger:         logger,
+		}),
 		Logger:           logger,
 		cachedBundleKeys: opts.CachedBundleKeys,
 	}

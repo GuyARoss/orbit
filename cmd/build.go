@@ -15,7 +15,6 @@ import (
 	"github.com/GuyARoss/orbit/internal/assets"
 	"github.com/GuyARoss/orbit/internal/libout"
 	"github.com/GuyARoss/orbit/internal/srcpack"
-	"github.com/GuyARoss/orbit/pkg/bundler"
 	"github.com/GuyARoss/orbit/pkg/fsutils"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/log"
@@ -37,7 +36,7 @@ var buildCMD = &cobra.Command{
 		err = internal.OrbitFileStructure(&internal.FileStructureOpts{
 			PackageName: viper.GetString("pacname"),
 			OutDir:      viper.GetString("out"),
-			Assets:      []fs.DirEntry{ats.AssetKey(assets.WebPackConfig)},
+			Assets:      []fs.DirEntry{ats.AssetEntry(assets.WebPackConfig), ats.AssetEntry(assets.SSRProtoFile)},
 		})
 
 		if err != nil {
@@ -71,7 +70,7 @@ var buildCMD = &cobra.Command{
 		})
 
 		ctx := context.Background()
-		ctx = context.WithValue(ctx, bundler.BundlerID, viper.GetString("mode"))
+		ctx = context.WithValue(ctx, webwrap.BundlerID, viper.GetString("mode"))
 
 		bg.AcceptComponents(ctx, components, &webwrap.CacheDOMOpts{
 			CacheDir:  fsutils.NormalizePath(".orbit/dist"),

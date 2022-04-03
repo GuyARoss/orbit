@@ -39,8 +39,6 @@ func TestHTMLDocBuild(t *testing.T) {
 		l      string
 		r      string
 	}{
-		{data, `<script id="orbit_manifest" type="application/json">`, "</script>"},
-		{page, `script id="orbit_bk" src="/p/`, `.js">`},
 		{head, "<head>", "</head>"},
 		{body, "<body>", "</body>"},
 	}

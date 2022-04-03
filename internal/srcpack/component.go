@@ -9,7 +9,6 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/GuyARoss/orbit/pkg/bundler"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/webwrap"
 )
@@ -22,6 +21,7 @@ type PackComponent interface {
 	BundleKey() string
 	Name() string
 	WebWrapper() webwrap.JSWebWrapper
+	IsStaticResource() bool
 }
 
 // component that has been successfully ran, and output from a packing method.
@@ -29,7 +29,6 @@ type PackComponent interface {
 type Component struct {
 	WebDir string
 
-	Bundler  bundler.Bundler
 	JsParser jsparse.JSParser
 
 	webWrapper       webwrap.JSWebWrapper
@@ -38,6 +37,7 @@ type Component struct {
 	originalFilePath string
 	name             string
 	m                *sync.Mutex
+	isStaticResource bool
 }
 
 // NewComponentOpts options for creating a new component
@@ -46,8 +46,8 @@ type NewComponentOpts struct {
 	WebDir     string
 	DefaultKey string
 
-	JSParser      jsparse.JSParser
-	Bundler       bundler.Bundler
+	JSParser jsparse.JSParser
+
 	JSWebWrappers webwrap.JSWebWrapperList
 }
 
@@ -64,13 +64,13 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, e
 
 	// we attempt to find the first web wrapper that satisfies the extension requirements
 	// this same js wrapper will be used when we go to repack.
-	webwrap := opts.JSWebWrappers.FirstMatch(page.Extension())
+	wrapMethod := opts.JSWebWrappers.FirstMatch(page.Extension())
 
-	if webwrap == nil {
+	if wrapMethod == nil {
 		return nil, ErrInvalidComponentType
 	}
 
-	page, err = webwrap.Apply(page)
+	page, err = wrapMethod.Apply(page)
 	if err != nil {
 		return nil, err
 	}
@@ -80,28 +80,39 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, e
 		bundleKey = page.Key()
 	}
 
-	resource, err := opts.Bundler.Setup(ctx, &bundler.BundleOpts{
+	resource, err := wrapMethod.Setup(ctx, &webwrap.BundleOpts{
 		FileName:  opts.FilePath,
 		BundleKey: bundleKey,
+		Name:      page.Name(),
 	})
 
 	if err != nil {
 		return nil, err
 	}
 
-	bundlePageErr := page.WriteFile(resource.BundleFilePath)
-	if bundlePageErr != nil {
-		return nil, bundlePageErr
+	for _, r := range resource {
+		bundlePageErr := page.WriteFile(r.BundleFilePath)
+		if bundlePageErr != nil {
+			return nil, bundlePageErr
+		}
+
+		configErr := r.ConfiguratorPage.WriteFile(r.ConfiguratorFilePath)
+		if configErr != nil {
+			return nil, configErr
+		}
+
+		bundleErr := wrapMethod.Bundle(r.ConfiguratorFilePath)
+		if bundleErr != nil {
+			return nil, bundleErr
+		}
 	}
 
-	configErr := resource.ConfiguratorPage.WriteFile(resource.ConfiguratorFilePath)
-	if configErr != nil {
-		return nil, configErr
-	}
+	isStaticResource := false
 
-	bundleErr := opts.Bundler.Bundle(resource.ConfiguratorFilePath)
-	if bundleErr != nil {
-		return nil, bundleErr
+	if page.DefaultExport() != nil {
+		if len(page.DefaultExport().Args) == 0 {
+			isStaticResource = true
+		}
 	}
 
 	return &Component{
@@ -110,12 +121,14 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, e
 		dependencies:     page.Imports(),
 		originalFilePath: opts.FilePath,
 		m:                &sync.Mutex{},
-		webWrapper:       webwrap,
-		Bundler:          opts.Bundler,
+		webWrapper:       wrapMethod,
 		JsParser:         opts.JSParser,
 		WebDir:           opts.WebDir,
+		isStaticResource: isStaticResource,
 	}, nil
 }
+
+func (s *Component) IsStaticResource() bool { return s.isStaticResource }
 
 // Repack repacks a component following the following processes
 // 	- parses the provided filepath with the the components jsparser
@@ -134,14 +147,15 @@ func (s *Component) Repack() error {
 	}
 
 	// apply the necessary requirements for the web framework to the original page
-	page, err = s.WebWrapper().Apply(page)
+	page, err = s.webWrapper.Apply(page)
 	if err != nil {
 		return err
 	}
 
-	resource, err := s.Bundler.Setup(context.TODO(), &bundler.BundleOpts{
+	resource, err := s.webWrapper.Setup(context.TODO(), &webwrap.BundleOpts{
 		FileName:  s.originalFilePath,
 		BundleKey: s.BundleKey(),
+		Name:      page.Name(),
 	})
 
 	if err != nil {
@@ -149,25 +163,27 @@ func (s *Component) Repack() error {
 	}
 
 	s.m.Lock()
-	bundlePageErr := page.WriteFile(resource.BundleFilePath)
-	s.m.Unlock()
+	for _, b := range resource {
+		err = page.WriteFile(b.BundleFilePath)
+		if err != nil {
+			return err
+		}
 
-	if bundlePageErr != nil {
-		return bundlePageErr
+		err = b.ConfiguratorPage.WriteFile(b.ConfiguratorFilePath)
+		if err != nil {
+			return err
+		}
+
+		err = s.webWrapper.Bundle(b.ConfiguratorFilePath)
+		if err != nil {
+			return err
+		}
 	}
+
+	s.m.Unlock()
 
 	s.m.Lock()
-	configErr := resource.ConfiguratorPage.WriteFile(resource.ConfiguratorFilePath)
 	s.m.Unlock()
-
-	if configErr != nil {
-		return configErr
-	}
-
-	bundleErr := s.Bundler.Bundle(resource.ConfiguratorFilePath)
-	if bundleErr != nil {
-		return bundleErr
-	}
 
 	return nil
 }

@@ -16,7 +16,6 @@ import (
 	"github.com/GuyARoss/orbit/internal/assets"
 	"github.com/GuyARoss/orbit/internal/libout"
 	"github.com/GuyARoss/orbit/internal/srcpack"
-	"github.com/GuyARoss/orbit/pkg/bundler"
 	dependtree "github.com/GuyARoss/orbit/pkg/depend_tree"
 	"github.com/GuyARoss/orbit/pkg/fsutils"
 	"github.com/GuyARoss/orbit/pkg/hotreload"
@@ -206,7 +205,7 @@ func (s *devSession) NewPageFileChangeRequest(ctx context.Context, file string) 
 		return err
 	}
 
-	ctx = context.WithValue(ctx, bundler.BundlerID, s.Mode)
+	ctx = context.WithValue(ctx, webwrap.BundlerID, s.Mode)
 	s.libout.AcceptComponent(ctx, component, &webwrap.CacheDOMOpts{
 		CacheDir:  ".orbit/dist",
 		WebPrefix: "/p/",
@@ -250,8 +249,8 @@ func New(ctx context.Context, opts *SessionOpts) (*devSession, error) {
 	err = OrbitFileStructure(&FileStructureOpts{
 		PackageName: opts.Pacname,
 		OutDir:      opts.OutDir,
-		Assets:      []fs.DirEntry{ats.AssetKey(assets.WebPackConfig)},
-		Dist:        []fs.DirEntry{ats.AssetKey(assets.HotReload)},
+		Assets:      []fs.DirEntry{ats.AssetEntry(assets.WebPackConfig), ats.AssetEntry(assets.SSRProtoFile)},
+		Dist:        []fs.DirEntry{ats.AssetEntry(assets.HotReload)},
 	})
 
 	if err != nil {
@@ -285,7 +284,7 @@ func New(ctx context.Context, opts *SessionOpts) (*devSession, error) {
 		HotReloadPort: opts.HotReloadPort,
 	})
 
-	ctx = context.WithValue(ctx, bundler.BundlerID, opts.Mode)
+	ctx = context.WithValue(ctx, webwrap.BundlerID, opts.Mode)
 
 	bg.AcceptComponents(ctx, components, &webwrap.CacheDOMOpts{
 		CacheDir:  ".orbit/dist",

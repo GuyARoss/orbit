@@ -5,6 +5,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/GuyARoss/orbit/pkg/fsutils"
 	"github.com/GuyARoss/orbit/pkg/log"
 	"github.com/spf13/cobra"
@@ -24,6 +26,7 @@ func init() {
 	var nodeModDir string
 	var publicDir string
 	var dependout string
+	var experimentalFeatures []string
 
 	buildCmds := [3]*cobra.Command{
 		buildCMD, devCMD, initCMD,
@@ -35,6 +38,7 @@ func init() {
 		} else {
 			cmd.PersistentFlags().StringVar(&mode, "mode", "development", "specifies the underlying bundler mode to run in")
 		}
+
 		viper.BindPFlag("mode", cmd.PersistentFlags().Lookup("mode"))
 
 		cmd.PersistentFlags().StringVar(&webdir, "webdir", fsutils.NormalizePath("./"), "specifies the directory of the web pages, leave blank for use of the root dir")
@@ -54,16 +58,29 @@ func init() {
 
 		cmd.PersistentFlags().StringVar(&dependout, "depout", "", "specifies the directory to output a dependency map")
 		viper.BindPFlag("depout", cmd.PersistentFlags().Lookup("depout"))
+
+		cmd.PersistentFlags().StringSliceVar(&experimentalFeatures, "experimental", []string{}, "comma delimated list of experimental features to turn on, to view experiemental features use the command 'experimental'")
+		viper.BindPFlag("experimental", cmd.PersistentFlags().Lookup("experimental"))
 	}
+}
+
+var versionCMD = &cobra.Command{
+	Use:   "version",
+	Short: "version",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("version 0.3.6")
+	},
 }
 
 func Execute() {
 	logger := log.NewDefaultLogger()
 	logger.Title("orbit-ssr")
 
+	RootCMD.AddCommand(versionCMD)
 	RootCMD.AddCommand(devCMD)
 	RootCMD.AddCommand(buildCMD)
 	RootCMD.AddCommand(toolCMD)
+	RootCMD.AddCommand(experiementalCMD)
 
 	if err := RootCMD.Execute(); err != nil {
 		panic(err)

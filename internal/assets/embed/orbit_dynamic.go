@@ -1,6 +1,23 @@
 package orbit
 
+import "fmt"
+
 var bundleDir string = ".orbit/dist"
+
+func deleteMeThing(bundleKey string, data []byte, doc htmlDoc) htmlDoc {
+	doc.Head = append(doc.Head, fmt.Sprintf(`<script id="orbit_manifest" type="application/json">%s</script>`, data))
+	doc.Body = append(doc.Body, fmt.Sprintf(`<script id="orbit_bk" src="/p/%s.js">`, bundleKey))
+
+	return doc
+}
+
+var wrapDocRender = map[PageRender][]func(string, []byte, htmlDoc) htmlDoc{
+	"test": {deleteMeThing},
+}
+
+var staticResourceMap = map[PageRender]bool{}
+
+var wrapBody = map[PageRender][]string{}
 
 type PageRender string
 
@@ -15,6 +32,6 @@ const (
 
 var CurrentDevMode BundleMode
 
-var wrapBody = map[PageRender][]string{}
-
 var hotReloadPort = 1000
+
+var serverStartupTasks = []func(){}

@@ -20,9 +20,11 @@ func (m *MockJsDocument) Imports() []*jsparse.ImportDependency {
 func (m *MockJsDocument) AddImport(*jsparse.ImportDependency) []*jsparse.ImportDependency {
 	return make([]*jsparse.ImportDependency, 0)
 }
-func (m *MockJsDocument) Other() []string          { return []string{} }
-func (m *MockJsDocument) AddOther(string) []string { return []string{} }
-func (m *MockJsDocument) Extension() string        { return m.extension }
+func (m *MockJsDocument) Other() []string                         { return []string{} }
+func (m *MockJsDocument) AddOther(string) []string                { return []string{} }
+func (m *MockJsDocument) Extension() string                       { return m.extension }
+func (m *MockJsDocument) AddSerializable(s jsparse.JSSerialize)   {}
+func (m *MockJsDocument) DefaultExport() *jsparse.JsDocumentScope { return nil }
 
 func NewMockJSDocument(name string, extension string) *MockJsDocument {
 	return &MockJsDocument{

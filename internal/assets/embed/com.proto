@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package main;
+
+option go_package = "./src;main";
+
+service ReactRenderer {
+    rpc Render (RenderRequest) returns (RenderResponse) {}
+}
+
+message RenderRequest {
+    string BundleID = 1;
+    string JSONData = 2;
+}
+
+message RenderResponse {
+    string StaticContent = 1;
+}
