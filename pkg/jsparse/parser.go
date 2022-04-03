@@ -6,7 +6,6 @@ package jsparse
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -42,11 +41,7 @@ func (p *JSFileParser) Parse(pageDir string, webDir string) (JSDocument, error) 
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
 
-	page := &DefaultJSDocument{
-		webDir:    webDir,
-		pageDir:   pageDir,
-		extension: pageExtension(pageDir),
-	}
+	page := NewDocument(webDir, pageDir)
 
 	for scanner.Scan() {
 		err := page.tokenizeLine(scanner.Text())
@@ -89,21 +84,7 @@ type ImportDependency struct {
 	Type           ImportType
 }
 
-// JSToken is some keyword(s) found in javascript used to tokenize js documents.
-type JSToken string
-
-const (
-	ImportToken JSToken = "import"
-	ExportToken JSToken = "export default"
-)
-
-var declarationTokens = []JSToken{ImportToken, ExportToken}
-
-var ErrFunctionExport = errors.New("function export cannot be the name of the default export")
-
 func defaultPageName(pageDir string) string {
-	// @@todo: validate that the DefaultJSDocument has a valid name,
-	// if not, make one out of the pageDir
 	basePageDir := strings.Split(pageDir, ".")[0]
 
 	splitPath := strings.FieldsFunc(basePageDir, func(r rune) bool {

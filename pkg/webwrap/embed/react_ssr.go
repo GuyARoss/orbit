@@ -4,8 +4,11 @@ import (
 	"bufio"
 	context "context"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
+	"strings"
 
 	grpc "google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -17,6 +20,26 @@ func init() {
 	err := nodeServerInstance()
 	if err != nil {
 		panic(err)
+	}
+
+	d := setupDoc()
+	for b, isStatic := range staticResourceMap {
+		if isStatic {
+			sr := reactSSR(string(b), []byte("{}"), *d)
+
+			path := fmt.Sprintf("%s%c%s", http.Dir(bundleDir), os.PathSeparator, b)
+			body := append(wrapBody[b], sr.Body...)
+
+			so := fmt.Sprintf(`<!doctype html><head>%s</head><body>%s</body></html>`, strings.Join(sr.Head, ""), strings.Join(body, ""))
+
+			err := ioutil.WriteFile(path, []byte(so), 0644)
+			if err != nil {
+				fmt.Printf("error creating static resource for bundle %s\n", b)
+				continue
+			}
+
+			fmt.Printf("successfully created static resource for %s\n", b)
+		}
 	}
 }
 
@@ -38,16 +61,22 @@ func nodeServerInstance() error {
 
 	nodeProcess = cmd.Process
 
+	booted := make(chan bool)
+
 	go func() {
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
 			line := scanner.Text()
-			f, _ := os.Create("./temp.txt")
-			fmt.Fprintf(f, "then %s\n", line)
-			f.Close()
+
+			fmt.Println(line)
+			if strings.Contains(line, "boot success") {
+				booted <- true
+			}
+			if strings.Contains(line, "boot fail") {
+				booted <- false
+			}
 		}
 	}()
-
 	go func() {
 		_, err := nodeProcess.Wait()
 
@@ -60,6 +89,7 @@ func nodeServerInstance() error {
 		return err
 	}
 
+	<-booted
 	return nil
 }
 

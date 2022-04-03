@@ -58,44 +58,73 @@ func TestVerifyPath(t *testing.T) {
 
 func TestTokenizeLine(t *testing.T) {
 	var tt = []struct {
-		i string
-		o DefaultJSDocument
+		i          string
+		o          DefaultJSDocument
+		exportName string
 	}{
 		{"import Thing from 'thing'", DefaultJSDocument{
 			imports: []*ImportDependency{
 				{"import Thing from 'thing'", "", ModuleImportType},
 			},
-		}},
-		{"some random text", DefaultJSDocument{
+		}, ""},
+		{"// some random text", DefaultJSDocument{
 			extension: "jsx",
 			other:     []string{"some random text"},
-		}},
+		}, ""},
 		{"export default Thing", DefaultJSDocument{
 			extension: "jsx",
-			name:      "Thing",
-		}},
+		}, "Thing"},
 	}
 
-	cdoc := &DefaultJSDocument{}
 	for i, d := range tt {
+		cdoc := NewEmptyDocument()
 		got := cdoc.tokenizeLine(d.i)
 
 		if got != nil {
 			t.Error("did not expect error during line tokenization")
+			return
 		}
 
-		if cdoc.name != d.o.name {
-			t.Errorf("(%d) expected name %s got %s", i, cdoc.name, d.o.name)
+		if cdoc.defaultExport.Name != d.exportName {
+			t.Errorf("(%d) expected name %s got %s", i, d.exportName, cdoc.defaultExport.Name)
+			return
 		}
 
 		if len(cdoc.imports) != len(d.o.imports) {
 			t.Errorf("(%d) import missmatch", i)
+			return
 		}
 
 		if len(cdoc.other) != len(d.o.other) {
 			t.Errorf("(%d) other missmatch", i)
+			return
 		}
 
 		cdoc = &DefaultJSDocument{}
+	}
+}
+
+func TestTokenizeLine_DetectExport(t *testing.T) {
+	cdoc := NewEmptyDocument()
+	err := cdoc.tokenizeLine("function Thing() {}")
+	if err != nil {
+		t.Errorf("error occurred %s", err)
+		return
+	}
+
+	err = cdoc.tokenizeLine("export default Thing")
+	if err != nil {
+		t.Errorf("error occurred %s", err)
+		return
+	}
+
+	if cdoc.defaultExport == nil {
+		t.Error("did not expect default export to be nil")
+		return
+	}
+
+	if len(cdoc.defaultExport.Args) != 0 {
+		t.Error("did not expect args to be present on resource default export")
+		return
 	}
 }

@@ -87,7 +87,7 @@ func (s *ReactWebWrapper) RequiredBodyDOMElements(ctx context.Context, cache *Ca
 	return files
 }
 
-func (b *ReactWebWrapper) Setup(ctx context.Context, settings *BundleOpts) (*BundledResource, error) {
+func (b *ReactWebWrapper) Setup(ctx context.Context, settings *BundleOpts) ([]*BundledResource, error) {
 	page := jsparse.NewEmptyDocument()
 
 	page.AddImport(&jsparse.ImportDependency{
@@ -111,11 +111,11 @@ func (b *ReactWebWrapper) Setup(ctx context.Context, settings *BundleOpts) (*Bun
 		},
 	})`, bundleFilePath, string(b.Mode), outputFileName))
 
-	return &BundledResource{
+	return []*BundledResource{{
 		BundleFilePath:       bundleFilePath,
 		ConfiguratorFilePath: fmt.Sprintf("%s/%s.config.js", b.PageOutputDir, settings.BundleKey),
 		ConfiguratorPage:     page,
-	}, nil
+	}}, nil
 }
 
 func (b *ReactWebWrapper) Bundle(configuratorFilePath string) error {
@@ -129,7 +129,7 @@ func (b *ReactWebWrapper) Bundle(configuratorFilePath string) error {
 	return err
 }
 
-func (b *ReactWebWrapper) HydrationFile() embedutils.FileReader {
+func (b *ReactWebWrapper) HydrationFile() []embedutils.FileReader {
 	files, err := embedFiles.ReadDir("embed")
 	if err != nil {
 		return nil
@@ -137,7 +137,7 @@ func (b *ReactWebWrapper) HydrationFile() embedutils.FileReader {
 
 	for _, file := range files {
 		if strings.Contains(file.Name(), "react_hydrate.go") {
-			return &embedFileReader{fileName: file.Name()}
+			return []embedutils.FileReader{&embedFileReader{fileName: file.Name()}}
 		}
 	}
 	return nil

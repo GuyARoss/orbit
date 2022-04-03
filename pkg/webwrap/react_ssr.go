@@ -52,6 +52,7 @@ func NewReactSSR(opts *NewReactSSROpts) *ReactSSR {
 
 	// @@ should we put this in a embed file?
 	opts.InitDoc.AddOther(`
+
 	const options = {
 		keepCase: true,
 		longs: String,
@@ -59,29 +60,44 @@ func NewReactSSR(opts *NewReactSSROpts) *ReactSSR {
 		defaults: true,
 		oneofs: true,
 	}
-
+	
 	const PROTO_PATH = "./.orbit/assets/com.proto"
-
+	
 	var packageDefinition = loadSync(PROTO_PATH, options)
 	const proto = grpc.loadPackageDefinition(packageDefinition)
-
-	const server = new grpc.Server()
-
-	server.addService(proto.main.ReactRenderer.service, {
-		Render: ({ request }, callback) => {        
-			callback(null, {
-				StaticContent: buildStaticContent(request),
-			})
-		},
-	})
-
-	server.bindAsync(
-		"0.0.0.0:30032",
-		grpc.ServerCredentials.createInsecure(),
-		(error, port) => {			
-			server.start()
-		}
-	)
+	
+	try {
+		const server = new grpc.Server()
+	
+		server.addService(proto.main.ReactRenderer.service, {
+			Render: ({ request }, callback) => {
+				console.log(request)
+				callback(null, {
+					StaticContent: buildStaticContent(request),
+				})
+			},
+		})
+		
+		server.bindAsync(
+			"0.0.0.0:30032",
+			grpc.ServerCredentials.createInsecure(),
+			(error, port) => {
+				if (!!error) {
+					console.log("boot fail")
+					return
+				}
+		
+				server.start()
+				console.log("boot success")
+			}
+		)
+		
+		const buildStaticContent = ({ BundleID, JSONData }) => { switch (BundleID) { case 'fe9faa2750e8559c8c213c2c25c4ce73': { return exampletwo(JSON.parse(JSONData)) } case '496a05464c3f5aa89e1d8bed7afe59d4': { return example(JSON.parse(JSONData)) } } }
+				console.log("boot success")
+	} catch (err) {
+		console.log("boot fail")
+	}
+	
 `)
 
 	return &ReactSSR{

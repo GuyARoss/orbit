@@ -199,6 +199,26 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 
 	out.WriteString(b.Serialize())
 
+	out.WriteString("var staticResourceMap = map[PageRender]bool{\n")
+
+	for _, p := range bg.pages {
+		// since all of the the valid bundle names can only be refererred to "pages"
+		// we ensure that page does not already exist on the string
+		if !strings.Contains(p.name, "Page") {
+			p.name = fmt.Sprintf("%sPage", p.name)
+		}
+
+		staticResourceStr := "false"
+		if p.isStaticResource {
+			staticResourceStr = "true"
+		}
+
+		out.WriteString(fmt.Sprintf("	%s: %s,", p.name, staticResourceStr))
+		out.WriteString("\n")
+	}
+
+	out.WriteString("}\n")
+
 	out.WriteString("var wrapDocRender = map[PageRender][]func(string, []byte, htmlDoc) htmlDoc{\n")
 	for _, p := range bg.pages {
 		// since all of the the valid bundle names can only be refererred to "pages"

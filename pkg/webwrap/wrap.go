@@ -25,6 +25,7 @@ import (
 	"github.com/GuyARoss/orbit/pkg/fsutils"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/log"
+	"github.com/spf13/viper"
 )
 
 type JSWebWrapper interface {
@@ -54,17 +55,29 @@ func NewActiveMap(bundler *BaseBundler) JSWebWrapperList {
 	sourcedoc := jsparse.NewEmptyDocument()
 	initdoc := jsparse.NewEmptyDocument()
 
-	return []JSWebWrapper{
-		// &ReactWebWrapper{
-		// 	BaseBundler: bundler,
-		// },
+	experimentalFeatures := viper.GetStringSlice("experimental")
+	ssrExperiment := false
 
-		NewReactSSR(&NewReactSSROpts{
+	for _, e := range experimentalFeatures {
+		if e == "ssr" {
+			ssrExperiment = true
+		}
+	}
+	baseList := []JSWebWrapper{}
+
+	if ssrExperiment {
+		baseList = append(baseList, NewReactSSR(&NewReactSSROpts{
 			Bundler:      bundler,
 			SourceMapDoc: sourcedoc,
 			InitDoc:      initdoc,
-		}),
+		}))
+	} else {
+		baseList = append(baseList, &ReactWebWrapper{
+			BaseBundler: bundler,
+		})
 	}
+
+	return baseList
 }
 
 type BaseWebWrapper struct {

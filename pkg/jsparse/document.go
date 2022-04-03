@@ -5,7 +5,6 @@
 package jsparse
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -18,33 +17,53 @@ import (
 type JSDocument interface {
 	WriteFile(string) error
 	Key() string
-	Name() string
 	Imports() []*ImportDependency
 	AddImport(*ImportDependency) []*ImportDependency
 	Other() []string
 	AddOther(string) []string
 	Extension() string
 	AddSerializable(s JSSerialize)
-}
-
-type JSExport struct {
-	IsDefault bool
-	Name      string
-	HasArgs   bool
+	Name() string
+	DefaultExport() *JsDocumentScope
 }
 
 // DefaultJSDocument is a struct that implements the JSDocument interface
 // this struct can be used as an output for JSDocument parsing.
 type DefaultJSDocument struct {
 	imports      []*ImportDependency
-	name         string
 	other        []string
 	serializable []JSSerialize
 
 	webDir    string
 	pageDir   string
 	extension string
-	exports   []JSExport
+	scope     map[string]*JsDocumentScope
+
+	defaultExport *JsDocumentScope
+	name          string
+}
+
+// JSToken is some keyword(s) found in javascript used to tokenize js documents.
+type JSToken string
+
+const (
+	ImportToken        JSToken = "import"
+	ExportDefaultToken JSToken = "export default"
+	ExportConstToken   JSToken = "export const"
+	ConstToken         JSToken = "const"
+	FuncToken          JSToken = "function"
+	VarToken           JSToken = "var"
+	LetToken           JSToken = "let"
+)
+
+var declarationTokens = []JSToken{VarToken, ConstToken, FuncToken, LetToken, ExportDefaultToken, ImportToken}
+var exportTokens = []JSToken{ExportDefaultToken, ExportConstToken}
+
+type JsDocumentScope struct {
+	TokenType JSToken
+	Name      string
+	Export    JSExport
+	Args      JSDocArgList
 }
 
 // formatImportLine parses an import line to create an import dependency
@@ -118,19 +137,68 @@ func (p *DefaultJSDocument) formatImportLine(line string) *ImportDependency {
 
 // tokenizeLine tokenizes each line and serializes it to the provided JSDocument
 func (p *DefaultJSDocument) tokenizeLine(line string) error {
+	// @@todo(guy): replace this process with a ll instead of reading from the lines directly
 	for _, decToken := range declarationTokens {
 		if strings.Contains(line, string(decToken)) {
 			switch decToken {
 			case ImportToken:
 				p.imports = append(p.imports, p.formatImportLine(line))
 				return nil
-			case ExportToken:
-				possibleName, err := extractDefaultExportName(line)
-				if err != nil && !errors.Is(ErrFunctionExport, err) {
+			case ExportDefaultToken, ExportConstToken:
+				// does the name already exist?
+				name, err := extractJSTokenName(line, decToken)
+
+				if err != nil {
 					return err
 				}
 
-				p.name = possibleName
+				if p.scope[name] != nil {
+					if decToken == ExportDefaultToken {
+						p.defaultExport = p.scope[name]
+						p.name = name
+					}
+					return nil
+				}
+			}
+
+			name, err := extractJSTokenName(line, decToken)
+			if err != nil {
+				return err
+			}
+			exportMethod := ExportNone
+
+			isDefault := false
+			for _, e := range exportTokens {
+				if strings.Contains(line, string(e)) {
+					switch e {
+					case ExportDefaultToken:
+						exportMethod = ExportDefault
+						isDefault = true
+					case ExportConstToken:
+						exportMethod = ExportConst
+					}
+				}
+			}
+
+			args, err := parseArgs(line)
+			if err != nil {
+				return err
+			}
+
+			scope := &JsDocumentScope{
+				Name:      name,
+				Export:    exportMethod,
+				TokenType: decToken,
+				Args:      args,
+			}
+
+			p.scope[name] = scope
+
+			if isDefault {
+				if decToken == ExportDefaultToken {
+					p.defaultExport = p.scope[name]
+					p.name = name
+				}
 				return nil
 			}
 		}
@@ -174,14 +242,25 @@ func (p *DefaultJSDocument) WriteFile(dir string) error {
 	return nil
 }
 
-func (p *DefaultJSDocument) Name() string { return p.name }
+func (p *DefaultJSDocument) DefaultExport() *JsDocumentScope {
+	return p.defaultExport
+}
+
+func (p *DefaultJSDocument) Name() string {
+	return p.name
+}
 
 func (p *DefaultJSDocument) Other() []string              { return p.other }
 func (p *DefaultJSDocument) Imports() []*ImportDependency { return p.imports }
 func (p *DefaultJSDocument) Extension() string            { return p.extension }
 
 func (p *DefaultJSDocument) Key() string {
-	id := uuid.NewSHA1(uuid.NameSpaceDNS, []byte(p.name))
+	if p.defaultExport == nil {
+		// @@ return error that a key is not present
+		return ""
+	}
+
+	id := uuid.NewSHA1(uuid.NameSpaceDNS, []byte(p.defaultExport.Name))
 
 	return strings.ReplaceAll(id.String(), "-", "")
 }
@@ -204,7 +283,11 @@ func (p *DefaultJSDocument) AddSerializable(s JSSerialize) {
 
 // NewEmptyDocument creates a new empty JSDocument
 func NewEmptyDocument() *DefaultJSDocument {
-	return &DefaultJSDocument{}
+	return &DefaultJSDocument{
+		scope:         make(map[string]*JsDocumentScope),
+		imports:       make([]*ImportDependency, 0),
+		defaultExport: &JsDocumentScope{},
+	}
 }
 
 func NewImportDocument(imports ...*ImportDependency) *DefaultJSDocument {
@@ -219,11 +302,13 @@ func NewImportDocument(imports ...*ImportDependency) *DefaultJSDocument {
 // NewDocument creates a new JS document
 func NewDocument(webDir string, pageDir string) *DefaultJSDocument {
 	return &DefaultJSDocument{
-		webDir:       webDir,
-		pageDir:      pageDir,
-		extension:    pageExtension(pageDir),
-		serializable: make([]JSSerialize, 0),
-		exports:      make([]JSExport, 0),
+		webDir:        webDir,
+		pageDir:       pageDir,
+		extension:     pageExtension(pageDir),
+		serializable:  make([]JSSerialize, 0),
+		scope:         make(map[string]*JsDocumentScope),
+		imports:       make([]*ImportDependency, 0),
+		defaultExport: &JsDocumentScope{},
 	}
 }
 
@@ -285,6 +370,20 @@ func (s *JsDocSwitch) Add(t JSType, value string, body string) {
 		JSType: t,
 		Body:   body,
 	}
+}
+
+type JSExport int
+
+const (
+	ExportNone    JSExport = 0
+	ExportDefault JSExport = 1
+	ExportConst   JSExport = 2
+)
+
+type JSDocArgList []string
+
+func (s JSDocArgList) ToString() string {
+	return strings.Join(s, ",")
 }
 
 type JsDocFunc struct {

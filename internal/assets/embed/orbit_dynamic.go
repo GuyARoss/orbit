@@ -15,6 +15,8 @@ var wrapDocRender = map[PageRender][]func(string, []byte, htmlDoc) htmlDoc{
 	"test": {deleteMeThing},
 }
 
+var staticResourceMap = map[PageRender]bool{}
+
 var wrapBody = map[PageRender][]string{}
 
 type PageRender string

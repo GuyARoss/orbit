@@ -10,18 +10,6 @@ import (
 	"testing"
 )
 
-func Test_lineImportType(t *testing.T) {
-	g := lineImportType(`import { thing } from "@test/util"`)
-	if g != ModuleImportType {
-		t.Error("expected module import type")
-	}
-
-	g = lineImportType(`import cat from "../../utils.jsx"`)
-	if g != LocalImportType {
-		t.Error("expected local import type")
-	}
-}
-
 func TestCleanExportDefaultName_Errors(t *testing.T) {
 	tt := []struct {
 		i string
@@ -102,6 +90,51 @@ func TestPageExtension(t *testing.T) {
 
 		if got != d.o {
 			t.Errorf("(%d) expected %s got %s", i, d.o, got)
+		}
+	}
+}
+
+func TestExtractJsTokenName(t *testing.T) {
+	var tt = []struct {
+		i string
+		t JSToken
+		o string
+	}{
+		{"export function thing() {}", FuncToken, "thing"},
+		{"let cats = '2'", LetToken, "cats"},
+	}
+
+	for i, d := range tt {
+		got, err := extractJSTokenName(d.i, d.t)
+		if err != nil {
+			t.Errorf("error should not have been thrown")
+		}
+
+		if got != d.o {
+			t.Errorf("(%d) expected %s got %s", i, d.o, got)
+		}
+	}
+}
+
+func TestParseArgs(t *testing.T) {
+	var tt = []struct {
+		i string
+		l int
+	}{
+		{"let thing = '5'", 0},
+		{"let thing = (ice) => {}", 1},
+		{"let obthing = ({}, {}, ince) => {}", 3},
+		{"function ({}, ince = 5) => {}", 2},
+	}
+
+	for i, d := range tt {
+		got, err := parseArgs(d.i)
+		if err != nil {
+			t.Errorf("error should not have been thrown")
+		}
+
+		if len(got) != d.l {
+			t.Errorf("(%d) expected %d got %d", i, d.l, len(got))
 		}
 	}
 }

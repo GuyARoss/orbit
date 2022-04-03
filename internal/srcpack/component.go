@@ -21,6 +21,7 @@ type PackComponent interface {
 	BundleKey() string
 	Name() string
 	WebWrapper() webwrap.JSWebWrapper
+	IsStaticResource() bool
 }
 
 // component that has been successfully ran, and output from a packing method.
@@ -36,6 +37,7 @@ type Component struct {
 	originalFilePath string
 	name             string
 	m                *sync.Mutex
+	isStaticResource bool
 }
 
 // NewComponentOpts options for creating a new component
@@ -105,6 +107,14 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, e
 		}
 	}
 
+	isStaticResource := false
+
+	if page.DefaultExport() != nil {
+		if len(page.DefaultExport().Args) == 0 {
+			isStaticResource = true
+		}
+	}
+
 	return &Component{
 		name:             page.Name(),
 		bundleKey:        bundleKey,
@@ -114,8 +124,11 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, e
 		webWrapper:       wrapMethod,
 		JsParser:         opts.JSParser,
 		WebDir:           opts.WebDir,
+		isStaticResource: isStaticResource,
 	}, nil
 }
+
+func (s *Component) IsStaticResource() bool { return s.isStaticResource }
 
 // Repack repacks a component following the following processes
 // 	- parses the provided filepath with the the components jsparser
