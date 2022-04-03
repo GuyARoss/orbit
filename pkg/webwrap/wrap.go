@@ -63,7 +63,12 @@ func NewActiveMap(bundler *BaseBundler) JSWebWrapperList {
 			ssrExperiment = true
 		}
 	}
-	baseList := []JSWebWrapper{}
+
+	baseList := []JSWebWrapper{
+		&JavascriptWrapper{
+			BaseBundler: bundler,
+		},
+	}
 
 	if ssrExperiment {
 		baseList = append(baseList, NewReactSSR(&NewReactSSROpts{
@@ -72,9 +77,7 @@ func NewActiveMap(bundler *BaseBundler) JSWebWrapperList {
 			InitDoc:      initdoc,
 		}))
 	} else {
-		baseList = append(baseList, &ReactWebWrapper{
-			BaseBundler: bundler,
-		})
+		baseList = append(baseList, NewReactWebWrap(bundler))
 	}
 
 	return baseList

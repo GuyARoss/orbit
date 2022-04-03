@@ -1,13 +1,14 @@
-package orbit
+package orbitgen
 
 import (
+	"os"
+	"strings"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
-	"strings"
 )
+
 
 // Request is the standard request payload for the orbit page handler
 // this is just a fancy wrapper around the http request & response that will also assist

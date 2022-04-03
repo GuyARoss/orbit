@@ -20,11 +20,12 @@ var content embed.FS
 type AssetKey string
 
 const (
-	WebPackConfig  AssetKey = "base.config.js"
-	HotReload      AssetKey = "hotreload.js"
-	Tests          AssetKey = "orbit_test.go"
-	PrimaryPackage AssetKey = "orbit.go"
-	SSRProtoFile   AssetKey = "com.proto"
+	WebPackConfig   AssetKey = "base.config.js"
+	HotReload       AssetKey = "hotreload.js"
+	Tests           AssetKey = "orbit_test.go"
+	PrimaryPackage  AssetKey = "orbit.go"
+	SSRProtoFile    AssetKey = "com.proto"
+	JsWebPackConfig AssetKey = "jsbase.config.js"
 )
 
 func WriteFile(toDir string, f fs.DirEntry) error {

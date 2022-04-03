@@ -186,6 +186,16 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 
 	b := newParsedGoFile()
 
+	for _, p := range bg.pages {
+		// since all of the the valid bundle names can only be refererred to "pages"
+		// we ensure that page does not already exist on the string
+		if !strings.Contains(p.name, "Page") {
+			p.name = fmt.Sprintf("%sPage", p.name)
+		}
+
+		p.name = fmt.Sprintf("%s%s", strings.ToUpper(string(p.name[0])), p.name[1:])
+	}
+
 	for _, v := range bg.wrapDocRender {
 		for _, f := range v {
 			str, err := parseFile(f)
@@ -202,11 +212,6 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 	out.WriteString("var staticResourceMap = map[PageRender]bool{\n")
 
 	for _, p := range bg.pages {
-		// since all of the the valid bundle names can only be refererred to "pages"
-		// we ensure that page does not already exist on the string
-		if !strings.Contains(p.name, "Page") {
-			p.name = fmt.Sprintf("%sPage", p.name)
-		}
 
 		staticResourceStr := "false"
 		if p.isStaticResource {
@@ -223,6 +228,11 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 
 	out.WriteString("var wrapDocRender = map[PageRender][]func(string, []byte, htmlDoc) htmlDoc{\n")
 	for _, p := range bg.pages {
+		// not every wrapper "needs" a method of processing, so we omit it in the case it doesnt
+		if bg.wrapDocRender[p.wrapVersion] == nil || len(bg.wrapDocRender[p.wrapVersion]) == 0 {
+			continue
+		}
+
 		// since all of the the valid bundle names can only be refererred to "pages"
 		// we ensure that page does not already exist on the string
 		if !strings.Contains(p.name, "Page") {
