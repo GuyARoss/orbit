@@ -17,12 +17,17 @@ import (
 var nodeProcess *os.Process
 
 func init() {
+	serverStartupTasks = append(serverStartupTasks, reactSSRNodeServerStartup)
+}
+
+func reactSSRNodeServerStartup() {
 	err := nodeServerInstance()
 	if err != nil {
 		panic(err)
 	}
 
 	d := setupDoc()
+
 	for b, isStatic := range staticResourceMap {
 		if isStatic {
 			sr := reactSSR(string(b), []byte("{}"), *d)
@@ -42,7 +47,6 @@ func init() {
 		}
 	}
 }
-
 func nodeServerInstance() error {
 	if nodeProcess != nil {
 		return nil

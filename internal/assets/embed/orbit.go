@@ -225,8 +225,11 @@ func setupDoc() *htmlDoc {
 	return defaultHTMLDoc(html)
 }
 
-// NewServe creates a new default orbit server
 func New() (*Serve, error) {
+	for _, sfn := range serverStartupTasks {
+		sfn()
+	}
+
 	return (&Serve{
 		mux: http.NewServeMux(),
 		doc: setupDoc(),

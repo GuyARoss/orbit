@@ -17,3 +17,5 @@ var bundleDir string = ".orbit/dist"
 var staticResourceMap map[string]bool
 
 var wrapBody map[string][]string
+
+var serverStartupTasks = []func(){}

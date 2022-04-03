@@ -33,3 +33,5 @@ const (
 var CurrentDevMode BundleMode
 
 var hotReloadPort = 1000
+
+var serverStartupTasks = []func(){}

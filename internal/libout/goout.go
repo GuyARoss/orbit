@@ -219,6 +219,8 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 
 	out.WriteString("}\n")
 
+	out.WriteString("var serverStartupTasks = []func(){}\n")
+
 	out.WriteString("var wrapDocRender = map[PageRender][]func(string, []byte, htmlDoc) htmlDoc{\n")
 	for _, p := range bg.pages {
 		// since all of the the valid bundle names can only be refererred to "pages"
