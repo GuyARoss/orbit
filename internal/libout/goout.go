@@ -226,7 +226,7 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 
 	out.WriteString("var serverStartupTasks = []func(){}\n")
 
-	out.WriteString("var wrapDocRender = map[PageRender]DocumentRenderer{\n")
+	out.WriteString("var wrapDocRender = map[PageRender]*DocumentRenderer{\n")
 	for _, p := range bg.pages {
 		// not every wrapper "needs" a method of processing, so we omit it in the case it doesnt
 		if bg.wrapDocRender[p.wrapVersion] == nil || len(bg.wrapDocRender[p.wrapVersion]) == 0 {

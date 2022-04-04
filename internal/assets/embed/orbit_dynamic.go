@@ -37,4 +37,4 @@ type DocumentRenderer struct {
 	version string
 }
 
-var wrapDocRender = map[PageRender]DocumentRenderer{}
+var wrapDocRender = map[PageRender]*DocumentRenderer{}
