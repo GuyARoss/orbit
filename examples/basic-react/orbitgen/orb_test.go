@@ -1,11 +1,11 @@
 package orbitgen
 
 import (
-	"strings"
-	"testing"
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
+	"testing"
 )
 
 
@@ -24,37 +24,6 @@ func TestInnerHTML(t *testing.T) {
 
 		if !strings.Contains(c, d.e) {
 			t.Errorf("expected %s got %s", d.e, c)
-		}
-	}
-}
-
-func TestHTMLDocBuild(t *testing.T) {
-	data := "thingy"
-	page := "this_is_a_page_key"
-
-	head := "<div>something</div>"
-	body := "<h1>header</h1>"
-
-	var tt = []struct {
-		expect string
-		l      string
-		r      string
-	}{
-		{head, "<head>", "</head>"},
-		{body, "<body>", "</body>"},
-	}
-
-	doc := &htmlDoc{
-		Head: []string{head},
-		Body: []string{body},
-	}
-
-	flatdoc := doc.build([]byte(data), PageRender(page))
-
-	for _, d := range tt {
-		content := innerHTML(flatdoc, d.l, d.r)
-		if !strings.Contains(content, d.expect) {
-			t.Errorf("%s expected on parent tag but found %s", d.expect, content)
 		}
 	}
 }

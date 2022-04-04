@@ -1,12 +1,12 @@
 package orbitgen
 
 import (
-	"net/http"
-	"os"
 	"strings"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"os"
 )
 
 
@@ -47,6 +47,9 @@ func (s *htmlDoc) build(data []byte, pages ...PageRender) string {
 			isWrapped[p] = true
 		}
 
+		// if the page is of static origin, we first check to see if it exists on the file system
+		// if it does, it will be applied to the current html document, rather than returned directly
+		// this is to support the usage of static html within micro-frontends
 		if staticResourceMap[p] {
 			_, err := os.Stat(publicDir)
 			if !os.IsNotExist(err) {
@@ -67,6 +70,10 @@ func (s *htmlDoc) build(data []byte, pages ...PageRender) string {
 
 	for _, p := range pages {
 		op := wrapDocRender[p]
+
+		if op == nil {
+			continue
+		}
 
 		doc := op.fn(string(p), data, *s)
 		for _, b := range doc.Body {

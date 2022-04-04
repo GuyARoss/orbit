@@ -14,13 +14,13 @@ func reactManifestFallback(bundleKey string, data []byte, doc htmlDoc) htmlDoc {
 	return doc
 }
 var staticResourceMap = map[PageRender]bool{
-	ExamplePage: false,
 	ExampleTwoPage: true,
+	ExamplePage: false,
 }
 var serverStartupTasks = []func(){}
-var wrapDocRender = map[PageRender]DocumentRenderer{
-	ExamplePage: {fn: reactManifestFallback, version: "reactManifestFallback"},
+var wrapDocRender = map[PageRender]*DocumentRenderer{
 	ExampleTwoPage: {fn: reactManifestFallback, version: "reactManifestFallback"},
+	ExamplePage: {fn: reactManifestFallback, version: "reactManifestFallback"},
 }
 
 type DocumentRenderer struct {
@@ -30,7 +30,7 @@ type DocumentRenderer struct {
 var reactManifestFallback_bodywrap = []string{
 `<script src="/p/02bab3977c197c77b270370f110270b1.js"></script>`,
 `<script src="/p/8cfc2b31824016492ec09fc306264efd.js"></script>`,
-`<div id="a46abf62-48cb-47ab-aee3-5e9ebdd752eb"></div>`,
+`<div id="61bf8f7b-4d85-42db-b11a-ea1f85c26199"></div>`,
 }
 
 var bundleDir string = ".orbit/dist"
@@ -40,15 +40,15 @@ var hotReloadPort int = 0
 type PageRender string
 
 const ( 
-	// orbit:page .//pages/example.jsx
-	ExamplePage PageRender = "496a05464c3f5aa89e1d8bed7afe59d4"
 	// orbit:page .//pages/example2.jsx
 	ExampleTwoPage PageRender = "fe9faa2750e8559c8c213c2c25c4ce73"
+	// orbit:page .//pages/example.jsx
+	ExamplePage PageRender = "496a05464c3f5aa89e1d8bed7afe59d4"
 )
 
 var wrapBody = map[PageRender][]string{
-	ExamplePage: reactManifestFallback_bodywrap,
 	ExampleTwoPage: reactManifestFallback_bodywrap,
+	ExamplePage: reactManifestFallback_bodywrap,
 }
 
 type BundleMode int32
