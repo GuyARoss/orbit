@@ -28,8 +28,6 @@ type ReactWebWrapper struct {
 	elementID string
 }
 
-// @@todo: javascript should run document.onload
-
 var ErrComponentExport = errors.New("prefer capitalization for jsx components")
 var ErrInvalidComponent = errors.New("invalid jsx component")
 
