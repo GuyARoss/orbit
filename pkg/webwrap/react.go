@@ -18,11 +18,14 @@ import (
 	"github.com/GuyARoss/orbit/pkg/embedutils"
 	"github.com/GuyARoss/orbit/pkg/fsutils"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
+	"github.com/google/uuid"
 )
 
 type ReactWebWrapper struct {
 	*BaseWebWrapper
 	*BaseBundler
+
+	elementID string
 }
 
 var ErrComponentExport = errors.New("prefer capitalization for jsx components")
@@ -46,8 +49,8 @@ func (s *ReactWebWrapper) Apply(page jsparse.JSDocument) (jsparse.JSDocument, er
 	})
 
 	page.AddOther(fmt.Sprintf(
-		"ReactDOM.render(<%s {...JSON.parse(document.getElementById('orbit_manifest').textContent)}/>, document.getElementById('root'))",
-		page.Name()),
+		"ReactDOM.render(<%s {...JSON.parse(document.getElementById('orbit_manifest').textContent)}/>, document.getElementById('%s'))",
+		page.Name(), s.elementID),
 	)
 
 	return page, nil
@@ -82,7 +85,7 @@ func (s *ReactWebWrapper) RequiredBodyDOMElements(ctx context.Context, cache *Ca
 		files[i] = fmt.Sprintf(`<script src="%s"></script>`, f)
 	}
 
-	files = append(files, `<div id="root"></div>`)
+	files = append(files, fmt.Sprintf(`<div id="%s"></div>`, s.elementID))
 
 	return files
 }
@@ -141,4 +144,11 @@ func (b *ReactWebWrapper) HydrationFile() []embedutils.FileReader {
 		}
 	}
 	return nil
+}
+
+func NewReactWebWrap(bundler *BaseBundler) *ReactWebWrapper {
+	return &ReactWebWrapper{
+		BaseBundler: bundler,
+		elementID:   uuid.NewString(),
+	}
 }

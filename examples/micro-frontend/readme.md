@@ -1,5 +1,5 @@
-# Orbit Basic React App
-This project demonstrates a basic react project with orbit.
+# Orbit Micro-Frontend
+This project demonstrates a micro frontend project with orbit.
 
 ## Setup
 1. Run `npm install` to install the required dependencies.

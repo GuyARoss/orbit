@@ -1,3 +1,13 @@
+./pkg/embedutils/embedutils.go
+./pkg/jsparse/mock/parser_mock.go
+./pkg/webwrap/javascript.go
+./pkg/webwrap/react_ssr.go
+./cmd/experimental.go
+./cmd/tool.go
+./cmd/dependgraph/graphdoc.go
+./cmd/dependgraph/dependgraph.go
+./cmd/dependgraph/utilities.go
+./cmd/dependgraph/reader.go
 ./pkg/hotreload/mock/hotreload.go
 ./pkg/bundler/mock/bundler_mock.go
 ./pkg/depend_tree/mock/depend_tree_mock.go

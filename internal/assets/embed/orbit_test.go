@@ -27,37 +27,6 @@ func TestInnerHTML(t *testing.T) {
 	}
 }
 
-func TestHTMLDocBuild(t *testing.T) {
-	data := "thingy"
-	page := "this_is_a_page_key"
-
-	head := "<div>something</div>"
-	body := "<h1>header</h1>"
-
-	var tt = []struct {
-		expect string
-		l      string
-		r      string
-	}{
-		{head, "<head>", "</head>"},
-		{body, "<body>", "</body>"},
-	}
-
-	doc := &htmlDoc{
-		Head: []string{head},
-		Body: []string{body},
-	}
-
-	flatdoc := doc.build([]byte(data), PageRender(page))
-
-	for _, d := range tt {
-		content := innerHTML(flatdoc, d.l, d.r)
-		if !strings.Contains(content, d.expect) {
-			t.Errorf("%s expected on parent tag but found %s", d.expect, content)
-		}
-	}
-}
-
 func TestParseSlug(t *testing.T) {
 	var tt = []struct {
 		path   string

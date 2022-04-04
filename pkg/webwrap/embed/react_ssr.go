@@ -28,8 +28,8 @@ func reactSSRNodeServerStartup() {
 
 	d := setupDoc()
 
-	for b, isStatic := range staticResourceMap {
-		if isStatic {
+	for b, r := range wrapDocRender {
+		if r.version == "reactSSR" && staticResourceMap[b] {
 			sr := reactSSR(string(b), []byte("{}"), *d)
 
 			path := fmt.Sprintf("%s%c%s", http.Dir(bundleDir), os.PathSeparator, b)
@@ -107,7 +107,7 @@ func reactSSR(bundleKey string, data []byte, doc htmlDoc) htmlDoc {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 
-	conn, err := grpc.Dial("0.0.0.0:30032", opts...)
+	conn, err := grpc.Dial("0.0.0.0:3024", opts...)
 	if err != nil {
 		panic(err)
 	}
@@ -120,11 +120,8 @@ func reactSSR(bundleKey string, data []byte, doc htmlDoc) htmlDoc {
 	})
 
 	if err != nil {
-		fmt.Println(err)
-		// @@todo(guy): this should not be handled here
-		return htmlDoc{
-			Body: []string{"ssr failed to resolve"},
-		}
+		// @@todo return this instead of body
+		doc.Body = append(doc.Body, "<div>error loading page part of the page</div>")
 	}
 
 	doc.Body = append(doc.Body, response.StaticContent)

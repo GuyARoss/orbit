@@ -1,4 +1,4 @@
-package orbit
+package orbitgen
 
 import (
 	"encoding/json"
@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 )
+
 
 // Request is the standard request payload for the orbit page handler
 // this is just a fancy wrapper around the http request & response that will also assist
