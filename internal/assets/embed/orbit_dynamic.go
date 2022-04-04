@@ -11,10 +11,6 @@ func deleteMeThing(bundleKey string, data []byte, doc htmlDoc) htmlDoc {
 	return doc
 }
 
-var wrapDocRender = map[PageRender][]func(string, []byte, htmlDoc) htmlDoc{
-	"test": {deleteMeThing},
-}
-
 var staticResourceMap = map[PageRender]bool{}
 
 var wrapBody = map[PageRender][]string{}
@@ -35,3 +31,10 @@ var CurrentDevMode BundleMode
 var hotReloadPort = 1000
 
 var serverStartupTasks = []func(){}
+
+type DocumentRenderer struct {
+	fn      func(string, []byte, htmlDoc) htmlDoc
+	version string
+}
+
+var wrapDocRender = map[PageRender]DocumentRenderer{}

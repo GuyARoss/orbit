@@ -1,22 +1,24 @@
 package orbitgen
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 )
+
 
 // Request is the standard request payload for the orbit page handler
 // this is just a fancy wrapper around the http request & response that will also assist
 // the rendering of bundled pages & incoming path slugs
 type Request struct {
-	RenderPage func(page PageRender, data interface{})
-	Request    *http.Request
-	Response   http.ResponseWriter
-	Slugs      map[string]string
+	RenderPage  func(page PageRender, data interface{})
+	RenderPages func(data interface{}, pages ...PageRender)
+	Request     *http.Request
+	Response    http.ResponseWriter
+	Slugs       map[string]string
 }
 
 // DefaultPage defines the standard behavior for a orbit page handler
@@ -32,22 +34,56 @@ type htmlDoc struct {
 
 // build builds the htmldocument given data for orbits manifest and the page's
 // javascript bundle key to render the document out to a single string
-func (s *htmlDoc) build(data []byte, page PageRender) string {
-	ops := wrapDocRender[page]
+func (s *htmlDoc) build(data []byte, pages ...PageRender) string {
+	body := make([]string, 0)
+	head := make([]string, 0)
+	isWrapped := make(map[PageRender]bool)
 
-	doc := *s
-	for _, r := range ops {
-		doc = r(string(page), data, doc)
+	for _, p := range pages {
+		if !isWrapped[p] {
+			for _, b := range wrapBody[p] {
+				head = append(head, b)
+			}
+			isWrapped[p] = true
+		}
+
+		if staticResourceMap[p] {
+			_, err := os.Stat(publicDir)
+			if !os.IsNotExist(err) {
+				f, err := ioutil.ReadFile(fmt.Sprintf("%s%c%s", http.Dir(bundleDir), os.PathSeparator, p))
+				if err != nil {
+					continue
+				}
+
+				if len(pages) == 1 {
+					return string(f)
+				}
+
+				body = append(body, innerHTML(string(f), "<body>", "</body>"))
+				head = append(head, innerHTML(string(f), "<head>", "</head>"))
+			}
+		}
 	}
 
-	body := append(wrapBody[page], doc.Body...)
+	for _, p := range pages {
+		op := wrapDocRender[p]
+
+		doc := op.fn(string(p), data, *s)
+		for _, b := range doc.Body {
+			body = append(body, b)
+		}
+
+		for _, h := range doc.Head {
+			head = append(head, h)
+		}
+	}
 
 	return fmt.Sprintf(`
 	<!doctype html>
 	<html lang="en">
 	<head>%s</head>
 	<body>%s</body>
-	</html>`, strings.Join(doc.Head, ""), strings.Join(body, ""))
+	</html>`, strings.Join(head, ""), strings.Join(body, ""))
 }
 
 // innerHTML is a utility function that assists with the parsing the content of html tags
@@ -155,20 +191,6 @@ func (s *Serve) HandleFunc(path string, handler func(c *Request)) {
 		}
 
 		renderPage := func(page PageRender, data interface{}) {
-			if staticResourceMap[page] {
-				_, err := os.Stat(publicDir)
-				if !os.IsNotExist(err) {
-					f, err := ioutil.ReadFile(fmt.Sprintf("%s%c%s", http.Dir(bundleDir), os.PathSeparator, page))
-					if err != nil {
-						rw.WriteHeader(http.StatusNotFound)
-						return
-					}
-
-					rw.Write(f)
-					return
-				}
-			}
-
 			d, err := json.Marshal(data)
 			if err != nil {
 				rw.WriteHeader(http.StatusInternalServerError)
@@ -181,11 +203,25 @@ func (s *Serve) HandleFunc(path string, handler func(c *Request)) {
 			rw.Write([]byte(html))
 		}
 
+		renderPages := func(data interface{}, pages ...PageRender) {
+			d, err := json.Marshal(data)
+			if err != nil {
+				rw.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			html := s.doc.build(d, pages...)
+
+			rw.WriteHeader(http.StatusOK)
+			rw.Write([]byte(html))
+		}
+
 		ctx := &Request{
-			RenderPage: renderPage,
-			Request:    r,
-			Response:   rw,
-			Slugs:      requestSlugs,
+			RenderPage:  renderPage,
+			RenderPages: renderPages,
+			Request:     r,
+			Response:    rw,
+			Slugs:       requestSlugs,
 		}
 
 		handler(ctx)

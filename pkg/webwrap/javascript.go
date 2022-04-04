@@ -24,9 +24,9 @@ func (s *JavascriptWrapper) Apply(page jsparse.JSDocument) (jsparse.JSDocument, 
 	}
 
 	page.AddOther(fmt.Sprintf(
-		`window.onload = (e) => {
-			%s({...JSON.parse(document.getElementById('orbit_manifest').textContent)})
-		}`,
+		`onLoadTasks.push(
+			() => %s({...JSON.parse(document.getElementById('orbit_manifest').textContent)})
+		)`,
 		page.Name()),
 	)
 

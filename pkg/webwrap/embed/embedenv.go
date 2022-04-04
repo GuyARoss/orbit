@@ -14,8 +14,17 @@ func setupDoc() *htmlDoc { return &htmlDoc{} }
 
 var bundleDir string = ".orbit/dist"
 
-var staticResourceMap map[string]bool
+var staticResourceMap map[PageRender]bool
 
-var wrapBody map[string][]string
+var wrapBody map[PageRender][]string
 
 var serverStartupTasks = []func(){}
+
+type PageRender string
+
+type DocumentRenderer struct {
+	fn      func(string, []byte, htmlDoc) htmlDoc
+	version string
+}
+
+var wrapDocRender = map[PageRender]DocumentRenderer{}

@@ -18,15 +18,19 @@ var staticResourceMap = map[PageRender]bool{
 	ExampleTwoPage: true,
 }
 var serverStartupTasks = []func(){}
-var wrapDocRender = map[PageRender][]func(string, []byte, htmlDoc) htmlDoc{
-	ExamplePage: {reactManifestFallback},
-	ExampleTwoPage: {reactManifestFallback},
+var wrapDocRender = map[PageRender]DocumentRenderer{
+	ExamplePage: {fn: reactManifestFallback, version: "reactManifestFallback"},
+	ExampleTwoPage: {fn: reactManifestFallback, version: "reactManifestFallback"},
 }
 
+type DocumentRenderer struct {
+	fn func(string, []byte, htmlDoc) htmlDoc
+	version string
+}
 var reactManifestFallback_bodywrap = []string{
 `<script src="/p/02bab3977c197c77b270370f110270b1.js"></script>`,
 `<script src="/p/8cfc2b31824016492ec09fc306264efd.js"></script>`,
-`<div id="root"></div>`,
+`<div id="a46abf62-48cb-47ab-aee3-5e9ebdd752eb"></div>`,
 }
 
 var bundleDir string = ".orbit/dist"

@@ -1,12 +1,12 @@
 package orbitgen
 
 import (
-	"os"
-	"strings"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"strings"
 )
 
 
@@ -35,17 +35,14 @@ type htmlDoc struct {
 // build builds the htmldocument given data for orbits manifest and the page's
 // javascript bundle key to render the document out to a single string
 func (s *htmlDoc) build(data []byte, pages ...PageRender) string {
-	body := make(map[string]bool)
-	head := make(map[string]bool)
+	body := make([]string, 0)
+	head := make([]string, 0)
 	isWrapped := make(map[PageRender]bool)
-
-	fh := ""
-	fb := ""
 
 	for _, p := range pages {
 		if !isWrapped[p] {
 			for _, b := range wrapBody[p] {
-				head[b] = true
+				head = append(head, b)
 			}
 			isWrapped[p] = true
 		}
@@ -62,35 +59,23 @@ func (s *htmlDoc) build(data []byte, pages ...PageRender) string {
 					return string(f)
 				}
 
-				body[innerHTML(string(f), "<body>", "</body>")] = true
-				head[innerHTML(string(f), "<head>", "</head>")] = true
+				body = append(body, innerHTML(string(f), "<body>", "</body>"))
+				head = append(head, innerHTML(string(f), "<head>", "</head>"))
 			}
 		}
 	}
 
 	for _, p := range pages {
-		ops := wrapDocRender[p]
+		op := wrapDocRender[p]
 
-		doc := *s
-		for _, r := range ops {
-			doc = r(string(p), data, doc)
-		}
-
+		doc := op.fn(string(p), data, *s)
 		for _, b := range doc.Body {
-			body[b] = true
+			body = append(body, b)
 		}
 
 		for _, h := range doc.Head {
-			head[h] = true
+			head = append(head, h)
 		}
-	}
-
-	for b := range body {
-		fb += b
-	}
-
-	for h := range head {
-		fh += h
 	}
 
 	return fmt.Sprintf(`
@@ -98,7 +83,7 @@ func (s *htmlDoc) build(data []byte, pages ...PageRender) string {
 	<html lang="en">
 	<head>%s</head>
 	<body>%s</body>
-	</html>`, fh, fb)
+	</html>`, strings.Join(head, ""), strings.Join(body, ""))
 }
 
 // innerHTML is a utility function that assists with the parsing the content of html tags

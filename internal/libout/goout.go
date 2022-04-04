@@ -226,7 +226,7 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 
 	out.WriteString("var serverStartupTasks = []func(){}\n")
 
-	out.WriteString("var wrapDocRender = map[PageRender][]func(string, []byte, htmlDoc) htmlDoc{\n")
+	out.WriteString("var wrapDocRender = map[PageRender]DocumentRenderer{\n")
 	for _, p := range bg.pages {
 		// not every wrapper "needs" a method of processing, so we omit it in the case it doesnt
 		if bg.wrapDocRender[p.wrapVersion] == nil || len(bg.wrapDocRender[p.wrapVersion]) == 0 {
@@ -239,11 +239,17 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 			p.name = fmt.Sprintf("%sPage", p.name)
 		}
 
-		out.WriteString(fmt.Sprintf("	%s: {%s},", p.name, p.wrapVersion))
+		out.WriteString(fmt.Sprintf(`	%s: {fn: %s, version: "%s"},`, p.name, p.wrapVersion, p.wrapVersion))
 		out.WriteString("\n")
 
 	}
 	out.WriteString("}\n")
+
+	out.WriteString(`
+type DocumentRenderer struct {
+	fn func(string, []byte, htmlDoc) htmlDoc
+	version string
+}`)
 
 	for rd, v := range bg.componentBodyMap {
 		out.WriteString("\n")

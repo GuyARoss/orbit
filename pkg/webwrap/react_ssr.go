@@ -71,7 +71,6 @@ func NewReactSSR(opts *NewReactSSROpts) *ReactSSR {
 	
 		server.addService(proto.main.ReactRenderer.service, {
 			Render: ({ request }, callback) => {
-				console.log(request)
 				callback(null, {
 					StaticContent: buildStaticContent(request),
 				})
@@ -79,7 +78,7 @@ func NewReactSSR(opts *NewReactSSROpts) *ReactSSR {
 		})
 		
 		server.bindAsync(
-			"0.0.0.0:30032",
+			"0.0.0.0:3024",
 			grpc.ServerCredentials.createInsecure(),
 			(error, port) => {
 				if (!!error) {
@@ -91,9 +90,6 @@ func NewReactSSR(opts *NewReactSSROpts) *ReactSSR {
 				console.log("boot success")
 			}
 		)
-		
-		const buildStaticContent = ({ BundleID, JSONData }) => { switch (BundleID) { case 'fe9faa2750e8559c8c213c2c25c4ce73': { return exampletwo(JSON.parse(JSONData)) } case '496a05464c3f5aa89e1d8bed7afe59d4': { return example(JSON.parse(JSONData)) } } }
-				console.log("boot success")
 	} catch (err) {
 		console.log("boot fail")
 	}
