@@ -1,8 +1,8 @@
-# Orbit &middot; [![GitHub license](https://img.shields.io/badge/license-GNU_GPLv3-blue.svg)](./LICENSE) ![codecov](https://img.shields.io/codecov/c/github/guyaross/orbit)
+# Orbit &middot; ![prerelease](https://img.shields.io/badge/project-Pre--Release-red) ![codecov](https://img.shields.io/codecov/c/github/guyaross/orbit) [![CodeFactor](https://www.codefactor.io/repository/github/guyaross/orbit/badge)](https://www.codefactor.io/repository/github/guyaross/orbit) [![GitHub license](https://img.shields.io/badge/license-GNU_GPLv3-blue.svg)](./LICENSE) 
 Orbit is a golang server side processing framework for building server side web applications.
 
-- **Micro-frontend**: support out of the box for React and vanilla JavaScript micro-frontends.
-- **Static bundling**: creates static html files for components that don't make use of server side processing. 
+- **Micro-frontend**: Out of the box support support for React and vanilla JavaScript micro front-ends.
+- **Static bundling**: Automatically creates static HTML files for components that don't make use of server side processing. 
 - **Bundling support**: Orbit currently supports bundling of the following tools:
 
 | Name               | Extent of support |
@@ -16,7 +16,7 @@ Orbit is a golang server side processing framework for building server side web 
 __ATTENTION__: The current build is still in pre-release so use with caution.
 
 ## Installation
-- **manual installation**: To install manually, clone this repo & compile it with `go build`.
+- **Manual Installation**: To install manually, clone this repo and compile it with `go build`.
 
 ## Examples
 There are several examples exist in the [./examples](/examples). Here is a basic one to you get you running.
@@ -72,10 +72,10 @@ func main() {
 ## Contributing
 
 ### [Contributing Guide](./CONTRIBUTING.md)
-Please first read our [contributing guide](./CONTRIBUTING.md) before contributing to our project.
+Please first read our [contributing guide](./CONTRIBUTING.md) before contributing to this project.
 
 ### [Good First Issues](https://github.com/GuyARoss/orbit/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
-To gain exposure to the repository you can find a list of [good first issues](https://github.com/GuyARoss/orbit/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
+To gain exposure to the project you can find a list of [good first issues](https://github.com/GuyARoss/orbit/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
 
 ### License
 Orbit it licensed under [GNU GPLv3](./LICENSE) 

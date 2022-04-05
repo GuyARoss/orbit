@@ -1,7 +1,7 @@
 # Contributing to orbit
 
 ### Finding a task
-Before contributing to this project, please ensure that before you have a change to submit, that an open issue first exists outlining that issue.
+Before contributing to this project, please ensure that an open issue first exists outlining that issue you plan to resolve.
 
 ### Running the project
 To run the project, please first download the required tools.
