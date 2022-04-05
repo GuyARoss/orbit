@@ -1,9 +1,9 @@
 # Orbit &middot; ![prerelease](https://img.shields.io/badge/project-Pre--Release-red) ![codecov](https://img.shields.io/codecov/c/github/guyaross/orbit) [![CodeFactor](https://www.codefactor.io/repository/github/guyaross/orbit/badge)](https://www.codefactor.io/repository/github/guyaross/orbit) [![GitHub license](https://img.shields.io/badge/license-GNU_GPLv3-blue.svg)](./LICENSE) 
 Orbit is a golang server side processing framework for building server side web applications.
 
-- **Micro-frontend**: Out of the box support support for React and vanilla JavaScript micro front-ends.
+- **Micro-frontend**: Out of the box support for React and vanilla JavaScript micro frontends.
 - **Static bundling**: Automatically creates static HTML files for components that don't make use of server side processing. 
-- **Bundling support**: Orbit currently supports bundling of the following tools:
+- **Bundling support**: Orbit currently has support for the following tools:
 
 | Name               | Extent of support |
 |--------------------|-------------------|
@@ -13,13 +13,12 @@ Orbit is a golang server side processing framework for building server side web 
 | Vue                | Planned           |
 
 
-__ATTENTION__: The current build is still in pre-release so use with caution.
 
 ## Installation
 - **Manual Installation**: To install manually, clone this repo and compile it with `go build`.
 
 ## Examples
-There are several examples exist in the [./examples](/examples). Here is a basic one to you get you running.
+There are several examples exist in the [./examples](/examples). Here is a basic one to get you up and running.
 
 1. Initialize the workspace directory with `orbit init`, then follow the prompts
 2. Create a react component
