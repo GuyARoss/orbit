@@ -1,13 +1,13 @@
 package orbitgen
 
 import (
+	"io/ioutil"
+	"net/http"
+	"os"
 	"strings"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"os"
 )
 
 
@@ -54,10 +54,7 @@ func (s *htmlDoc) merge(doc *htmlDoc) *htmlDoc {
 func parseStaticDocument(path string) (string, error) {
 	_, err := os.Stat(path)
 	if !os.IsNotExist(err) {
-		f, err := ioutil.ReadFile(path)
-		if err != nil {
-			return "", nil
-		}
+		f, _ := ioutil.ReadFile(path)
 
 		return string(f), nil
 	}
@@ -87,7 +84,7 @@ func buildHTMLPages(data []byte, pages ...PageRender) *htmlDoc {
 		// wrapping page content should only happen once as it just creates
 		// the requirements for the specific web wrapper to work correctly
 		pv := wrapDocRender[p]
-		if !isWrapped[pv.version] {
+		if pv != nil && !isWrapped[pv.version] {
 			isWrapped[pv.version] = true
 
 			for _, b := range pageDependencies[p] {

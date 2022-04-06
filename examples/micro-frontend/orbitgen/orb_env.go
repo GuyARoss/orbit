@@ -1,8 +1,8 @@
 package orbitgen
 
 import (
-	"fmt"
 	"context"
+	"fmt"
 )
 
 
@@ -29,14 +29,14 @@ func reactManifestFallback(ctx context.Context, bundleKey string, data []byte, d
 	return doc, ctx
 }
 var staticResourceMap = map[PageRender]bool{
-	AgePage: false,
 	StaticPage: true,
+	AgePage: false,
 	NamePage: false,
 }
 var serverStartupTasks = []func(){}
 var wrapDocRender = map[PageRender]*DocumentRenderer{
-	AgePage: {fn: javascriptWebpack, version: "javascriptWebpack"},
 	StaticPage: {fn: javascriptWebpack, version: "javascriptWebpack"},
+	AgePage: {fn: javascriptWebpack, version: "javascriptWebpack"},
 	NamePage: {fn: reactManifestFallback, version: "reactManifestFallback"},
 }
 
@@ -51,7 +51,7 @@ var javascriptWebpack_bodywrap = []string{
 var reactManifestFallback_bodywrap = []string{
 `<script src="/p/02bab3977c197c77b270370f110270b1.js"></script>`,
 `<script src="/p/8cfc2b31824016492ec09fc306264efd.js"></script>`,
-`<div id="e69702cb-1c79-4d70-9039-dad3117e09fb"></div>`,
+`<div id="5cf7a348-2319-4bde-8a95-aefe3383489c"></div>`,
 }
 
 var bundleDir string = ".orbit/dist"
@@ -61,17 +61,17 @@ var hotReloadPort int = 0
 type PageRender string
 
 const ( 
-	// orbit:page .//pages/age.js
-	AgePage PageRender = "752668a8ac895cdea34ec499148eaa8b"
 	// orbit:page .//pages/static.js
 	StaticPage PageRender = "a33d65b63e235f0788c046da83f123c2"
+	// orbit:page .//pages/age.js
+	AgePage PageRender = "752668a8ac895cdea34ec499148eaa8b"
 	// orbit:page .//pages/name.jsx
 	NamePage PageRender = "d3204a628de15bc7929ef30743f5ff2a"
 )
 
 var pageDependencies = map[PageRender][]string{
-	AgePage: javascriptWebpack_bodywrap,
 	StaticPage: javascriptWebpack_bodywrap,
+	AgePage: javascriptWebpack_bodywrap,
 	NamePage: reactManifestFallback_bodywrap,
 }
 

@@ -1,6 +1,7 @@
 package orbitgen
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -8,6 +9,7 @@ import (
 	"os"
 	"strings"
 )
+
 
 // Request is the standard request payload for the orbit page handler
 // this is just a fancy wrapper around the http request & response that will also assist
@@ -31,65 +33,79 @@ type htmlDoc struct {
 	Body []string
 }
 
-// build builds the htmldocument given data for orbits manifest and the page's
-// javascript bundle key to render the document out to a single string
-func (s *htmlDoc) build(data []byte, pages ...PageRender) string {
-	body := make([]string, 0)
-	head := make([]string, 0)
-	isWrapped := make(map[PageRender]bool)
-
-	for _, p := range pages {
-		if !isWrapped[p] {
-			for _, b := range pageDependencies[p] {
-				head = append(head, b)
-			}
-			isWrapped[p] = true
-		}
-
-		// if the page is of static origin, we first check to see if it exists on the file system
-		// if it does, it will be applied to the current html document, rather than returned directly
-		// this is to support the usage of static html within micro-frontends
-		if staticResourceMap[p] {
-			_, err := os.Stat(publicDir)
-			if !os.IsNotExist(err) {
-				f, err := ioutil.ReadFile(fmt.Sprintf("%s%c%s", http.Dir(bundleDir), os.PathSeparator, p))
-				if err != nil {
-					continue
-				}
-
-				if len(pages) == 1 {
-					return string(f)
-				}
-
-				body = append(body, innerHTML(string(f), "<body>", "</body>"))
-				head = append(head, innerHTML(string(f), "<head>", "</head>"))
-			}
-		}
-	}
-
-	for _, p := range pages {
-		op := wrapDocRender[p]
-
-		if op == nil {
-			continue
-		}
-
-		doc := op.fn(string(p), data, *s)
-		for _, b := range doc.Body {
-			body = append(body, b)
-		}
-
-		for _, h := range doc.Head {
-			head = append(head, h)
-		}
-	}
-
+// render renders the document out to a single string
+func (s *htmlDoc) render() string {
 	return fmt.Sprintf(`
 	<!doctype html>
 	<html lang="en">
 	<head>%s</head>
 	<body>%s</body>
-	</html>`, strings.Join(head, ""), strings.Join(body, ""))
+	</html>`, strings.Join(s.Head, ""), strings.Join(s.Body, ""))
+}
+
+func (s *htmlDoc) merge(doc *htmlDoc) *htmlDoc {
+	s.Body = append(s.Body, doc.Body...)
+	s.Head = append(s.Head, doc.Head...)
+
+	return s
+}
+
+// parseStaticDocument attempts to find the specified document and return it as a string
+func parseStaticDocument(path string) (string, error) {
+	_, err := os.Stat(path)
+	if !os.IsNotExist(err) {
+		f, _ := ioutil.ReadFile(path)
+
+		return string(f), nil
+	}
+
+	return "", fmt.Errorf("static document does not exist for '%s'", publicDir)
+}
+
+// build buildHTMLPages creates the htmldocument given data for orbits manifest and the page's
+func buildHTMLPages(data []byte, pages ...PageRender) *htmlDoc {
+	body := make([]string, 0)
+	head := make([]string, 0)
+	isWrapped := make(map[string]bool)
+
+	for _, p := range pages {
+		// if the page is of static origin, we first check to see if it exists on the file system
+		// if it does, it will be applied to the current html document, rather than returned directly
+		// this is to support the usage of static html within micro-frontends
+		if staticResourceMap[p] {
+			staticDocument, err := parseStaticDocument(fmt.Sprintf("%s%c%s", http.Dir(bundleDir), os.PathSeparator, p))
+			if err == nil {
+				body = append(body, innerHTML(string(staticDocument), "<body>", "</body>"))
+				head = append(head, innerHTML(string(staticDocument), "<head>", "</head>"))
+				continue
+			}
+		}
+
+		// wrapping page content should only happen once as it just creates
+		// the requirements for the specific web wrapper to work correctly
+		pv := wrapDocRender[p]
+		if pv != nil && !isWrapped[pv.version] {
+			isWrapped[pv.version] = true
+
+			for _, b := range pageDependencies[p] {
+				head = append(head, b)
+			}
+		}
+	}
+
+	html := &htmlDoc{
+		Head: head,
+		Body: body,
+	}
+
+	ctx := context.Background()
+	for _, p := range pages {
+		if op := wrapDocRender[p]; op != nil {
+			html, ctx = op.fn(ctx, string(p), data, html)
+		}
+	}
+
+	return html
 }
 
 // innerHTML is a utility function that assists with the parsing the content of html tags
@@ -197,29 +213,45 @@ func (s *Serve) HandleFunc(path string, handler func(c *Request)) {
 		}
 
 		renderPage := func(page PageRender, data interface{}) {
+			if staticResourceMap[page] {
+				if staticDocument, err := parseStaticDocument(fmt.Sprintf("%s%c%s", http.Dir(bundleDir), os.PathSeparator, page)); err == nil {
+					rw.Write([]byte(staticDocument))
+					return
+				}
+			}
+
 			d, err := json.Marshal(data)
 			if err != nil {
 				rw.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 
-			html := s.doc.build(d, page)
+			doc := buildHTMLPages(d, page)
+			doc.merge(s.doc)
 
 			rw.WriteHeader(http.StatusOK)
-			rw.Write([]byte(html))
+			rw.Write([]byte(doc.render()))
 		}
 
 		renderPages := func(data interface{}, pages ...PageRender) {
+			// renderPage (single) has some optimizations for micro-frontends
+			// that should be preferred over the generalized method
+			if len(pages) == 1 {
+				renderPage(pages[0], data)
+				return
+			}
+
 			d, err := json.Marshal(data)
 			if err != nil {
 				rw.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 
-			html := s.doc.build(d, pages...)
+			doc := buildHTMLPages(d, pages...)
+			doc.merge(s.doc)
 
 			rw.WriteHeader(http.StatusOK)
-			rw.Write([]byte(html))
+			rw.Write([]byte(doc.render()))
 		}
 
 		ctx := &Request{
