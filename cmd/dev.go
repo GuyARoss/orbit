@@ -84,20 +84,7 @@ var devCMD = &cobra.Command{
 			for {
 				event := <-hr.Redirected
 
-				changes := make([]string, 0)
-				for _, k := range event.NewBundleKeys {
-					hasMatch := false
-					for _, l := range event.OldBundleKeys {
-						if k == l {
-							hasMatch = true
-							break
-						}
-					}
-
-					if !hasMatch {
-						changes = append(changes, k)
-					}
-				}
+				changes := event.BundleKeys.Diff(event.PreviousBundleKeys)
 
 				wg := &sync.WaitGroup{}
 				wg.Add(len(changes))

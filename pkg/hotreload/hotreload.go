@@ -19,9 +19,30 @@ type HotReloader interface {
 	IsActiveBundle(string) bool
 }
 
+type BundleKeyList []string
+
+func (l BundleKeyList) Diff(bundleList BundleKeyList) BundleKeyList {
+	changes := make([]string, 0)
+	for _, k := range l {
+		hasMatch := false
+		for _, l := range bundleList {
+			if k == l {
+				hasMatch = true
+				break
+			}
+		}
+
+		if !hasMatch {
+			changes = append(changes, k)
+		}
+	}
+
+	return changes
+}
+
 type RedirectionEvent struct {
-	OldBundleKeys []string
-	NewBundleKeys []string
+	PreviousBundleKeys BundleKeyList
+	BundleKeys         BundleKeyList
 }
 
 type HotReload struct {
@@ -29,7 +50,7 @@ type HotReload struct {
 	socket   *websocket.Conn
 	upgrader *websocket.Upgrader
 
-	currentBundleKeys []string
+	currentBundleKeys BundleKeyList
 	Redirected        chan RedirectionEvent
 }
 
@@ -95,8 +116,8 @@ func (s *HotReload) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	switch sockRequest.Operation {
 	case "pages":
 		s.Redirected <- RedirectionEvent{
-			OldBundleKeys: s.currentBundleKeys,
-			NewBundleKeys: sockRequest.Value,
+			PreviousBundleKeys: s.currentBundleKeys,
+			BundleKeys:         sockRequest.Value,
 		}
 		s.currentBundleKeys = sockRequest.Value
 	}
