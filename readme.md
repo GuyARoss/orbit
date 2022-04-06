@@ -1,4 +1,4 @@
-# Orbit &middot; ![prerelease](https://img.shields.io/badge/project-Pre--Release-red) ![codecov](https://img.shields.io/codecov/c/github/guyaross/orbit) [![CodeFactor](https://www.codefactor.io/repository/github/guyaross/orbit/badge)](https://www.codefactor.io/repository/github/guyaross/orbit) [![GitHub license](https://img.shields.io/badge/license-GNU_GPLv3-blue.svg)](./LICENSE) 
+# Orbit &middot; ![prerelease](https://img.shields.io/badge/project-Pre--Release-red) [![codecov](https://img.shields.io/codecov/c/github/guyaross/orbit)](https://app.codecov.io/gh/GuyARoss/orbit/) [![CodeFactor](https://www.codefactor.io/repository/github/guyaross/orbit/badge)](https://www.codefactor.io/repository/github/guyaross/orbit) [![GitHub license](https://img.shields.io/badge/license-GNU_GPLv3-blue.svg)](./LICENSE) 
 Orbit is a golang server side processing framework for building server side web applications.
 
 - **Micro-frontend**: Out of the box support for React and vanilla JavaScript micro frontends.

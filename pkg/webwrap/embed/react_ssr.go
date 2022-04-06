@@ -30,10 +30,10 @@ func reactSSRNodeServerStartup() {
 
 	for b, r := range wrapDocRender {
 		if r.version == "reactSSR" && staticResourceMap[b] {
-			sr := reactSSR(string(b), []byte("{}"), *d)
+			sr, _ := reactSSR(context.Background(), string(b), []byte("{}"), d)
 
 			path := fmt.Sprintf("%s%c%s", http.Dir(bundleDir), os.PathSeparator, b)
-			body := append(wrapBody[b], sr.Body...)
+			body := append(pageDependencies[b], sr.Body...)
 
 			so := fmt.Sprintf(`<!doctype html><head>%s</head><body>%s</body></html>`, strings.Join(sr.Head, ""), strings.Join(body, ""))
 
@@ -97,10 +97,10 @@ func nodeServerInstance() error {
 	return nil
 }
 
-func reactSSR(bundleKey string, data []byte, doc htmlDoc) htmlDoc {
+func reactSSR(ctx context.Context, bundleKey string, data []byte, doc *htmlDoc) (*htmlDoc, context.Context) {
 	if nodeProcess == nil {
 		fmt.Println("react ssr process has not yet boot")
-		return htmlDoc{}
+		return doc, ctx
 	}
 
 	opts := []grpc.DialOption{
@@ -126,5 +126,5 @@ func reactSSR(bundleKey string, data []byte, doc htmlDoc) htmlDoc {
 
 	doc.Body = append(doc.Body, response.StaticContent)
 
-	return doc
+	return doc, ctx
 }

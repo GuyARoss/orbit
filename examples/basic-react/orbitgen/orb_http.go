@@ -1,14 +1,13 @@
 package orbitgen
 
 import (
-	"strings"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 )
-
 
 // Request is the standard request payload for the orbit page handler
 // this is just a fancy wrapper around the http request & response that will also assist
@@ -41,7 +40,7 @@ func (s *htmlDoc) build(data []byte, pages ...PageRender) string {
 
 	for _, p := range pages {
 		if !isWrapped[p] {
-			for _, b := range wrapBody[p] {
+			for _, b := range pageDependencies[p] {
 				head = append(head, b)
 			}
 			isWrapped[p] = true

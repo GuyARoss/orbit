@@ -2,26 +2,31 @@ package orbitgen
 
 import (
 	"fmt"
+	"context"
 )
 
 
-func javascriptWebpack(bundleKey string, data []byte, doc htmlDoc) htmlDoc {
-	doc.Head = append(doc.Head, fmt.Sprintf(`<script id="orbit_manifest" type="application/json">%s</script>`, data))
-	doc.Head = append(doc.Head, `<script> const onLoadTasks = []; window.onload = (e) => { onLoadTasks.forEach(t => t(e))} </script>`)
+func javascriptWebpack(ctx context.Context, bundleKey string, data []byte, doc *htmlDoc) (*htmlDoc, context.Context) {
+	if v := ctx.Value(OrbitManifest); v == nil {
+		doc.Head = append(doc.Head, fmt.Sprintf(`<script id="orbit_manifest" type="application/json">%s</script>`, data))
+		ctx = context.WithValue(ctx, OrbitManifest, true)
+	}
 
-	doc.Body = append(doc.Body, fmt.Sprintf(`<script id="orbit_bk" src="/p/%s.js"></script>`, bundleKey))
+	doc.Body = append(doc.Body, fmt.Sprintf(`<script class="orbit_bk" src="/p/%s.js"></script>`, bundleKey))
 
-	return doc
+	return doc, ctx
 }
 
 
-func reactManifestFallback(bundleKey string, data []byte, doc htmlDoc) htmlDoc {
-	// the "orbit_manifest" refers to the object content that the specified
-	// web javascript bundle can make use of
-	doc.Head = append(doc.Head, fmt.Sprintf(`<script id="orbit_manifest" type="application/json">%s</script>`, data))
-	doc.Body = append(doc.Body, fmt.Sprintf(`<script id="orbit_bk" src="/p/%s.js"></script>`, bundleKey))
+func reactManifestFallback(ctx context.Context, bundleKey string, data []byte, doc *htmlDoc) (*htmlDoc, context.Context) {
+	if v := ctx.Value(OrbitManifest); v == nil {
+		doc.Head = append(doc.Head, fmt.Sprintf(`<script id="orbit_manifest" type="application/json">%s</script>`, data))
+		ctx = context.WithValue(ctx, OrbitManifest, true)
+	}
 
-	return doc
+	doc.Body = append(doc.Body, fmt.Sprintf(`<script class="orbit_bk" src="/p/%s.js"></script>`, bundleKey))
+
+	return doc, ctx
 }
 var staticResourceMap = map[PageRender]bool{
 	AgePage: false,
@@ -36,16 +41,17 @@ var wrapDocRender = map[PageRender]*DocumentRenderer{
 }
 
 type DocumentRenderer struct {
-	fn func(string, []byte, htmlDoc) htmlDoc
+	fn func(context.Context, string, []byte, *htmlDoc) (*htmlDoc, context.Context)
 	version string
 }
+var javascriptWebpack_bodywrap = []string{
+`<script> const onLoadTasks = []; window.onload = (e) => { onLoadTasks.forEach(t => t(e))} </script>`,
+}
+
 var reactManifestFallback_bodywrap = []string{
 `<script src="/p/02bab3977c197c77b270370f110270b1.js"></script>`,
 `<script src="/p/8cfc2b31824016492ec09fc306264efd.js"></script>`,
-`<div id="2fe08a58-7834-4606-a965-3dcf1089213e"></div>`,
-}
-
-var javascriptWebpack_bodywrap = []string{
+`<div id="e69702cb-1c79-4d70-9039-dad3117e09fb"></div>`,
 }
 
 var bundleDir string = ".orbit/dist"
@@ -63,11 +69,18 @@ const (
 	NamePage PageRender = "d3204a628de15bc7929ef30743f5ff2a"
 )
 
-var wrapBody = map[PageRender][]string{
+var pageDependencies = map[PageRender][]string{
 	AgePage: javascriptWebpack_bodywrap,
 	StaticPage: javascriptWebpack_bodywrap,
 	NamePage: reactManifestFallback_bodywrap,
 }
+
+	
+type HydrationCtxKey string
+
+const (
+	OrbitManifest HydrationCtxKey = "orbitManifest"
+)
 
 type BundleMode int32
 
