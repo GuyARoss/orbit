@@ -16,7 +16,7 @@ var bundleDir string = ".orbit/dist"
 
 var staticResourceMap map[PageRender]bool
 
-var wrapBody map[PageRender][]string
+var pageDependencies map[PageRender][]string
 
 var serverStartupTasks = []func(){}
 
@@ -28,3 +28,9 @@ type DocumentRenderer struct {
 }
 
 var wrapDocRender = map[PageRender]DocumentRenderer{}
+
+type HydrationCtxKey string
+
+const (
+	OrbitManifest HydrationCtxKey = "orbitManifest"
+)

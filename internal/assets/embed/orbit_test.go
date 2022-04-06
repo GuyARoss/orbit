@@ -1,7 +1,9 @@
 package orbit
 
 import (
+	"context"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -315,6 +317,108 @@ func TestHandleFunc(t *testing.T) {
 	}
 }
 
+func TestHandleFuncs(t *testing.T) {
+	writer := &mockResponseWriter{
+		mockWriteHeader: func(statusCode int) {},
+		mockWrite:       func(b []byte) (int, error) { return 0, nil },
+		mockHeader:      func() http.Header { return make(http.Header) },
+	}
+
+	reg := false
+
+	var tt = []struct {
+		headFn      func(int)
+		handler     func(*Request)
+		path        string
+		requestPath string
+	}{
+		// ensure the correct error code is transmitted when bad manifest
+		// data is passed to render page.
+		{
+			func(code int) {
+				reg = true
+				if code != http.StatusInternalServerError {
+					t.Errorf("expected status 500 upon bad manifest data got %d", code)
+				}
+			},
+			func(c *Request) {
+				c.RenderPages(c, "")
+			},
+			"/test", "/test",
+		},
+
+		// status ok when manifest data is valid
+		{
+			func(code int) {
+				reg = true
+				if code != http.StatusOK {
+					t.Errorf("expected status 200 upon valid manifest data got %d", code)
+				}
+			},
+			func(c *Request) {
+				props := make(map[string]interface{})
+				props["test"] = "test_data"
+
+				c.RenderPages(props, "")
+			},
+			"/test", "/test",
+		},
+
+		// status ok when manifest data is nil
+		{
+			func(code int) {
+				reg = true
+				if code != http.StatusOK {
+					t.Errorf("expected status 200 upon nil manifest data got %d", code)
+				}
+			},
+			func(c *Request) {
+				c.RenderPages(nil, "")
+			},
+			"/test", "/test",
+		},
+
+		// status bad request slug count is invalid for this request.
+		{
+			func(code int) {
+				reg = true
+				if code != http.StatusBadRequest {
+					t.Errorf("expected status 400 upon incorrectly formatted slugs got %d", code)
+				}
+			},
+			func(c *Request) {
+				c.RenderPages(nil, "")
+			},
+			"/test/{cat}/{dog}", "/test/",
+		},
+	}
+
+	for _, d := range tt {
+		reg = false
+
+		writer.mockWriteHeader = d.headFn
+
+		s := &Serve{
+			mux: &mockHandle{
+				requestPath:   d.requestPath,
+				requestMethod: "get",
+				writer:        writer,
+				checkPath:     func(s string) {},
+			},
+			doc: &htmlDoc{[]string{}, []string{}},
+		}
+
+		s.HandleFunc(d.path, func(c *Request) {
+			d.handler(c)
+		})
+
+		// test case was not ran, fail anyways
+		if !reg {
+			t.Error("test routine did not resolve")
+		}
+	}
+}
+
 func TestServe(t *testing.T) {
 	s := &Serve{
 		mux: &mockHandle{
@@ -330,6 +434,77 @@ func TestServe(t *testing.T) {
 	if f == nil {
 		t.Error("invalid serve")
 	}
+}
+
+func TestBuildHTMLPages(t *testing.T) {
+	t.Run("use static content", func(t *testing.T) {
+		p := PageRender("thing")
+		staticResourceMap[p] = true
+
+		tmpDir := t.TempDir()
+
+		tempBdir := bundleDir
+		bundleDir = tmpDir
+
+		t.Cleanup(func() {
+			bundleDir = tempBdir
+		})
+
+		dir := fmt.Sprintf("%s%c%s", http.Dir(tmpDir), os.PathSeparator, p)
+
+		ioutil.WriteFile(dir, []byte("<body> thing </body> <head> thint2 </head>"), 0666)
+
+		o := buildHTMLPages([]byte(""), p)
+
+		if len(o.Head) != 1 && len(o.Body) != 1 {
+			t.Errorf("body and head len do not match")
+		}
+	})
+
+	t.Run("wrap content", func(t *testing.T) {
+		p := PageRender("wrapme")
+
+		wrapDocRender[p] = &DocumentRenderer{
+			fn: func(ctx context.Context, s string, b []byte, hd *htmlDoc) (*htmlDoc, context.Context) {
+				hd.Body = append(hd.Body, "thing thing")
+				return hd, ctx
+			},
+			version: "some_version",
+		}
+
+		t.Cleanup(func() {
+			wrapDocRender[p] = nil
+		})
+
+		o := buildHTMLPages([]byte(""), p)
+		if len(o.Body) != 1 {
+			t.Errorf("did not apply wrap doc correctly")
+		}
+	})
+}
+
+func TestParseStaticDocument(t *testing.T) {
+	t.Run("valid content", func(t *testing.T) {
+		tempDir := t.TempDir()
+		dir := fmt.Sprintf("%s/test.html", tempDir)
+		ioutil.WriteFile(dir, []byte("stuff"), 0666)
+
+		f, err := parseStaticDocument(dir)
+		if err != nil {
+			t.Errorf("should not throw error")
+		}
+
+		if f != "stuff" {
+			t.Errorf("did not get expected static document content")
+		}
+	})
+
+	t.Run("no content", func(t *testing.T) {
+		_, err := parseStaticDocument("not real")
+		if err == nil {
+			t.Errorf("error should have been thrown")
+		}
+	})
 }
 
 func TestNew_ValidPublicDir(t *testing.T) {

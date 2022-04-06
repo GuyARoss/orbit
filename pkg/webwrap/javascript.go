@@ -46,7 +46,9 @@ func (s *JavascriptWrapper) Version() string {
 }
 
 func (s *JavascriptWrapper) RequiredBodyDOMElements(ctx context.Context, cache *CacheDOMOpts) []string {
-	return []string{}
+	return []string{
+		`<script> const onLoadTasks = []; window.onload = (e) => { onLoadTasks.forEach(t => t(e))} </script>`,
+	}
 }
 
 func (b *JavascriptWrapper) Setup(ctx context.Context, settings *BundleOpts) ([]*BundledResource, error) {

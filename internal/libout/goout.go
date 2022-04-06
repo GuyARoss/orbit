@@ -185,6 +185,7 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 	out := strings.Builder{}
 
 	b := newParsedGoFile()
+	b.Imports["context"] = true
 
 	for _, p := range bg.pages {
 		// since all of the the valid bundle names can only be refererred to "pages"
@@ -247,7 +248,7 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 
 	out.WriteString(`
 type DocumentRenderer struct {
-	fn func(string, []byte, htmlDoc) htmlDoc
+	fn func(context.Context, string, []byte, *htmlDoc) (*htmlDoc, context.Context)
 	version string
 }`)
 
@@ -303,7 +304,7 @@ type DocumentRenderer struct {
 		}
 	}
 
-	out.WriteString("\nvar wrapBody = map[PageRender][]string{\n")
+	out.WriteString("\nvar pageDependencies = map[PageRender][]string{\n")
 
 	for _, p := range bg.pages {
 		out.WriteString(fmt.Sprintf(`	%s: %s_bodywrap,`, p.name, p.wrapVersion))
@@ -313,6 +314,15 @@ type DocumentRenderer struct {
 	out.WriteString("}")
 
 	out.WriteString("\n")
+
+	out.WriteString(`
+	
+type HydrationCtxKey string
+
+const (
+	OrbitManifest HydrationCtxKey = "orbitManifest"
+)
+`)
 
 	out.WriteString(`
 type BundleMode int32
