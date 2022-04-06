@@ -3,6 +3,7 @@ package hotreload
 import (
 	"testing"
 
+	"github.com/GuyARoss/orbit/pkg/hotreload/mock"
 	"github.com/gorilla/websocket"
 )
 
@@ -15,6 +16,37 @@ func TestBundleKeyListDiff(t *testing.T) {
 	if len(p) != 2 {
 		t.Errorf("expected 'cat', 'dog' and got %s", p)
 	}
+}
+
+func TestHotReloadReloadSingal(t *testing.T) {
+	t.Run("active socket", func(t *testing.T) {
+		s := &mock.MockSocket{}
+
+		hr := &HotReload{
+			currentBundleKeys: []string{},
+			socket:            s,
+		}
+
+		err := hr.ReloadSignal()
+		if err != nil {
+			t.Errorf("should not throw err")
+		}
+
+		if !s.DidWrite {
+			t.Errorf("did not write")
+		}
+	})
+	t.Run("inactive socket", func(t *testing.T) {
+		hr := &HotReload{
+			currentBundleKeys: []string{},
+			socket:            nil,
+		}
+
+		err := hr.ReloadSignal()
+		if err != nil {
+			t.Errorf("should not throw err")
+		}
+	})
 }
 
 func TestHotReloadActiveBundle(t *testing.T) {

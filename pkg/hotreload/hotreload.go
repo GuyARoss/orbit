@@ -45,9 +45,15 @@ type RedirectionEvent struct {
 	BundleKeys         BundleKeyList
 }
 
+type socket interface {
+	WriteJSON(interface{}) error
+	Close() error
+	ReadJSON(interface{}) error
+}
+
 type HotReload struct {
 	m        *sync.Mutex
-	socket   *websocket.Conn
+	socket   socket
 	upgrader *websocket.Upgrader
 
 	currentBundleKeys BundleKeyList
@@ -69,15 +75,18 @@ func (s *HotReload) ReloadSignal() error {
 	return nil
 }
 
+// IsActiveBundle determines if a bundle is currently active in the web browser
 func (s *HotReload) IsActiveBundle(key string) bool {
-	if s.IsActive() {
-		for _, k := range s.currentBundleKeys {
-			if k == key {
-				return true
-			}
-		}
-	} else {
+	// only does the check if the browser is connected
+	// if the browser is not connected we return true
+	if !s.IsActive() {
 		return true
+	}
+
+	for _, k := range s.currentBundleKeys {
+		if k == key {
+			return true
+		}
 	}
 
 	return false
@@ -91,6 +100,10 @@ func (s *HotReload) CurrentBundleKeys() []string {
 	return s.currentBundleKeys
 }
 
+func (s *HotReload) upgraderSocket(w http.ResponseWriter, r *http.Request) (socket, error) {
+	return s.upgrader.Upgrade(w, r, nil)
+}
+
 func (s *HotReload) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	s.m.Lock()
 
@@ -99,7 +112,8 @@ func (s *HotReload) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		s.socket.Close()
 	}
 
-	c, err := s.upgrader.Upgrade(w, r, nil)
+	c, err := s.upgraderSocket(w, r)
+
 	if err != nil {
 		panic(err)
 	}
