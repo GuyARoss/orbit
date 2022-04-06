@@ -84,8 +84,12 @@ func (s *devSession) DoFileChangeRequest(filePath string, opts *ChangeRequestOpt
 		return ErrFileTooRecentlyProcessed
 	}
 
-	root := s.RootComponents[filePath]
+	// file detected in the orbit output, we don't want to process any of these
+	if strings.Contains(filePath, ".orbit") {
+		return nil
+	}
 
+	root := s.RootComponents[filePath]
 	// if components' bundle is the current bundle that is open in the browser
 	// recompute bundle and send refresh signal back to browser
 	if root != nil && opts.HotReload.IsActiveBundle(root.BundleKey()) {
@@ -167,7 +171,7 @@ func (s *devSession) IndirectFileChangeRequest(sources []string, indirectFile st
 	for _, source := range sources {
 		component := s.RootComponents.Find(source)
 
-		if component.BundleKey() != opts.HotReload.CurrentBundleKey() {
+		if !opts.HotReload.IsActiveBundle(component.BundleKey()) {
 			continue
 		}
 

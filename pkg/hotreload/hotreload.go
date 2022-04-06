@@ -14,14 +14,14 @@ import (
 type HotReloader interface {
 	ReloadSignal() error
 	HandleWebSocket(w http.ResponseWriter, r *http.Request)
-	CurrentBundleKey() string
+	CurrentBundleKeys() []string
 	IsActive() bool
 	IsActiveBundle(string) bool
 }
 
 type RedirectionEvent struct {
-	OldBundleKey string
-	NewBundleKey string
+	OldBundleKeys []string
+	NewBundleKeys []string
 }
 
 type HotReload struct {
@@ -29,13 +29,13 @@ type HotReload struct {
 	socket   *websocket.Conn
 	upgrader *websocket.Upgrader
 
-	currentBundleKey string
-	Redirected       chan RedirectionEvent
+	currentBundleKeys []string
+	Redirected        chan RedirectionEvent
 }
 
 type SocketRequest struct {
-	Operation string `json:"operation"`
-	Value     string `json:"value"`
+	Operation string   `json:"operation"`
+	Value     []string `json:"value"`
 }
 
 func (s *HotReload) ReloadSignal() error {
@@ -50,18 +50,24 @@ func (s *HotReload) ReloadSignal() error {
 
 func (s *HotReload) IsActiveBundle(key string) bool {
 	if s.IsActive() {
-		return s.currentBundleKey == key
+		for _, k := range s.currentBundleKeys {
+			if k == key {
+				return true
+			}
+		}
+	} else {
+		return true
 	}
 
-	return true
+	return false
 }
 
 func (s *HotReload) IsActive() bool {
 	return s.socket != nil
 }
 
-func (s *HotReload) CurrentBundleKey() string {
-	return s.currentBundleKey
+func (s *HotReload) CurrentBundleKeys() []string {
+	return s.currentBundleKeys
 }
 
 func (s *HotReload) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
@@ -87,12 +93,12 @@ func (s *HotReload) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	s.socket = c
 
 	switch sockRequest.Operation {
-	case "page":
+	case "pages":
 		s.Redirected <- RedirectionEvent{
-			OldBundleKey: s.currentBundleKey,
-			NewBundleKey: sockRequest.Value,
+			OldBundleKeys: s.currentBundleKeys,
+			NewBundleKeys: sockRequest.Value,
 		}
-		s.currentBundleKey = sockRequest.Value
+		s.currentBundleKeys = sockRequest.Value
 	}
 
 	s.m.Unlock()
@@ -105,8 +111,9 @@ func New() *HotReload {
 	}
 
 	return &HotReload{
-		m:          &sync.Mutex{},
-		upgrader:   u,
-		Redirected: make(chan RedirectionEvent),
+		m:                 &sync.Mutex{},
+		upgrader:          u,
+		Redirected:        make(chan RedirectionEvent),
+		currentBundleKeys: make([]string, 0),
 	}
 }

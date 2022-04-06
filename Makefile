@@ -8,3 +8,6 @@ example:
 
 license:
 	python3 ./scripts/license.py
+
+test:
+	go test `go list ./... | grep -v examples`
