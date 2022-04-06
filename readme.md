@@ -59,7 +59,7 @@ func main() {
         // renders a single page & passes props into the component
         c.RenderPage(orbitgen.HelloWorldComponent, props)
 
-        // can also use c.RenderPages(...) to make build a micro-frontend
+        // can also use c.RenderPages(...) to build a micro-frontend
     })
 
     http.ListenAndServe(":3030", orb.Serve())
