@@ -14,28 +14,55 @@ import (
 type HotReloader interface {
 	ReloadSignal() error
 	HandleWebSocket(w http.ResponseWriter, r *http.Request)
-	CurrentBundleKey() string
+	CurrentBundleKeys() []string
 	IsActive() bool
 	IsActiveBundle(string) bool
 }
 
+type BundleKeyList []string
+
+func (l BundleKeyList) Diff(bundleList BundleKeyList) BundleKeyList {
+	changes := make([]string, 0)
+	for _, k := range l {
+		hasMatch := false
+		for _, l := range bundleList {
+			if k == l {
+				hasMatch = true
+				break
+			}
+		}
+
+		if !hasMatch {
+			changes = append(changes, k)
+		}
+	}
+
+	return changes
+}
+
 type RedirectionEvent struct {
-	OldBundleKey string
-	NewBundleKey string
+	PreviousBundleKeys BundleKeyList
+	BundleKeys         BundleKeyList
+}
+
+type socket interface {
+	WriteJSON(interface{}) error
+	Close() error
+	ReadJSON(interface{}) error
 }
 
 type HotReload struct {
 	m        *sync.Mutex
-	socket   *websocket.Conn
+	socket   socket
 	upgrader *websocket.Upgrader
 
-	currentBundleKey string
-	Redirected       chan RedirectionEvent
+	currentBundleKeys BundleKeyList
+	Redirected        chan RedirectionEvent
 }
 
 type SocketRequest struct {
-	Operation string `json:"operation"`
-	Value     string `json:"value"`
+	Operation string   `json:"operation"`
+	Value     []string `json:"value"`
 }
 
 func (s *HotReload) ReloadSignal() error {
@@ -48,20 +75,33 @@ func (s *HotReload) ReloadSignal() error {
 	return nil
 }
 
+// IsActiveBundle determines if a bundle is currently active in the web browser
 func (s *HotReload) IsActiveBundle(key string) bool {
-	if s.IsActive() {
-		return s.currentBundleKey == key
+	// only does the check if the browser is connected
+	// if the browser is not connected we return true
+	if !s.IsActive() {
+		return true
 	}
 
-	return true
+	for _, k := range s.currentBundleKeys {
+		if k == key {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (s *HotReload) IsActive() bool {
 	return s.socket != nil
 }
 
-func (s *HotReload) CurrentBundleKey() string {
-	return s.currentBundleKey
+func (s *HotReload) CurrentBundleKeys() []string {
+	return s.currentBundleKeys
+}
+
+func (s *HotReload) upgraderSocket(w http.ResponseWriter, r *http.Request) (socket, error) {
+	return s.upgrader.Upgrade(w, r, nil)
 }
 
 func (s *HotReload) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
@@ -72,7 +112,8 @@ func (s *HotReload) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		s.socket.Close()
 	}
 
-	c, err := s.upgrader.Upgrade(w, r, nil)
+	c, err := s.upgraderSocket(w, r)
+
 	if err != nil {
 		panic(err)
 	}
@@ -87,12 +128,12 @@ func (s *HotReload) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	s.socket = c
 
 	switch sockRequest.Operation {
-	case "page":
+	case "pages":
 		s.Redirected <- RedirectionEvent{
-			OldBundleKey: s.currentBundleKey,
-			NewBundleKey: sockRequest.Value,
+			PreviousBundleKeys: s.currentBundleKeys,
+			BundleKeys:         sockRequest.Value,
 		}
-		s.currentBundleKey = sockRequest.Value
+		s.currentBundleKeys = sockRequest.Value
 	}
 
 	s.m.Unlock()
@@ -105,8 +146,9 @@ func New() *HotReload {
 	}
 
 	return &HotReload{
-		m:          &sync.Mutex{},
-		upgrader:   u,
-		Redirected: make(chan RedirectionEvent),
+		m:                 &sync.Mutex{},
+		upgrader:          u,
+		Redirected:        make(chan RedirectionEvent),
+		currentBundleKeys: make([]string, 0),
 	}
 }

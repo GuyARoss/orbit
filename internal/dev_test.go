@@ -115,7 +115,10 @@ func TestDoChangeRequest_IndirectFile(t *testing.T) {
 		},
 	}
 
-	hotReloader := &hotreloadmock.MockHotReload{}
+	hotReloader := &hotreloadmock.MockHotReload{
+		Active: true,
+	}
+
 	err := s.DoFileChangeRequest(fn, &ChangeRequestOpts{
 		SafeFileTimeout: time.Hour * 2,
 		HotReload:       hotReloader,
@@ -133,8 +136,9 @@ func TestDoChangeRequest_IndirectFile(t *testing.T) {
 	if hotReloader.DidReload == false {
 		t.Errorf("hot reloading did not occur after file processing")
 	}
+
 	if comp.WasRepacked == false {
-		t.Errorf("packing did not occur during direct file processing")
+		t.Errorf("packing did not occur during indirect file processing")
 	}
 
 	if len(s.SourceMap["./test/react.js"]) != 1 {

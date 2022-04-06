@@ -4,12 +4,14 @@
 
 package mock
 
-import "net/http"
+import (
+	"net/http"
+)
 
 type MockHotReload struct {
-	DidReload        bool
-	currentBundleKey string
-	reloadErr        error
+	DidReload         bool
+	currentBundleKeys []string
+	reloadErr         error
 
 	Active bool
 }
@@ -23,11 +25,10 @@ func (m *MockHotReload) IsActiveBundle(string) bool {
 
 func (m *MockHotReload) ReloadSignal() error {
 	m.DidReload = true
-
 	return m.reloadErr
 }
 
 func (m *MockHotReload) HandleWebSocket(w http.ResponseWriter, r *http.Request) {}
-func (m *MockHotReload) CurrentBundleKey() string {
-	return m.currentBundleKey
+func (m *MockHotReload) CurrentBundleKeys() []string {
+	return m.currentBundleKeys
 }

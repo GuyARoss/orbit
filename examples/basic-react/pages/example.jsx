@@ -1,7 +1,7 @@
 const Example = ({day, month, year}) => {
     return (
         <>
-            <h1>Orbit</h1>
+            <h1>Orbit!</h1>
             <p>Welcome to this example!</p>
             <p>
                 Today is {day}/{month}/{year}

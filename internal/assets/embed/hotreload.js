@@ -1,5 +1,5 @@
 function isHotReloadReady() {
-    return document.getElementById("orbit_bk") !== null
+    return document.getElementsByClassName('orbit_bk').length > 0
 }
 
 function debugData() {
@@ -32,16 +32,18 @@ async function createSocket() {
 }
 
 async function initHotReload() {
-    const keys = document.getElementById("orbit_bk").attributes["src"].value.split("/")
-    const primaryKey = keys[keys.length -1].replace(".js", "")
+    const primaryKeys = Array.from(document.getElementsByClassName("orbit_bk")).map(x => {
+        const k = x.attributes["src"].value.split("/")
+        return k[k.length -1].replace(".js", "")
+    })
     
     try {
         const socket = await createSocket()
 
         socket.onopen = function() {        
             socket.send(JSON.stringify({
-                operation: "page",
-                value: primaryKey,
+                operation: "pages",
+                value: primaryKeys,
             }))
         }
     

@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/GuyARoss/orbit/internal"
@@ -49,7 +50,7 @@ var devCMD = &cobra.Command{
 
 		hotReload := hotreload.New()
 
-		if err := filepath.Walk(fsutils.NormalizePath("./"), WatchDir(watcher)); err != nil {
+		if err := filepath.Walk(fsutils.NormalizePath(viper.GetString("webdir")), WatchDir(watcher)); err != nil {
 			panic("invalid walk on watchDir")
 		}
 
@@ -83,14 +84,21 @@ var devCMD = &cobra.Command{
 			for {
 				event := <-hr.Redirected
 
-				if event.NewBundleKey == event.OldBundleKey {
-					continue
+				changes := event.BundleKeys.Diff(event.PreviousBundleKeys)
+
+				wg := &sync.WaitGroup{}
+				wg.Add(len(changes))
+				for _, r := range changes {
+					go func(change string, wg *sync.WaitGroup) {
+						err := s.DoBundleKeyChangeRequest(change, fileChangeOpts)
+						if err != nil {
+							fmt.Println(err)
+						}
+						wg.Done()
+					}(r, wg)
 				}
 
-				err := s.DoBundleKeyChangeRequest(event.NewBundleKey, fileChangeOpts)
-				if err != nil {
-					fmt.Println(err)
-				}
+				wg.Wait()
 			}
 		}(hotReload)
 

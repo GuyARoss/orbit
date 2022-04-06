@@ -12,7 +12,7 @@ To run the project, please first download the required tools.
 After golang is installed on your machine, you can build with `go run build`
 
 ### Running tests
-After golang is installed on your machine, you can run tests with `go test`
+You can run the tests with `make test`
 
 ### Committing code
 This project uses the golang project standard for commit messages, you find it [here](https://go.dev/doc/contribute#commit_messages).
