@@ -19,7 +19,7 @@ Orbit is a golang server side processing framework for building server side web 
 - **Manual Installation**: To install manually, clone this repo and compile it with `go build`.
 
 ## Examples
-There are several examples exist in the [./examples](/examples). Here is a basic one to get you up and running.
+There are several examples that exist in the [./examples](/examples). Here is a basic one to get you up and running.
 
 1. Initialize the workspace directory with `orbit init`, then follow the prompts
 2. Create a react component
