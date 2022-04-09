@@ -15,7 +15,6 @@ import (
 
 	"github.com/GuyARoss/orbit/internal"
 	"github.com/GuyARoss/orbit/internal/srcpack"
-	"github.com/GuyARoss/orbit/pkg/fsutils"
 	"github.com/GuyARoss/orbit/pkg/hotreload"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/log"
@@ -50,7 +49,7 @@ var devCMD = &cobra.Command{
 
 		hotReload := hotreload.New()
 
-		if err := filepath.Walk(fsutils.NormalizePath(viper.GetString("webdir")), WatchDir(watcher)); err != nil {
+		if err := filepath.Walk(viper.GetString("webdir"), WatchDir(watcher)); err != nil {
 			panic("invalid walk on watchDir")
 		}
 

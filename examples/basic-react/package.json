@@ -30,7 +30,6 @@
   },
   "devDependencies": {
     "@babel/core": "^7.17.8",
-    "@babel/node": "^7.16.8",
-    "@babel/preset-react": "^7.16.7"
+    "@babel/node": "^7.16.8"
   }
 }

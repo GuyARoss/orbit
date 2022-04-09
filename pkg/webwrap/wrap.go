@@ -19,10 +19,10 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/GuyARoss/orbit/pkg/embedutils"
-	"github.com/GuyARoss/orbit/pkg/fsutils"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/log"
 	"github.com/spf13/viper"
@@ -140,7 +140,9 @@ type embedFileReader struct {
 }
 
 func (r *embedFileReader) Read() (fs.File, error) {
-	return embedFiles.Open(fsutils.NormalizePath(fmt.Sprintf("embed/%s", r.fileName)))
+	fpath := path.Join("embed", r.fileName)
+
+	return embedFiles.Open(fpath)
 }
 
 func (c *CacheDOMOpts) CacheWebRequest(uris []string) ([]string, error) {

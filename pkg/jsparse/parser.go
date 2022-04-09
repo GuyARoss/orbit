@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-
-	"github.com/GuyARoss/orbit/pkg/fsutils"
 )
 
 type JSParser interface {
@@ -28,11 +26,11 @@ func (p *EmptyParser) Parse(string, string) (JSDocument, error) {
 type JSFileParser struct{}
 
 func (p *JSFileParser) Parse(pageDir string, webDir string) (JSDocument, error) {
-	if len(pageDir) >= 2 && pageDir[0:2] != fsutils.NormalizePath("./") {
-		pageDir = fsutils.NormalizePath(fmt.Sprintf("./%s", pageDir))
+	if len(pageDir) >= 2 && pageDir[0:2] != "./" {
+		pageDir = fmt.Sprintf("./%s", pageDir)
 	}
 
-	file, err := os.Open(fsutils.NormalizePath(pageDir))
+	file, err := os.Open(pageDir)
 	if err != nil {
 		return nil, err
 	}

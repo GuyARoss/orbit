@@ -6,8 +6,6 @@ package jsparse
 
 import (
 	"testing"
-
-	"github.com/GuyARoss/orbit/pkg/fsutils"
 )
 
 func TestFormatImportLine(t *testing.T) {
@@ -29,8 +27,8 @@ func TestFormatImportLine(t *testing.T) {
 	for i, c := range tt {
 		got := p.formatImportLine(c.i)
 
-		if fsutils.NormalizePath(c.o) != got.FinalStatement {
-			t.Errorf("(%d) expected %s got %s \n", i, fsutils.NormalizePath(c.o), got.FinalStatement)
+		if c.o != got.FinalStatement {
+			t.Errorf("(%d) expected %s got %s \n", i, c.o, got.FinalStatement)
 		}
 	}
 }
