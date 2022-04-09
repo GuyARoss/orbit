@@ -15,6 +15,7 @@ Orbit is a golang server side processing framework for building server side web 
 
 
 ## Installation
+- **Go Install**: To install with go install, you can use the command `go install github.com/GuyARoss/orbit@latest`
 - **Manual Installation**: To install manually, clone this repo and compile it with `go build`.
 
 ## Examples
