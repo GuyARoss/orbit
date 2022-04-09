@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 0.7.1 (April 9, 2022)
+
+Bugfixes:
+- [#82](https://github.com/GuyARoss/orbit/issues/82): Fix for windows support
+
 ## 0.7.0 (April 8, 2022)
 
 Enhancements:
