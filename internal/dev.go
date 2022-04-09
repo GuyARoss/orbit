@@ -219,9 +219,9 @@ func (s *devSession) NewPageFileChangeRequest(ctx context.Context, file string) 
 		ats.AssetKey(assets.Tests),
 		ats.AssetKey(assets.PrimaryPackage),
 	), &libout.FilePathOpts{
-		TestFile: fsutils.NormalizePath(fmt.Sprintf("%s/%s/orb_test.go", s.OutDir, s.Pacname)),
-		EnvFile:  fsutils.NormalizePath(fmt.Sprintf("%s/%s/orb_env.go", s.OutDir, s.Pacname)),
-		HTTPFile: fsutils.NormalizePath(fmt.Sprintf("%s/%s/orb_http.go", s.OutDir, s.Pacname)),
+		TestFile: fmt.Sprintf("%s/%s/orb_test.go", s.OutDir, s.Pacname),
+		EnvFile:  fmt.Sprintf("%s/%s/orb_env.go", s.OutDir, s.Pacname),
+		HTTPFile: fmt.Sprintf("%s/%s/orb_http.go", s.OutDir, s.Pacname),
 	})
 	if err != nil {
 		return err
@@ -265,7 +265,7 @@ func New(ctx context.Context, opts *SessionOpts) (*devSession, error) {
 		return nil, err
 	}
 
-	c, err := CachedEnvFromFile(fsutils.NormalizePath(fmt.Sprintf("%s/%s/orb_env.go", opts.OutDir, opts.Pacname)))
+	c, err := CachedEnvFromFile(fmt.Sprintf("%s/%s/orb_env.go", opts.OutDir, opts.Pacname))
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		panic(err)
 	}
@@ -278,7 +278,7 @@ func New(ctx context.Context, opts *SessionOpts) (*devSession, error) {
 	})
 
 	// @@todo(guy) magic string : "pages" allow support for this keyword from a flag
-	pageFiles := fsutils.DirFiles(fsutils.NormalizePath(fmt.Sprintf("%s/pages", opts.WebDir)))
+	pageFiles := fsutils.DirFiles(fmt.Sprintf("%s/pages", opts.WebDir))
 	components, err := packer.PackMany(pageFiles)
 	if err != nil {
 		panic(err)
@@ -303,9 +303,9 @@ func New(ctx context.Context, opts *SessionOpts) (*devSession, error) {
 		ats.AssetKey(assets.Tests),
 		ats.AssetKey(assets.PrimaryPackage),
 	), &libout.FilePathOpts{
-		TestFile: fsutils.NormalizePath(fmt.Sprintf("%s/%s/orb_test.go", opts.OutDir, opts.Pacname)),
-		EnvFile:  fsutils.NormalizePath(fmt.Sprintf("%s/%s/orb_env.go", opts.OutDir, opts.Pacname)),
-		HTTPFile: fsutils.NormalizePath(fmt.Sprintf("%s/%s/orb_http.go", opts.OutDir, opts.Pacname)),
+		TestFile: fmt.Sprintf("%s/%s/orb_test.go", opts.OutDir, opts.Pacname),
+		EnvFile:  fmt.Sprintf("%s/%s/orb_env.go", opts.OutDir, opts.Pacname),
+		HTTPFile: fmt.Sprintf("%s/%s/orb_http.go", opts.OutDir, opts.Pacname),
 	})
 	if err != nil {
 		return nil, err

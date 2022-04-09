@@ -15,7 +15,6 @@ import (
 
 	"github.com/GuyARoss/orbit/internal/assets"
 	"github.com/GuyARoss/orbit/internal/srcpack"
-	"github.com/GuyARoss/orbit/pkg/fsutils"
 )
 
 // PackageJSONTemplate struct for nodejs package.json file.
@@ -63,16 +62,16 @@ func OrbitFileStructure(s *FileStructureOpts) error {
 		return err
 	}
 
-	if _, err := os.Stat(fsutils.NormalizePath(fmt.Sprintf("%s/%s", s.OutDir, s.PackageName))); os.IsNotExist(err) {
-		err := os.Mkdir(fsutils.NormalizePath(fmt.Sprintf("%s/%s", s.OutDir, s.PackageName)), os.ModePerm)
+	if _, err := os.Stat(fmt.Sprintf("%s/%s", s.OutDir, s.PackageName)); os.IsNotExist(err) {
+		err := os.Mkdir(fmt.Sprintf("%s/%s", s.OutDir, s.PackageName), os.ModePerm)
 		if err != nil {
 			return err
 		}
 	}
 
 	dirs := []string{
-		".orbit", fsutils.NormalizePath(".orbit/base"), fsutils.NormalizePath(".orbit/base/pages"),
-		fsutils.NormalizePath(".orbit/dist"), fsutils.NormalizePath(".orbit/assets"),
+		".orbit", ".orbit/base", ".orbit/base/pages",
+		".orbit/dist", ".orbit/assets",
 	}
 	for _, dir := range dirs {
 		_, err := os.Stat(dir)
@@ -85,14 +84,14 @@ func OrbitFileStructure(s *FileStructureOpts) error {
 	}
 
 	for _, a := range s.Assets {
-		err = assets.WriteFile(fsutils.NormalizePath(".orbit/assets"), a)
+		err = assets.WriteFile(".orbit/assets", a)
 		if err != nil {
 			return err
 		}
 	}
 
 	for _, a := range s.Dist {
-		err = assets.WriteFile(fsutils.NormalizePath(".orbit/dist"), a)
+		err = assets.WriteFile(".orbit/dist", a)
 		if err != nil {
 			return err
 		}

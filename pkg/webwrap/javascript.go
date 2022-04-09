@@ -7,11 +7,12 @@ package webwrap
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 
 	"github.com/GuyARoss/orbit/pkg/embedutils"
-	"github.com/GuyARoss/orbit/pkg/fsutils"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 )
 
@@ -83,11 +84,19 @@ func (b *JavascriptWrapper) Setup(ctx context.Context, settings *BundleOpts) ([]
 }
 
 func (b *JavascriptWrapper) Bundle(configuratorFilePath string) error {
-	cmd := exec.Command("node", fsutils.NormalizePath(fmt.Sprintf("%s/.bin/webpack", b.NodeModulesDir)), "--config", configuratorFilePath)
+	webpackPath := fmt.Sprintf("%s%c%s%c%s", b.NodeModulesDir, os.PathSeparator, ".bin", os.PathSeparator, "webpack")
+
+	// due to a "bug" with windows, it has an issue with shebang cmds, so we prefer the webpack.js file instead.
+	if runtime.GOOS == "windows" {
+		webpackPath = b.NodeModulesDir + "/webpack/bin/webpack.js"
+	}
+
+	cmd := exec.Command("node", webpackPath, "--config", configuratorFilePath)
+
 	_, err := cmd.Output()
 
 	if err != nil {
-		b.Logger.Warn(fmt.Sprintf(`invalid pack: "node %s --config %s"`, fsutils.NormalizePath(fmt.Sprintf("%s/.bin/webpack", b.NodeModulesDir)), configuratorFilePath))
+		b.Logger.Warn(fmt.Sprintf(`invalid pack: "node %s --config %s"`, fmt.Sprintf("%s/.bin/webpack", b.NodeModulesDir), configuratorFilePath))
 	}
 
 	return err

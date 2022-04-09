@@ -6,12 +6,10 @@ package assets
 
 import (
 	"embed"
-	"fmt"
 	"io/fs"
 	"os"
+	"path"
 	"strings"
-
-	"github.com/GuyARoss/orbit/pkg/fsutils"
 )
 
 //go:embed embed/*
@@ -29,12 +27,14 @@ const (
 )
 
 func WriteFile(toDir string, f fs.DirEntry) error {
-	newFile, err := os.Create(fsutils.NormalizePath(fmt.Sprintf("%s/%s", toDir, f.Name())))
+	newPath := path.Join(toDir, f.Name())
+	newFile, err := os.Create(newPath)
 	if err != nil {
 		return err
 	}
 
-	data, err := content.ReadFile(fsutils.NormalizePath(fmt.Sprintf("embed/%s", f.Name())))
+	readPath := path.Join("embed", f.Name())
+	data, err := content.ReadFile(readPath)
 	if err != nil {
 		return err
 	}
@@ -52,7 +52,7 @@ type AssetFileReader struct {
 }
 
 func (s *AssetFileReader) Read() (fs.File, error) {
-	return content.Open(fsutils.NormalizePath(fmt.Sprintf("embed/%s", s.dirEntry.Name())))
+	return content.Open(path.Join("embed", s.dirEntry.Name()))
 }
 
 type AssetMap map[AssetKey]fs.DirEntry
