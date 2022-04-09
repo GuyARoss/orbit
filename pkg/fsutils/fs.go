@@ -8,13 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
-	"strings"
 )
-
-func NormalizePath(path string) string {
-	return strings.ReplaceAll(path, "/", fmt.Sprintf("%c", os.PathSeparator))
-}
 
 func depthFiles(dir string, maxDepth int, depth int) []string {
 	if depth == maxDepth {

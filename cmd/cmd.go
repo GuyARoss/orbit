@@ -7,7 +7,6 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/GuyARoss/orbit/pkg/fsutils"
 	"github.com/GuyARoss/orbit/pkg/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -41,19 +40,19 @@ func init() {
 
 		viper.BindPFlag("mode", cmd.PersistentFlags().Lookup("mode"))
 
-		cmd.PersistentFlags().StringVar(&webdir, "webdir", fsutils.NormalizePath("./"), "specifies the directory of the web pages, leave blank for use of the root dir")
+		cmd.PersistentFlags().StringVar(&webdir, "webdir", "./", "specifies the directory of the web pages, leave blank for use of the root dir")
 		viper.BindPFlag("webdir", cmd.PersistentFlags().Lookup("webdir"))
 
-		cmd.PersistentFlags().StringVar(&outDir, "out", fsutils.NormalizePath("./"), "specifies the out directory of the generated code files")
+		cmd.PersistentFlags().StringVar(&outDir, "out", "./", "specifies the out directory of the generated code files")
 		viper.BindPFlag("out", cmd.PersistentFlags().Lookup("out"))
 
-		cmd.PersistentFlags().StringVar(&publicDir, "publicdir", fsutils.NormalizePath("./public/index.html"), "specifies the public directory for the base html webpage")
+		cmd.PersistentFlags().StringVar(&publicDir, "publicdir", "./public/index.html", "specifies the public directory for the base html webpage")
 		viper.BindPFlag("publicdir", cmd.PersistentFlags().Lookup("publicdir"))
 
 		cmd.PersistentFlags().StringVar(&pacname, "pacname", "orbit", "specifies the package name of the generated code files")
 		viper.BindPFlag("pacname", cmd.PersistentFlags().Lookup("pacname"))
 
-		cmd.PersistentFlags().StringVar(&nodeModDir, "nodemod", fsutils.NormalizePath("./node_modules"), "specifies the directory to find node modules")
+		cmd.PersistentFlags().StringVar(&nodeModDir, "nodemod", "./node_modules", "specifies the directory to find node modules")
 		viper.BindPFlag("nodemod", cmd.PersistentFlags().Lookup("nodemod"))
 
 		cmd.PersistentFlags().StringVar(&dependout, "depout", "", "specifies the directory to output a dependency map")

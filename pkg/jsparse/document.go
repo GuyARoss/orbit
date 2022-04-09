@@ -9,7 +9,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/GuyARoss/orbit/pkg/fsutils"
 	"github.com/google/uuid"
 )
 
@@ -123,14 +122,14 @@ func (p *DefaultJSDocument) formatImportLine(line string) *ImportDependency {
 
 	finalPath = strings.ReplaceAll(finalPath, fmt.Sprintf(".%s", extension), "")
 
-	newPath := fsutils.NormalizePath(fmt.Sprintf("'../../../%s.%s'", finalPath, extension))
+	newPath := fmt.Sprintf("'../../../%s.%s'", finalPath, extension)
 	statementWithoutPath := strings.Replace(line, fmt.Sprintf("%c%s%c", pathChar, path, pathChar), newPath, 1)
 
 	initialPath := strings.ReplaceAll(strings.Join(cleanWebDirPaths, "/"), fmt.Sprintf(".%s", extension), "")
 
 	return &ImportDependency{
 		FinalStatement: statementWithoutPath,
-		InitialPath:    fsutils.NormalizePath(fmt.Sprintf("%s.%s", initialPath, extension)),
+		InitialPath:    fmt.Sprintf("%s.%s", initialPath, extension),
 		Type:           importType,
 	}
 }
@@ -212,11 +211,11 @@ func (p *DefaultJSDocument) tokenizeLine(line string) error {
 func (p *DefaultJSDocument) WriteFile(dir string) error {
 	out := strings.Builder{}
 	for _, imp := range p.imports {
-		out.WriteString(fsutils.NormalizePath(fmt.Sprintf("%s\n", imp.FinalStatement)))
+		out.WriteString(fmt.Sprintf("%s\n", imp.FinalStatement))
 	}
 
 	for _, other := range p.Other() {
-		out.WriteString(fsutils.NormalizePath(fmt.Sprintf("%s\n", other)))
+		out.WriteString(fmt.Sprintf("%s\n", other))
 	}
 
 	for _, s := range p.serializable {

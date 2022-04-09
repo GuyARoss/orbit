@@ -58,7 +58,7 @@ func (s *ReactWebWrapper) Apply(page jsparse.JSDocument) (jsparse.JSDocument, er
 }
 
 func (s *ReactWebWrapper) DoesSatisfyConstraints(fileExtension string) bool {
-	return strings.Contains(fileExtension, reactExtension)
+	return fileExtension == reactExtension
 }
 
 func (s *ReactWebWrapper) Version() string {

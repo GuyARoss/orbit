@@ -8,8 +8,8 @@ import (
 	"embed"
 	"io/fs"
 	"os"
-	"strings"
 	"path"
+	"strings"
 )
 
 //go:embed embed/*
@@ -53,7 +53,6 @@ type AssetFileReader struct {
 
 func (s *AssetFileReader) Read() (fs.File, error) {
 	return content.Open(path.Join("embed", s.dirEntry.Name()))
-//	return content.Open(fsutils.NormalizePath(fmt.Sprintf("embed/%s", s.dirEntry.Name())))
 }
 
 type AssetMap map[AssetKey]fs.DirEntry
