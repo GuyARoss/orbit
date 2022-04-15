@@ -20,6 +20,7 @@ func TestFormatImportLine(t *testing.T) {
 		{`import React from "../react"`, "import React from '../../../test/react.jsx'"},
 		{"import { tool } from '../tools/test'", "import { tool } from '../../../test/tools/test.jsx'"},
 		{"import { tool } from '../tools/test.js'", "import { tool } from '../../../test/tools/test.js'"},
+		{"import 'thing.css'", "import 'thing.css'"},
 	}
 
 	p := DefaultJSDocument{webDir: "test", pageDir: "./thing/apple.js"}
