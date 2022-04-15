@@ -56,6 +56,7 @@ type BundleGroup struct {
 	*BundleGroupOpts
 
 	pages            []*page
+	pageMap          map[string]bool
 	componentBodyMap map[string][]string
 	wrapDocRender    map[string][]embedutils.FileReader
 }
@@ -104,7 +105,11 @@ func parseVersionKey(k string) string {
 // AcceptComponent collects the required DOM elements and applies it to the component body map
 func (l *BundleGroup) AcceptComponent(ctx context.Context, c srcpack.PackComponent, cacheOpts *webwrap.CacheDOMOpts) {
 	v := parseVersionKey(c.WebWrapper().Version())
-	l.pages = append(l.pages, &page{c.Name(), c.BundleKey(), v, c.OriginalFilePath(), c.IsStaticResource()})
+
+	if !l.pageMap[c.Name()] {
+		l.pages = append(l.pages, &page{c.Name(), c.BundleKey(), v, c.OriginalFilePath(), c.IsStaticResource()})
+		l.pageMap[c.Name()] = true
+	}
 
 	if l.componentBodyMap[v] == nil {
 		l.componentBodyMap[v] = c.WebWrapper().RequiredBodyDOMElements(ctx, cacheOpts)
@@ -120,7 +125,10 @@ func (l *BundleGroup) AcceptComponents(ctx context.Context, comps []srcpack.Pack
 	for _, c := range comps {
 		v := parseVersionKey(c.WebWrapper().Version())
 
-		l.pages = append(l.pages, &page{c.Name(), c.BundleKey(), v, c.OriginalFilePath(), c.IsStaticResource()})
+		if !l.pageMap[c.Name()] {
+			l.pages = append(l.pages, &page{c.Name(), c.BundleKey(), v, c.OriginalFilePath(), c.IsStaticResource()})
+			l.pageMap[c.Name()] = true
+		}
 
 		if l.componentBodyMap[v] == nil {
 			l.componentBodyMap[v] = c.WebWrapper().RequiredBodyDOMElements(ctx, cacheOpts)
@@ -136,8 +144,8 @@ func (l *BundleGroup) AcceptComponents(ctx context.Context, comps []srcpack.Pack
 
 func New(opts *BundleGroupOpts) *BundleGroup {
 	return &BundleGroup{
-		BundleGroupOpts: opts,
-
+		BundleGroupOpts:  opts,
+		pageMap:          make(map[string]bool),
 		pages:            make([]*page, 0),
 		componentBodyMap: make(map[string][]string),
 		wrapDocRender:    make(map[string][]embedutils.FileReader),
