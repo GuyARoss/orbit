@@ -16,6 +16,7 @@ import (
 	"github.com/GuyARoss/orbit/internal/assets"
 	"github.com/GuyARoss/orbit/internal/libout"
 	"github.com/GuyARoss/orbit/internal/srcpack"
+	allocatedstack "github.com/GuyARoss/orbit/pkg/allocated_stack"
 	dependtree "github.com/GuyARoss/orbit/pkg/depend_tree"
 	"github.com/GuyARoss/orbit/pkg/fsutils"
 	"github.com/GuyARoss/orbit/pkg/hotreload"
@@ -35,21 +36,15 @@ type SessionOpts struct {
 	HotReloadPort int
 }
 
-// proccessedChangeRequest is the most recent file change that has happended within the development process
-type proccessedChangeRequest struct {
-	ProcessedAt time.Time
-	FileName    string
-}
-
 // devSession is the internal state for processing change requests during a development process
 type devSession struct {
 	*SessionOpts
 
-	RootComponents    srcpack.PackComponentFileMap
-	SourceMap         dependtree.DependencySourceMap
-	packer            srcpack.Packer
-	lastProcessedFile *proccessedChangeRequest
-	libout            libout.BundleWriter
+	RootComponents srcpack.PackComponentFileMap
+	SourceMap      dependtree.DependencySourceMap
+	packer         srcpack.Packer
+	libout         libout.BundleWriter
+	ChangeRequest  *changeRequest
 }
 
 // ChangeRequestOpts options used for processing a change request
@@ -65,7 +60,6 @@ var ErrFileTooRecentlyProcessed = errors.New("change not accepted, file too rece
 // DoBundleKeyChangeRequest processes a change request for a bundle key
 func (s *devSession) DoBundleKeyChangeRequest(bundleKey string, opts *ChangeRequestOpts) error {
 	component := s.RootComponents.FindBundleKey(bundleKey)
-
 	err := s.DirectFileChangeRequest("", component, opts)
 
 	if err != nil {
@@ -78,9 +72,7 @@ func (s *devSession) DoBundleKeyChangeRequest(bundleKey string, opts *ChangeRequ
 // ProcessChangeRequest will determine which type of change request is required for computation of the request file
 func (s *devSession) DoFileChangeRequest(filePath string, opts *ChangeRequestOpts) error {
 	// if this file has been recently processed (specificed by the timeout flag), do not process it.
-	if filePath == s.lastProcessedFile.FileName &&
-		time.Since(s.lastProcessedFile.ProcessedAt).Seconds() < opts.SafeFileTimeout.Seconds() {
-
+	if !s.ChangeRequest.IsWithinRage(filePath, opts.SafeFileTimeout) {
 		return ErrFileTooRecentlyProcessed
 	}
 
@@ -147,10 +139,7 @@ func (s *devSession) DirectFileChangeRequest(filePath string, component srcpack.
 
 	opts.Hook.WrapFunc(component.OriginalFilePath(), func() { component.Repack() })
 
-	s.lastProcessedFile = &proccessedChangeRequest{
-		FileName:    filePath,
-		ProcessedAt: time.Now(),
-	}
+	s.ChangeRequest.Push(filePath, component.BundleKey())
 
 	sourceMap, err := srcpack.New(s.WebDir, []srcpack.PackComponent{component}, &srcpack.NewSourceMapOpts{
 		Parser:     opts.Parser,
@@ -177,10 +166,7 @@ func (s *devSession) IndirectFileChangeRequest(sources []string, indirectFile st
 
 		opts.Hook.WrapFunc(component.OriginalFilePath(), func() { component.Repack() })
 
-		s.lastProcessedFile = &proccessedChangeRequest{
-			FileName:    indirectFile,
-			ProcessedAt: time.Now(),
-		}
+		s.ChangeRequest.Push(indirectFile, component.BundleKey())
 
 		sourceMap, err := srcpack.New(s.WebDir, []srcpack.PackComponent{component}, &srcpack.NewSourceMapOpts{
 			Parser:     opts.Parser,
@@ -237,6 +223,8 @@ func (s *devSession) NewPageFileChangeRequest(ctx context.Context, file string) 
 
 	s.SourceMap = s.SourceMap.Merge(sourceMap)
 	s.RootComponents.Set(component)
+
+	s.ChangeRequest.Push(file, component.BundleKey())
 
 	return nil
 }
@@ -325,11 +313,36 @@ func New(ctx context.Context, opts *SessionOpts) (*devSession, error) {
 	}
 
 	return &devSession{
-		SessionOpts:       opts,
-		RootComponents:    rootComponents,
-		SourceMap:         sourceMap,
-		lastProcessedFile: &proccessedChangeRequest{},
-		packer:            packer.ReattachLogger(log.NewDefaultLogger()),
-		libout:            bg,
+		SessionOpts:    opts,
+		RootComponents: rootComponents,
+		SourceMap:      sourceMap,
+		packer:         packer.ReattachLogger(log.NewDefaultLogger()),
+		libout:         bg,
+		ChangeRequest: &changeRequest{
+			changeRequests: allocatedstack.New(10),
+		},
 	}, nil
+}
+
+// changeRequest holds the most recent file changes that have happened in the development cycle
+type changeRequest struct {
+	LastProcessedAt time.Time
+	LastFileName    string
+
+	changeRequests *allocatedstack.Stack
+}
+
+func (c *changeRequest) ExistsInCache(file string) bool {
+	return c.changeRequests.Contains(file)
+}
+
+func (c *changeRequest) Push(fileName string, bundleKey string) {
+	c.LastFileName = fileName
+	c.LastProcessedAt = time.Now()
+
+	c.changeRequests.Add(bundleKey)
+}
+
+func (c *changeRequest) IsWithinRage(file string, t time.Duration) bool {
+	return file == c.LastFileName && time.Since(c.LastProcessedAt).Seconds() < t.Seconds()
 }

@@ -11,6 +11,7 @@ import (
 
 	liboutmock "github.com/GuyARoss/orbit/internal/libout/mock"
 	srcpackmock "github.com/GuyARoss/orbit/internal/srcpack/mock"
+	allocatedstack "github.com/GuyARoss/orbit/pkg/allocated_stack"
 	hotreloadmock "github.com/GuyARoss/orbit/pkg/hotreload/mock"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/jsparse/mock"
@@ -23,9 +24,10 @@ func TestProcessChangeRequest_TooRecentlyProcessed(t *testing.T) {
 	fn := "this_was_recently_processed.txt"
 
 	s := devSession{
-		lastProcessedFile: &proccessedChangeRequest{
-			FileName:    fn,
-			ProcessedAt: time.Now(),
+		ChangeRequest: &changeRequest{
+			LastProcessedAt: time.Now(),
+			LastFileName:    fn,
+			changeRequests:  allocatedstack.New(1),
 		},
 		SessionOpts: &SessionOpts{},
 	}
@@ -52,8 +54,8 @@ func TestDoChangeRequest_DirectFile(t *testing.T) {
 		},
 	}
 	s := devSession{
-		lastProcessedFile: &proccessedChangeRequest{},
-		SessionOpts:       &SessionOpts{},
+		ChangeRequest: &changeRequest{},
+		SessionOpts:   &SessionOpts{},
 		RootComponents: map[string]srcpack.PackComponent{
 			fn: comp,
 		},
@@ -105,8 +107,8 @@ func TestDoChangeRequest_IndirectFile(t *testing.T) {
 	}
 
 	s := devSession{
-		lastProcessedFile: &proccessedChangeRequest{},
-		SessionOpts:       &SessionOpts{},
+		ChangeRequest: &changeRequest{},
+		SessionOpts:   &SessionOpts{},
 		RootComponents: map[string]srcpack.PackComponent{
 			"thing2": comp,
 		},
@@ -160,10 +162,10 @@ func TestDoChangeRequest_UnknownPage(t *testing.T) {
 	fn := "/pages/filename.jsx"
 
 	s := devSession{
-		lastProcessedFile: &proccessedChangeRequest{},
-		SessionOpts:       &SessionOpts{},
-		RootComponents:    map[string]srcpack.PackComponent{},
-		SourceMap:         map[string][]string{},
+		ChangeRequest:  &changeRequest{},
+		SessionOpts:    &SessionOpts{},
+		RootComponents: map[string]srcpack.PackComponent{},
+		SourceMap:      map[string][]string{},
 		packer: &mockPacker{
 			components: []srcpack.Component{
 				{},
@@ -206,8 +208,8 @@ func TestDoBundleChangeRequest(t *testing.T) {
 	}
 
 	s := devSession{
-		lastProcessedFile: &proccessedChangeRequest{},
-		SessionOpts:       &SessionOpts{},
+		ChangeRequest: &changeRequest{},
+		SessionOpts:   &SessionOpts{},
 		RootComponents: map[string]srcpack.PackComponent{
 			"test": comp,
 		},

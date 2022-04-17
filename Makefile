@@ -7,7 +7,7 @@ example:
 	./scripts/link_examples.sh
 
 license:
-	python3 ./scripts/license.py
+	python3 ./scripts/license.py write
 
 test:
 	go test `go list ./... | grep -v examples`
