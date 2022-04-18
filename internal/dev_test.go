@@ -6,6 +6,7 @@ package internal
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -37,6 +38,7 @@ func TestProcessChangeRequest_TooRecentlyProcessed(t *testing.T) {
 	})
 
 	if err == nil || !errors.Is(err, ErrFileTooRecentlyProcessed) {
+		fmt.Println("err name", err)
 		t.Errorf("expected err file too recently processed")
 	}
 }
@@ -54,8 +56,12 @@ func TestDoChangeRequest_DirectFile(t *testing.T) {
 		},
 	}
 	s := devSession{
-		ChangeRequest: &changeRequest{},
-		SessionOpts:   &SessionOpts{},
+		ChangeRequest: &changeRequest{
+			LastProcessedAt: time.Now(),
+			LastFileName:    "",
+			changeRequests:  allocatedstack.New(1),
+		},
+		SessionOpts: &SessionOpts{},
 		RootComponents: map[string]srcpack.PackComponent{
 			fn: comp,
 		},
@@ -76,7 +82,8 @@ func TestDoChangeRequest_DirectFile(t *testing.T) {
 	})
 
 	if err != nil {
-		t.Errorf("error should not have been thrown during direct file processing")
+		t.Errorf("error should not have been thrown during direct file processing '%s'", err)
+		return
 	}
 
 	if hotReloader.DidReload == false {
@@ -85,10 +92,12 @@ func TestDoChangeRequest_DirectFile(t *testing.T) {
 
 	if comp.WasRepacked == false {
 		t.Errorf("packing did not occur during direct file processing")
+		return
 	}
 
 	if len(s.SourceMap["./test/react.js"]) != 1 {
 		t.Errorf("did not merge dependent trees")
+		return
 	}
 }
 
@@ -107,8 +116,12 @@ func TestDoChangeRequest_IndirectFile(t *testing.T) {
 	}
 
 	s := devSession{
-		ChangeRequest: &changeRequest{},
-		SessionOpts:   &SessionOpts{},
+		ChangeRequest: &changeRequest{
+			LastProcessedAt: time.Now(),
+			LastFileName:    "",
+			changeRequests:  allocatedstack.New(1),
+		},
+		SessionOpts: &SessionOpts{},
 		RootComponents: map[string]srcpack.PackComponent{
 			"thing2": comp,
 		},
@@ -162,7 +175,11 @@ func TestDoChangeRequest_UnknownPage(t *testing.T) {
 	fn := "/pages/filename.jsx"
 
 	s := devSession{
-		ChangeRequest:  &changeRequest{},
+		ChangeRequest: &changeRequest{
+			LastProcessedAt: time.Now(),
+			LastFileName:    "",
+			changeRequests:  allocatedstack.New(1),
+		},
 		SessionOpts:    &SessionOpts{},
 		RootComponents: map[string]srcpack.PackComponent{},
 		SourceMap:      map[string][]string{},
@@ -208,8 +225,12 @@ func TestDoBundleChangeRequest(t *testing.T) {
 	}
 
 	s := devSession{
-		ChangeRequest: &changeRequest{},
-		SessionOpts:   &SessionOpts{},
+		ChangeRequest: &changeRequest{
+			LastProcessedAt: time.Now(),
+			LastFileName:    "",
+			changeRequests:  allocatedstack.New(1),
+		},
+		SessionOpts: &SessionOpts{},
 		RootComponents: map[string]srcpack.PackComponent{
 			"test": comp,
 		},
