@@ -6,11 +6,13 @@ package internal
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
 	liboutmock "github.com/GuyARoss/orbit/internal/libout/mock"
 	srcpackmock "github.com/GuyARoss/orbit/internal/srcpack/mock"
+	allocatedstack "github.com/GuyARoss/orbit/pkg/allocated_stack"
 	hotreloadmock "github.com/GuyARoss/orbit/pkg/hotreload/mock"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/jsparse/mock"
@@ -23,9 +25,10 @@ func TestProcessChangeRequest_TooRecentlyProcessed(t *testing.T) {
 	fn := "this_was_recently_processed.txt"
 
 	s := devSession{
-		lastProcessedFile: &proccessedChangeRequest{
-			FileName:    fn,
-			ProcessedAt: time.Now(),
+		ChangeRequest: &changeRequest{
+			LastProcessedAt: time.Now(),
+			LastFileName:    fn,
+			changeRequests:  allocatedstack.New(1),
 		},
 		SessionOpts: &SessionOpts{},
 	}
@@ -35,6 +38,7 @@ func TestProcessChangeRequest_TooRecentlyProcessed(t *testing.T) {
 	})
 
 	if err == nil || !errors.Is(err, ErrFileTooRecentlyProcessed) {
+		fmt.Println("err name", err)
 		t.Errorf("expected err file too recently processed")
 	}
 }
@@ -52,8 +56,12 @@ func TestDoChangeRequest_DirectFile(t *testing.T) {
 		},
 	}
 	s := devSession{
-		lastProcessedFile: &proccessedChangeRequest{},
-		SessionOpts:       &SessionOpts{},
+		ChangeRequest: &changeRequest{
+			LastProcessedAt: time.Now(),
+			LastFileName:    "",
+			changeRequests:  allocatedstack.New(1),
+		},
+		SessionOpts: &SessionOpts{},
 		RootComponents: map[string]srcpack.PackComponent{
 			fn: comp,
 		},
@@ -74,7 +82,8 @@ func TestDoChangeRequest_DirectFile(t *testing.T) {
 	})
 
 	if err != nil {
-		t.Errorf("error should not have been thrown during direct file processing")
+		t.Errorf("error should not have been thrown during direct file processing '%s'", err)
+		return
 	}
 
 	if hotReloader.DidReload == false {
@@ -83,10 +92,12 @@ func TestDoChangeRequest_DirectFile(t *testing.T) {
 
 	if comp.WasRepacked == false {
 		t.Errorf("packing did not occur during direct file processing")
+		return
 	}
 
 	if len(s.SourceMap["./test/react.js"]) != 1 {
 		t.Errorf("did not merge dependent trees")
+		return
 	}
 }
 
@@ -105,8 +116,12 @@ func TestDoChangeRequest_IndirectFile(t *testing.T) {
 	}
 
 	s := devSession{
-		lastProcessedFile: &proccessedChangeRequest{},
-		SessionOpts:       &SessionOpts{},
+		ChangeRequest: &changeRequest{
+			LastProcessedAt: time.Now(),
+			LastFileName:    "",
+			changeRequests:  allocatedstack.New(1),
+		},
+		SessionOpts: &SessionOpts{},
 		RootComponents: map[string]srcpack.PackComponent{
 			"thing2": comp,
 		},
@@ -160,10 +175,14 @@ func TestDoChangeRequest_UnknownPage(t *testing.T) {
 	fn := "/pages/filename.jsx"
 
 	s := devSession{
-		lastProcessedFile: &proccessedChangeRequest{},
-		SessionOpts:       &SessionOpts{},
-		RootComponents:    map[string]srcpack.PackComponent{},
-		SourceMap:         map[string][]string{},
+		ChangeRequest: &changeRequest{
+			LastProcessedAt: time.Now(),
+			LastFileName:    "",
+			changeRequests:  allocatedstack.New(1),
+		},
+		SessionOpts:    &SessionOpts{},
+		RootComponents: map[string]srcpack.PackComponent{},
+		SourceMap:      map[string][]string{},
 		packer: &mockPacker{
 			components: []srcpack.Component{
 				{},
@@ -206,8 +225,12 @@ func TestDoBundleChangeRequest(t *testing.T) {
 	}
 
 	s := devSession{
-		lastProcessedFile: &proccessedChangeRequest{},
-		SessionOpts:       &SessionOpts{},
+		ChangeRequest: &changeRequest{
+			LastProcessedAt: time.Now(),
+			LastFileName:    "",
+			changeRequests:  allocatedstack.New(1),
+		},
+		SessionOpts: &SessionOpts{},
 		RootComponents: map[string]srcpack.PackComponent{
 			"test": comp,
 		},

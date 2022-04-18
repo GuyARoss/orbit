@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/GuyARoss/orbit/internal"
@@ -79,27 +78,27 @@ var devCMD = &cobra.Command{
 			}
 		}()
 
-		go func(hr *hotreload.HotReload) {
+		go func() {
 			for {
-				event := <-hr.Redirected
+				// during dev mode when the browser redirects, we want to process
+				// the file only if the bundle has not already been processed
+				event := <-hotReload.Redirected
 
-				changes := event.BundleKeys.Diff(event.PreviousBundleKeys)
+				for _, r := range event.BundleKeys.Diff(event.PreviousBundleKeys) {
+					// the change request maintains a cache of recently bundled pages
+					// if it exists on the cache, then we don't care to process it
+					if !s.ChangeRequest.ExistsInCache(r) {
+						go func(change string) {
+							err := s.DoBundleKeyChangeRequest(change, fileChangeOpts)
 
-				wg := &sync.WaitGroup{}
-				wg.Add(len(changes))
-				for _, r := range changes {
-					go func(change string, wg *sync.WaitGroup) {
-						err := s.DoBundleKeyChangeRequest(change, fileChangeOpts)
-						if err != nil {
-							fmt.Println(err)
-						}
-						wg.Done()
-					}(r, wg)
+							if err != nil {
+								fmt.Println(err)
+							}
+						}(r)
+					}
 				}
-
-				wg.Wait()
 			}
-		}(hotReload)
+		}()
 
 		http.HandleFunc("/ws", hotReload.HandleWebSocket)
 		logger.Info(fmt.Sprintf("server started on port %d", viper.GetInt("hotreloadport")))

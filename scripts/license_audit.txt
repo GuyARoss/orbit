@@ -1,3 +1,7 @@
+./pkg/allocated_stack/allocated_stack_test.go
+./pkg/allocated_stack/allocated_stack.go
+./pkg/hotreload/hotreload_test.go
+./pkg/hotreload/mock/mocksocket.go
 ./pkg/embedutils/embedutils.go
 ./pkg/jsparse/mock/parser_mock.go
 ./pkg/webwrap/javascript.go
