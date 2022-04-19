@@ -1,13 +1,13 @@
 package autogen
 
 import (
+	"os"
 	"strings"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 )
 
 

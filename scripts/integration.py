@@ -45,16 +45,20 @@ def is_orbit_dist_valid(path: str) -> bool:
         return False
 
 def is_application_ran_successfully(path: str) -> bool:
-    subprocess.check_output([f'go run {path}/main.go &'], shell=True)
+    # subprocess.check_output([f'go run {path}/main.go &'], shell=True)
 
-    f = requests.get('http://localhost:3030/')
-    assert f.status_code == 200, "status code failure"
+    # f = requests.get('http://localhost:3030/')
+    # assert f.status_code == 200, "status code failure"
 
-    bk_count = len(f.text.split('orbit_bk'))
-    print(bk_count)
+    # bk_count = len(f.text.split('orbit_bk'))
+    # print(bk_count)
 
-    return True
-    
+    # return True
+    print(f'go run {path}/main.go &')
+    s = subprocess.run([f'go run {path}/main.go &'], shell=True)    
+    print(s)
+
+
 
 if __name__ == '__main__':
     current_dir = os.getcwd()
@@ -65,6 +69,6 @@ if __name__ == '__main__':
 
     tmp_dir = os.getcwd()
 
-    assert is_orbit_gooutput_valid(tmp_dir), "invalid go orbit output"
-    assert is_orbit_dist_valid(tmp_dir), "invalid orbit dist"
+    # assert is_orbit_gooutput_valid(tmp_dir), "invalid go orbit output"
+    # assert is_orbit_dist_valid(tmp_dir), "invalid orbit dist"
     assert is_application_ran_successfully(tmp_dir), "application ran"
