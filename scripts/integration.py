@@ -1,8 +1,3 @@
-import subprocess
-import os
-import os.path
-import requests
-
 '''
 a test of orbit integrations
 
@@ -11,6 +6,13 @@ contracts:
 - .orbit dist gets created with valid bundles    
 - the application runs and the correct set of data is obtained
 '''
+import subprocess
+import os
+import os.path
+from time import sleep
+import requests
+import signal
+
 
 def is_orbit_gooutput_valid(path: str) -> bool:
     '''
@@ -27,7 +29,7 @@ def is_orbit_dist_valid(path: str) -> bool:
         is_orbit_dist_valid returns true if the dist directory gets computed correctly 
     '''    
     try:
-        subprocess.check_output([f'{path}/orbit build --pacname=autogen --auditpage=./page.audit'], shell=True)    
+        subprocess.check_output([f'{path}/orbit build --pacname=orbitgen --auditpage=./page.audit'], shell=True)    
 
         # read the page audit
         f = open("./page.audit","r")
@@ -44,31 +46,56 @@ def is_orbit_dist_valid(path: str) -> bool:
     except:
         return False
 
+def pull_number_from_last(text: str) -> int:
+    t = ""
+    for n in range(len(text)):        
+        if text[len(text) - n -1].isnumeric():
+            t += text[len(text) - n -1]
+        else:
+            return t[::-1]
+
+    return t[::-1]
+    
+def terminate_port_pid(port: int) -> str:
+    netstat = subprocess.getoutput(f"netstat -nlp | grep {port}")
+
+    if "3030" in netstat:
+        p = netstat.split('/main')
+        pid = pull_number_from_last(p[len(p) - 2])
+        
+        os.kill(int(pid), signal.SIGTERM)
+        
 def is_application_ran_successfully(path: str) -> bool:
-    # subprocess.check_output([f'go run {path}/main.go &'], shell=True)
+    try:
+        terminate_port_pid(3030)
 
-    # f = requests.get('http://localhost:3030/')
-    # assert f.status_code == 200, "status code failure"
+        p = subprocess.Popen(['go', 'run', f'{path}/main.go'])
+        sleep(5)
 
-    # bk_count = len(f.text.split('orbit_bk'))
-    # print(bk_count)
+        f = requests.get('http://localhost:3030/')
+        assert f.status_code == 200, "status code failure"
 
-    # return True
-    print(f'go run {path}/main.go &')
-    s = subprocess.run([f'go run {path}/main.go &'], shell=True)    
-    print(s)
+        bk_count = len(f.text.split('orbit_bk'))
+        
+        p.terminate()
+        terminate_port_pid(3030)
+
+        return True
+    except:
+        return False
 
 
-
-if __name__ == '__main__':
+if __name__ == '__main__':    
     current_dir = os.getcwd()
 
     # TODO: run the orbit build comand before any of these tests get ran (prefer the make cmd for linking)
-    path = '../examples/basic-react'
+    path = './examples/basic-react'
     os.chdir(path)
 
     tmp_dir = os.getcwd()
 
-    # assert is_orbit_gooutput_valid(tmp_dir), "invalid go orbit output"
-    # assert is_orbit_dist_valid(tmp_dir), "invalid orbit dist"
+    assert is_orbit_gooutput_valid(tmp_dir), "invalid go orbit output"
+    assert is_orbit_dist_valid(tmp_dir), "invalid orbit dist"
     assert is_application_ran_successfully(tmp_dir), "application ran"
+
+    print('integration contracts completed successfully')
