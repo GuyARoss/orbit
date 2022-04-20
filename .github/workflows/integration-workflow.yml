@@ -1,0 +1,15 @@
+
+name: integration workflow
+on: 
+  push:
+  pull_request:
+    types: [opened, synchronize]
+jobs:
+  integration_tests:
+    name: integration tests
+    runs-on: ubuntu-latest
+    container: ghcr.io/guyaross/orbit-tooling:v1
+    steps:
+      - uses: actions/checkout@v2
+      - run: |
+          go build -o ./orbit && ./scripts/link_examples.sh && python3 ./scripts/integration.py
