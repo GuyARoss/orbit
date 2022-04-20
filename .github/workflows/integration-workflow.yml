@@ -8,7 +8,7 @@ jobs:
   integration_tests:
     name: integration tests
     runs-on: ubuntu-latest
-    container: ghcr.io/guyaross/orbit-tooling:v1
+    container: ghcr.io/guyaross/orbit-tooling:v2
     steps:
       - uses: actions/checkout@v2
       - run: |
