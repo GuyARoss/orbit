@@ -14,5 +14,6 @@ jobs:
       - run: |
           go build -o ./orbit && \
           ls -l && \
+          pip3 install requests && \
           ./scripts/link_examples.sh && \
           python3 ./scripts/integration.py
