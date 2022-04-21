@@ -11,3 +11,7 @@ license:
 
 test:
 	go test `go list ./... | grep -v examples`
+
+integration:
+	make example
+	python3 ./scripts/integration.py

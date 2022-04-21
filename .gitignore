@@ -9,5 +9,7 @@ orbit
 todo
 .vscode
 
+*.audit
+
 # test coverage
 c.out

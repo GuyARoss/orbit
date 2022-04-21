@@ -94,6 +94,10 @@ var buildCMD = &cobra.Command{
 			panic(err)
 		}
 
+		if viper.GetString("auditpage") != "" {
+			components.Write(viper.GetString("auditpage"))
+		}
+
 		if viper.GetString("depout") != "" {
 			sourceMap, err := srcpack.New(viper.GetString("webdir"), components, &srcpack.NewSourceMapOpts{
 				WebDirPath: viper.GetString("webdir"),
@@ -109,4 +113,11 @@ var buildCMD = &cobra.Command{
 			}
 		}
 	},
+}
+
+func init() {
+	var pageaudit string
+
+	buildCMD.PersistentFlags().StringVar(&pageaudit, "auditpage", "", "file path used to output an audit file for the pages")
+	viper.BindPFlag("auditpage", buildCMD.PersistentFlags().Lookup("auditpage"))
 }

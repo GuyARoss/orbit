@@ -165,7 +165,7 @@ type mockPacker struct {
 	components []srcpack.Component
 }
 
-func (m *mockPacker) PackMany(pages []string) ([]srcpack.PackComponent, error) { return nil, nil }
+func (m *mockPacker) PackMany(pages []string) (srcpack.PackedComponentList, error) { return nil, nil }
 func (m *mockPacker) PackSingle(logger log.Logger, file string) (srcpack.PackComponent, error) {
 	return &m.components[0], nil
 }

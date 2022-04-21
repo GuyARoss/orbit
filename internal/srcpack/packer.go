@@ -7,6 +7,7 @@ package srcpack
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/GuyARoss/orbit/pkg/jsparse"
@@ -15,7 +16,7 @@ import (
 )
 
 type Packer interface {
-	PackMany(pages []string) ([]PackComponent, error)
+	PackMany(pages []string) (PackedComponentList, error)
 	PackSingle(logger log.Logger, file string) (PackComponent, error)
 	ReattachLogger(logger log.Logger) Packer
 }
@@ -47,7 +48,7 @@ type concPack struct {
 }
 
 // packs the provided file paths into the orbit root directory
-func (s *JSPacker) PackMany(pages []string) ([]PackComponent, error) {
+func (s *JSPacker) PackMany(pages []string) (PackedComponentList, error) {
 	cp := &concPack{
 		JSPacker:         s,
 		packedPages:      make([]PackComponent, 0),
@@ -171,6 +172,25 @@ func (l *PackedComponentList) RepackMany(logger log.Logger) error {
 
 	wg.Wait()
 
+	return nil
+}
+
+// Write creates an audit file of all the current components to the specified file
+func (l *PackedComponentList) Write(path string) error {
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
+	if err != nil {
+		return err
+	}
+
+	f.WriteString("audit: components\n")
+
+	for _, c := range *l {
+		f.WriteString(fmt.Sprintf("%s %s", c.Name(), c.BundleKey()) + "\n")
+	}
+
+	if err := f.Close(); err != nil {
+		return err
+	}
 	return nil
 }
 
