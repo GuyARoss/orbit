@@ -12,8 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: |
-          go build -o ./orbit && \
-          ls -l && \
+          go build -o ./orbit && \          
           pip3 install requests && \
           ./scripts/link_examples.sh && \
           python3 ./scripts/integration.py

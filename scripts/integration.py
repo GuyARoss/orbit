@@ -75,7 +75,7 @@ def is_application_ran_successfully(path: str) -> bool:
         f = requests.get('http://localhost:3030/')
         assert f.status_code == 200, "status code failure"
 
-        bk_count = len(f.text.split('orbit_bk'))
+        assert "orbit-integration-applied" not in f.text, "application not loaded correctly"            
         
         p.terminate()
         terminate_port_pid(3030)
@@ -88,14 +88,18 @@ def is_application_ran_successfully(path: str) -> bool:
 if __name__ == '__main__':    
     current_dir = os.getcwd()
 
-    # TODO: run the orbit build comand before any of these tests get ran (prefer the make cmd for linking)
     path = './examples/basic-react'
     os.chdir(path)
 
     tmp_dir = os.getcwd()
 
     assert is_orbit_gooutput_valid(tmp_dir), "invalid go orbit output"
+    print('completed is_orbit_gooutput_valid')
+
     assert is_orbit_dist_valid(tmp_dir), "invalid orbit dist"
+    print('completed is_orbit_dist_valid')
+
     assert is_application_ran_successfully(tmp_dir), "application ran"
+    print('completed is_application_ran_successfully')
 
     print('integration contracts completed successfully')
