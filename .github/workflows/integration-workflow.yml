@@ -1,18 +1,18 @@
 
-name: integration workflow
-on: 
-  push:
-  pull_request:
-    types: [opened, synchronize]
-jobs:
-  integration_tests:
-    name: integration tests
-    runs-on: ubuntu-latest
-    container: ghcr.io/guyaross/orbit-tooling:v2
-    steps:
-      - uses: actions/checkout@v2
-      - run: |
-          go build -o ./orbit && \          
-          pip3 install requests && \
-          ./scripts/link_examples.sh && \
-          python3 ./scripts/integration.py
+# name: integration workflow
+# on: 
+#   push:
+#   pull_request:
+#     types: [opened, synchronize]
+# jobs:
+#   integration_tests:
+#     name: integration tests
+#     runs-on: ubuntu-latest
+#     container: ghcr.io/guyaross/orbit-tooling:v2
+#     steps:
+#       - uses: actions/checkout@v2
+#       - run: |
+#           go build -o ./orbit && \
+#           pip3 install requests && \
+#           ./scripts/link_examples.sh && \
+#           python3 ./scripts/integration.py
