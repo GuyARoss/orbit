@@ -56,7 +56,7 @@ var devCMD = &cobra.Command{
 
 		fileChangeOpts := &internal.ChangeRequestOpts{
 			SafeFileTimeout: time.Duration(viper.GetInt("samefiletimeout")) * time.Millisecond,
-			Hook:            srcpack.NewSyncHook(log.NewDefaultLogger()),
+			Hook:            srcpack.NewSyncHook(log.NewEmptyLogger()),
 			HotReload:       hotReload,
 			Parser:          &jsparse.JSFileParser{},
 		}
@@ -101,7 +101,9 @@ var devCMD = &cobra.Command{
 		}()
 
 		http.HandleFunc("/ws", hotReload.HandleWebSocket)
-		logger.Info(fmt.Sprintf("server started on port %d", viper.GetInt("hotreloadport")))
+
+		logger.Info(fmt.Sprintf("Hot reload server started on port '%d'", viper.GetInt("hotreloadport")))
+		logger.Info("You will still need to run your application")
 
 		err = http.ListenAndServe(fmt.Sprintf("localhost:%d", viper.GetInt("hotreloadport")), nil)
 		if err != nil {

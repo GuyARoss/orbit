@@ -4,7 +4,10 @@
 
 package log
 
-import "fmt"
+import (
+	"fmt"
+	"runtime"
+)
 
 var (
 	colorReset  = "\033[0m"
@@ -14,6 +17,8 @@ var (
 	colorBlue   = "\033[34m"
 
 	blockUnderline = "\033[4m"
+	clear          = "\x1B[2J\x1B[3J\x1B[H"
+	clearWin       = "\x1B[2J\x1B[0f"
 )
 
 type Logger interface {
@@ -21,6 +26,7 @@ type Logger interface {
 	Success(text string) (int, error)
 	Warn(text string) (int, error)
 	Info(text string) (int, error)
+	Clear()
 }
 
 type DefaultLogger struct {
@@ -39,6 +45,15 @@ func NewDefaultLogger() *DefaultLogger {
 	return &DefaultLogger{
 		outf: fmt.Printf,
 	}
+}
+
+func (l *DefaultLogger) Clear() {
+	if runtime.GOOS == "windows" {
+		l.outf(clearWin)
+		return
+	}
+
+	l.outf(clear)
 }
 
 func (l *DefaultLogger) Error(text string) (int, error) {
