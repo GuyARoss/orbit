@@ -316,7 +316,7 @@ func New(ctx context.Context, opts *SessionOpts) (*devSession, error) {
 		SessionOpts:    opts,
 		RootComponents: rootComponents,
 		SourceMap:      sourceMap,
-		packer:         packer.ReattachLogger(log.NewDefaultLogger()),
+		packer:         packer,
 		libout:         bg,
 		ChangeRequest: &changeRequest{
 			changeRequests: allocatedstack.New(10),

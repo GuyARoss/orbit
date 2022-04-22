@@ -73,6 +73,7 @@ var versionCMD = &cobra.Command{
 
 func Execute() {
 	logger := log.NewDefaultLogger()
+	logger.Clear()
 	logger.Title("orbit-ssr")
 
 	RootCMD.AddCommand(versionCMD)
