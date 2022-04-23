@@ -17,29 +17,38 @@ import (
 var nodeProcess *os.Process
 
 func init() {
-	serverStartupTasks = append(serverStartupTasks, reactSSRNodeServerStartup)
+	serverStartupTasks = append(serverStartupTasks, StartupTaskReactSSR(bundleDir, wrapDocRender, staticResourceMap, make(map[PageRender]string)))
 }
 
-func reactSSRNodeServerStartup() {
-	err := nodeServerInstance()
-	if err != nil {
-		panic(err)
-	}
+func StartupTaskReactSSR(outDir string, pages map[PageRender]*DocumentRenderer, staticMap map[PageRender]bool, nameMap map[PageRender]string) func() {
+	return func() {
+		err := startNodeServer()
+		if err != nil {
+			panic(err)
+		}
 
-	d := setupDoc()
+		d := setupDoc()
 
-	for b, r := range wrapDocRender {
-		if r.version == "reactSSR" && staticResourceMap[b] {
+		for b, r := range pages {
+			if r.version != "reactSSR" || !staticMap[b] {
+				continue
+			}
+
 			sr, _ := reactSSR(context.Background(), string(b), []byte("{}"), d)
 
-			path := fmt.Sprintf("%s%c%s", http.Dir(bundleDir), os.PathSeparator, b)
+			pathName := string(b)
+			if nameMap[b] != "" {
+				pathName = nameMap[b]
+			}
+
+			path := fmt.Sprintf("%s%c%s", http.Dir(outDir), os.PathSeparator, pathName)
 			body := append(pageDependencies[b], sr.Body...)
 
 			so := fmt.Sprintf(`<!doctype html><head>%s</head><body>%s</body></html>`, strings.Join(sr.Head, ""), strings.Join(body, ""))
 
 			err := ioutil.WriteFile(path, []byte(so), 0644)
 			if err != nil {
-				fmt.Printf("error creating static resource for bundle %s\n", b)
+				fmt.Printf("error creating static resource for bundle %s :: %s\n", b, err)
 				continue
 			}
 
@@ -47,7 +56,8 @@ func reactSSRNodeServerStartup() {
 		}
 	}
 }
-func nodeServerInstance() error {
+
+func startNodeServer() error {
 	if nodeProcess != nil {
 		return nil
 	}
@@ -76,7 +86,9 @@ func nodeServerInstance() error {
 			if strings.Contains(line, "boot success") {
 				booted <- true
 			}
+
 			if strings.Contains(line, "boot fail") {
+				fmt.Println(line)
 				booted <- false
 			}
 		}
@@ -120,7 +132,7 @@ func reactSSR(ctx context.Context, bundleKey string, data []byte, doc *htmlDoc) 
 	})
 
 	if err != nil {
-		// @@todo return this instead of body
+		// TODO: return error & body
 		doc.Body = append(doc.Body, "<div>error loading page part of the page</div>")
 	}
 
