@@ -9,12 +9,19 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 
 	grpc "google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
 var nodeProcess *os.Process
+
+func Close() error {
+	// this is a hack, node process does not get terminated with the nodeProcess.Kill
+	// method, but I found that if I use ctrl^c in the terminal, it closes it correctly
+	return syscall.Kill(nodeProcess.Pid, syscall.SIGSTOP)
+}
 
 func init() {
 	serverStartupTasks = append(serverStartupTasks, StartupTaskReactSSR(bundleDir, wrapDocRender, staticResourceMap, make(map[PageRender]string)))
@@ -56,6 +63,7 @@ func StartupTaskReactSSR(outDir string, pages map[PageRender]*DocumentRenderer, 
 
 func startNodeServer() error {
 	if nodeProcess != nil {
+		// TODO: already started
 		return nil
 	}
 

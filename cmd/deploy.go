@@ -46,6 +46,7 @@ var deployCMD = &cobra.Command{
 			}
 		}
 
+		defer webwrap.Close()
 		webwrap.StartupTaskReactSSR(viper.GetString("staticout"), pages, staticMap, bundleToPath)()
 	},
 }
