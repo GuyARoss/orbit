@@ -28,7 +28,6 @@ func StartupTaskReactSSR(outDir string, pages map[PageRender]*DocumentRenderer, 
 		}
 
 		d := setupDoc()
-
 		for b, r := range pages {
 			if r.version != "reactSSR" || !staticMap[b] {
 				continue
@@ -48,11 +47,9 @@ func StartupTaskReactSSR(outDir string, pages map[PageRender]*DocumentRenderer, 
 
 			err := ioutil.WriteFile(path, []byte(so), 0644)
 			if err != nil {
-				fmt.Printf("error creating static resource for bundle %s :: %s\n", b, err)
+				fmt.Printf("error creating static resource for bundle %s => %s\n", b, err)
 				continue
 			}
-
-			fmt.Printf("successfully created static resource for %s\n", b)
 		}
 	}
 }
@@ -74,7 +71,6 @@ func startNodeServer() error {
 	}
 
 	nodeProcess = cmd.Process
-
 	booted := make(chan bool)
 
 	go func() {
@@ -82,8 +78,8 @@ func startNodeServer() error {
 		for scanner.Scan() {
 			line := scanner.Text()
 
-			fmt.Println(line)
 			if strings.Contains(line, "boot success") {
+				fmt.Println(line)
 				booted <- true
 			}
 
@@ -93,6 +89,7 @@ func startNodeServer() error {
 			}
 		}
 	}()
+
 	go func() {
 		_, err := nodeProcess.Wait()
 
@@ -126,7 +123,7 @@ func reactSSR(ctx context.Context, bundleKey string, data []byte, doc *htmlDoc) 
 	defer conn.Close()
 	client := NewReactRendererClient(conn)
 
-	response, err := client.Render(context.TODO(), &RenderRequest{
+	response, err := client.Render(ctx, &RenderRequest{
 		BundleID: bundleKey,
 		JSONData: string(data),
 	})
@@ -137,6 +134,5 @@ func reactSSR(ctx context.Context, bundleKey string, data []byte, doc *htmlDoc) 
 	}
 
 	doc.Body = append(doc.Body, response.StaticContent)
-
 	return doc, ctx
 }
