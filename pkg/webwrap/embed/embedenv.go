@@ -27,7 +27,16 @@ type DocumentRenderer struct {
 	version string
 }
 
-var wrapDocRender = map[PageRender]DocumentRenderer{}
+func NewEmptyDocumentRenderer(version string) *DocumentRenderer {
+	return &DocumentRenderer{
+		version: version,
+		fn: func(s string, b []byte, hd htmlDoc) htmlDoc {
+			return hd
+		},
+	}
+}
+
+var wrapDocRender = map[PageRender]*DocumentRenderer{}
 
 type HydrationCtxKey string
 

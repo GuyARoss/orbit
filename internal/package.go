@@ -50,6 +50,7 @@ type FileStructureOpts struct {
 	OutDir      string
 	Assets      []fs.DirEntry
 	Dist        []fs.DirEntry
+	Mkdirs      []string
 }
 
 // OrbitFileStructure creates the foundation for orbits file structure, this includes:
@@ -60,6 +61,15 @@ func OrbitFileStructure(s *FileStructureOpts) error {
 	err := os.RemoveAll(".orbit/base")
 	if err != nil {
 		return err
+	}
+
+	for _, dir := range s.Mkdirs {
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			err := os.Mkdir(dir, os.ModePerm)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	if _, err := os.Stat(fmt.Sprintf("%s/%s", s.OutDir, s.PackageName)); os.IsNotExist(err) {

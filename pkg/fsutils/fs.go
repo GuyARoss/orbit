@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"strings"
 )
 
 func depthFiles(dir string, maxDepth int, depth int) []string {
@@ -34,4 +35,11 @@ func depthFiles(dir string, maxDepth int, depth int) []string {
 
 func DirFiles(dir string) []string {
 	return depthFiles(dir, 2, 0)
+}
+
+func LastPathIndex(path string) string {
+	paths := strings.Split(path, "/")
+	s := strings.Split(paths[len(paths)-1], ".")
+
+	return s[0]
 }

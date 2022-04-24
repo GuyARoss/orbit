@@ -1,13 +1,13 @@
 package orbitgen
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
-	"context"
-	"encoding/json"
-	"fmt"
 )
 
 
@@ -290,7 +290,6 @@ func setupDoc() *htmlDoc {
 
 	_, err := os.Stat(publicDir)
 	if !os.IsNotExist(err) {
-		// im not entirely sure that an error here would warrant a change in behavior
 		// invalid files should already be skipped, besides that, an empty []byte should suffice.
 		data, _ := ioutil.ReadFile(publicDir)
 		html = string(data)

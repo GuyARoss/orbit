@@ -5,8 +5,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/GuyARoss/orbit/pkg/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -27,8 +25,8 @@ func init() {
 	var dependout string
 	var experimentalFeatures []string
 
-	buildCmds := [3]*cobra.Command{
-		buildCMD, devCMD, initCMD,
+	buildCmds := [4]*cobra.Command{
+		buildCMD, devCMD, initCMD, deployCMD,
 	}
 
 	for _, cmd := range buildCmds {
@@ -63,14 +61,6 @@ func init() {
 	}
 }
 
-var versionCMD = &cobra.Command{
-	Use:   "version",
-	Short: "version",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("version 0.3.6")
-	},
-}
-
 func Execute() {
 	logger := log.NewDefaultLogger()
 	logger.Clear()
@@ -81,6 +71,7 @@ func Execute() {
 	RootCMD.AddCommand(buildCMD)
 	RootCMD.AddCommand(toolCMD)
 	RootCMD.AddCommand(experiementalCMD)
+	RootCMD.AddCommand(deployCMD)
 
 	if err := RootCMD.Execute(); err != nil {
 		panic(err)

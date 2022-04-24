@@ -36,3 +36,11 @@ func TestDirFiles(t *testing.T) {
 		t.Errorf("expected %d got %d", 3, len(resp))
 	}
 }
+
+func TestLastPathIndex(t *testing.T) {
+	e := "thing"
+
+	if g := LastPathIndex("/cat/one/thing.txt"); g != e {
+		t.Errorf("expected %s got %s", e, g)
+	}
+}

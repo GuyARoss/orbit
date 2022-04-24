@@ -54,7 +54,7 @@ func NewReactSSR(opts *NewReactSSROpts) *ReactSSR {
 
 	opts.InitDoc.AddSerializable(fn)
 
-	// @@ should we put this in a embed file?
+	// TODO: this should be in a embed file
 	opts.InitDoc.AddOther(`
 
 	const options = {
@@ -86,7 +86,7 @@ func NewReactSSR(opts *NewReactSSROpts) *ReactSSR {
 			grpc.ServerCredentials.createInsecure(),
 			(error, port) => {
 				if (!!error) {
-					console.log("boot fail")
+					console.log("boot fail", error)
 					return
 				}
 		
@@ -97,7 +97,6 @@ func NewReactSSR(opts *NewReactSSROpts) *ReactSSR {
 	} catch (err) {
 		console.log("boot fail")
 	}
-	
 `)
 
 	return &ReactSSR{
