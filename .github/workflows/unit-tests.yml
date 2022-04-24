@@ -15,7 +15,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
     - name: Test
-      run: go test `go list ./... | grep -v examples,pkg/webwrap`
+      run: go test `go list ./... | grep -v examples | grep -v pkg/webwrap`
 
   test-cache:
     runs-on: ubuntu-latest
