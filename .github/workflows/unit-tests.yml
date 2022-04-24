@@ -37,4 +37,4 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-
     - name: Test
-      run: go test ./...
+      run: go test `go list ./... | grep -v examples | grep -v pkg/webwrap`
