@@ -9,7 +9,7 @@ const IndexPage = withLayout(() => {
         </>
     )
 }, {
-    description: 'This page is an overview of the Orbit documentation.',
+    description: 'This page is an overview of the Orbit documentation',
     title: 'Orbit',
 })
 

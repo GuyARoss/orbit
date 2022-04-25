@@ -31,12 +31,49 @@ body {
 .default-header .links {
     display: flex;
     justify-content: space-evenly;
+    margin: 35px 0px;
 }
 
 hr {
-    margin-top: 20px;
+    margin-top: 30px;
     border: 0;
     border-top: 1px solid #eee;        
-    padding: 20px;
 }
 
+.sidebar {
+    width: 25%;
+}
+
+.main {
+   width: 75%; 
+}
+
+.body-content {
+    display: flex;
+}
+
+.body-content > * {
+    padding: 10px;
+}
+
+a {
+    color: rgb(0, 0, 0);
+    text-decoration: none; 
+}
+
+.main a {
+    background-color: rgba(187,239,253,0.3);
+    border-bottom: 1px solid rgba(0,0,0,0.2);    
+}
+
+.sidebar ul {
+    list-style-type: none;
+}
+
+.sidebar ul > li:hover * {
+    color: #505050;
+}
+
+ul > li {
+    padding: 10px;    
+}
