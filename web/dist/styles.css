@@ -1,0 +1,42 @@
+html {
+    font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,Fira Sans,Droid Sans,Helvetica Neue,sans-serif;
+}
+
+body {
+    padding-right: 50px;
+    padding-left: 50px;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+.default-header {
+    padding: 60px;
+    text-align: center;
+    text-transform: capitalize;
+}
+
+.default-header h1 {
+    color: #242424;
+    font-size: 48px;
+    font-weight: 600;
+}
+
+.default-header p {
+    color: #777777;
+    margin-top: 15px;
+    font-size: 16px;
+    font-weight: 300;
+}
+
+.default-header .links {
+    display: flex;
+    justify-content: space-evenly;
+}
+
+hr {
+    margin-top: 20px;
+    border: 0;
+    border-top: 1px solid #eee;        
+    padding: 20px;
+}
+

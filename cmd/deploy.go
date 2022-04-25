@@ -19,6 +19,7 @@ var deployCMD = &cobra.Command{
 			Mode:           viper.GetString("mode"),
 			NodeModulePath: viper.GetString("nodemod"),
 			PublicDir:      viper.GetString("publicdir"),
+			NoWrite:        true,
 			Dirs: []string{
 				viper.GetString("staticout"),
 			},
@@ -46,8 +47,13 @@ var deployCMD = &cobra.Command{
 			}
 		}
 
+		if len(staticMap) == 0 {
+			return
+		}
+		doc := webwrap.DocFromFile("./public/index.html")
+
 		defer webwrap.Close()
-		webwrap.StartupTaskReactSSR(viper.GetString("staticout"), pages, staticMap, bundleToPath)()
+		webwrap.StartupTaskReactSSR(viper.GetString("staticout"), pages, staticMap, bundleToPath, *doc)()
 	},
 }
 
