@@ -11,7 +11,8 @@ license:
 
 test:
 	go test `go list ./... | grep -v examples`
-
-integration:
+	
+	echo 'running integration tests'
 	make example
 	python3 ./scripts/integration.py
+

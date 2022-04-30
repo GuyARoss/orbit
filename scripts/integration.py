@@ -1,3 +1,7 @@
+# Copyright (c) 2021 Guy A. Ross
+# This source code is licensed under the GNU GPLv3 found in the
+# license file in the root directory of this source tree.
+
 '''
 a test of orbit integrations
 
@@ -56,10 +60,10 @@ def pull_number_from_last(text: str) -> int:
 
     return t[::-1]
     
-def terminate_port_pid(port: int) -> str:
+def terminate_port_pid(port: int) -> str:    
     netstat = subprocess.getoutput(f"netstat -nlp | grep {port}")
-
-    if "3030" in netstat:
+    
+    if str(port) in netstat:
         p = netstat.split('/main')
         pid = pull_number_from_last(p[len(p) - 2])
         
@@ -73,15 +77,15 @@ def is_application_ran_successfully(path: str) -> bool:
         sleep(5)
 
         f = requests.get('http://localhost:3030/')
-        assert f.status_code == 200, "status code failure"
+        terminate_port_pid(3030)
+        p.terminate()
 
+        assert f.status_code == 200, "status code failure"
         assert "orbit-integration-applied" not in f.text, "application not loaded correctly"            
         
-        p.terminate()
-        terminate_port_pid(3030)
-
         return True
-    except:
+    except Exception as e :
+        print(e)
         return False
 
 
@@ -99,7 +103,7 @@ if __name__ == '__main__':
     assert is_orbit_dist_valid(tmp_dir), "invalid orbit dist"
     print('completed is_orbit_dist_valid')
 
-    assert is_application_ran_successfully(tmp_dir), "application ran"
+    assert is_application_ran_successfully(tmp_dir), "application failed to run successfully"
     print('completed is_application_ran_successfully')
 
     print('integration contracts completed successfully')
