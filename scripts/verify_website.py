@@ -5,11 +5,11 @@
 import os
 
 def verify_titlekeyword_doesnotexist() -> bool:
-    files = os.listdir('./web/dist')
+    files = os.listdir('./docs')
 
     for f in files:
         if ".html" in f:
-            with open("./web/dist/" + f, 'r+') as file:
+            with open("./docs/" + f, 'r+') as file:
                 text = file.read()
                 
                 if "$title" in text:
