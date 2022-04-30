@@ -5,6 +5,8 @@
 package jsparse
 
 import (
+	"io/ioutil"
+	"strings"
 	"testing"
 )
 
@@ -31,6 +33,29 @@ func TestFormatImportLine(t *testing.T) {
 		if c.o != got.FinalStatement {
 			t.Errorf("(%d) expected %s got %s \n", i, c.o, got.FinalStatement)
 		}
+	}
+}
+
+func TestWriteFile(t *testing.T) {
+	path := t.TempDir() + "/thing"
+
+	d := NewEmptyDocument()
+	err := d.WriteFile(path)
+	if err != nil {
+		t.Errorf("should successfully create a file without errors")
+	}
+
+	_, err = ioutil.ReadFile(path)
+	if err != nil {
+		t.Errorf("file should read successfully")
+	}
+}
+
+func TestKey(t *testing.T) {
+	d := NewEmptyDocument()
+
+	if k := d.Key(); len(k) == 0 || strings.Contains(k, "-") {
+		t.Errorf("invalid key created ")
 	}
 }
 
