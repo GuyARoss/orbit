@@ -50,6 +50,7 @@ hr {
 
 .body-content {
     display: flex;
+    flex-direction: row;
 }
 
 .body-content > * {
@@ -66,14 +67,86 @@ a {
     border-bottom: 1px solid rgba(0,0,0,0.2);    
 }
 
+.main a.local {
+    background-color: rgba(255,220,140,0.3);
+    border-bottom: 1px solid rgba(0,0,0,0.2);    
+}
+
 .sidebar ul {
     list-style-type: none;
 }
 
-.sidebar ul > li:hover * {
+.sidebar ul > li:hover > a {
     color: #505050;
 }
 
-ul > li {
-    padding: 10px;    
+.sidebar ul > li {
+    padding: 10px;
+    max-width: 50%;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.main ul > li {
+    padding: 10px;
+}
+
+ul > li strong {
+    padding-right: 5px;    
+    display: flex;
+    padding-bottom: 8px;
+}
+
+.sidebar > label {
+    padding-left: 35px;
+    font-weight: bold;
+}
+
+@media only screen and (max-width: 1150px) {
+    .body-content {
+        display: flex;
+        flex-direction: column;
+    }       
+    .sidebar ul > li {
+        display: inline;
+    }
+}
+
+li.active {
+    border-left: 2px solid #00b7ff;
+}
+
+article > section {
+    margin-top: 60px;
+}
+
+article section hr {
+    margin-top: 0px;
+    margin-bottom: 30px;
+}
+
+.notice-default {
+    padding: 25px 15px;
+    background-color: #baebff;
+    border-left: 5px solid #00b7ff;
+    max-width: 60%;
+}
+
+.notice-default p {
+    margin-bottom: 0px;
+}
+
+li span {
+    background-color: #eaffe6;
+    border-bottom: 1px solid #ccf3c3;
+    font-style: italic;    
+}
+
+span.flag {
+    background-color: #e5ecf3; 
+}
+
+.main p {
+    line-height: 30px;
+    max-width: 60%;
 }

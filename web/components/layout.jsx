@@ -2,7 +2,17 @@ import React from 'react'
 
 import BoxArrowSvg from './box-arrow-svg'
 
-const Layout = ({ children, title, description }) => {
+const Layout = ({ active, children, title, description }) => {
+    const activeMap = {
+        index: false, 
+        cli: false,
+        experimental: false,
+        micro: false,
+        react: false,
+    }
+
+    activeMap[active] = true
+
     return (
         <>
             <header className="default-header">
@@ -18,11 +28,15 @@ const Layout = ({ children, title, description }) => {
             <div className="body-content">
                 <div className="sidebar">
                     <ul>
-                        <li><a href="./index.html">Getting Started</a></li>
-                        <li><a href="./micro-frontend-guide.html">Micro-frontend Guide</a></li>
-                        <li><a href="./react-guide.html">React Guide</a></li>
-                        <li><a href="./experimental.html">Experimental Features</a></li>
-                        <li><a href="./api-commands.html">Api Commands</a></li>
+                        <li className={activeMap.index ? "active" : ""}><a href="./index.html">Getting Started</a></li>
+                        <li className={activeMap.cli ? "active" : ""}><a href="./api-commands.html">CLI</a></li>         
+                        <li className={activeMap.experimental ? "active" : ""}><a href="./experimental.html">Experimental Features</a></li>
+                    </ul>
+
+                    <label>Guides</label>
+                    <ul>
+                        <li className={activeMap.micro ? "active" : ""}><a href="./micro-frontend-guide.html">Micro-frontend</a></li>
+                        <li className={activeMap.react ? "active" : ""}><a href="./react-guide.html">React</a></li>
                     </ul>  
                 </div>
                 <article className="main">

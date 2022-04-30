@@ -3,12 +3,16 @@ import {withLayout} from "../components/layout"
 const ReactGuide = withLayout(() => {
     return (
         <>
-            <li></li>    
+            <header>
+                <h2>React</h2>
+                <p>You can find the code for this guide <a href="https://github.com/GuyARoss/orbit/tree/master/examples/basic-react">here</a></p>
+            </header>
         </>
     )
 }, {
-    title: '',
-    description: '',
+    active: 'react',
+    title: 'Guide - React',
+    description: 'A simple react guide',
 })
 
 

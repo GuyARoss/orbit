@@ -6,7 +6,7 @@
   "description": "basic orbit-ssr example using react",
   "scripts": {
     "build": "./orbit deploy --staticout=./dist --experimental=ssr",
-    "dev": "echo $PWD/dist/index.html | xargs xdg-open & find ./ -type f -name '*.jsx' | entr -r npm run build"
+    "dev": "echo $PWD/dist/index.html | xargs xdg-open & find . -type f -name '*.jsx' | entr -r npm run build"
   },
   "dependencies": {
     "@babel/core": "^7.11.1",
