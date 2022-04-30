@@ -9,4 +9,4 @@ To build the website you should use the command
 
 `$ npm run build`
 
-then run the finalize.py command.
+then run the finalize-docs.py command within the /scripts directory
