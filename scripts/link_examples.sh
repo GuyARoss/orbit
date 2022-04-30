@@ -11,3 +11,10 @@ for file in examples/*; do
 
     echo "linked $file"
 done
+
+
+rm -rf web/orbit
+
+cp orbit web/orbit
+
+echo "linked web directory"

@@ -1,3 +1,12 @@
+./scripts/integration.py
+./scripts/verify_website.py
+./internal/build.go
+./cmd/version.go
+./cmd/deploy.go
+./web/finalize.py
+./web/node_modules/buffer/bin/update-authors.sh
+./web/node_modules/constants-browserify/build.sh
+./web/node_modules/@babel/polyfill/scripts/build-dist.sh
 ./pkg/allocated_stack/allocated_stack_test.go
 ./pkg/allocated_stack/allocated_stack.go
 ./pkg/hotreload/hotreload_test.go

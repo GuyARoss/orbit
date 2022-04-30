@@ -1,3 +1,7 @@
+// Copyright (c) 2021 Guy A. Ross
+// This source code is licensed under the GNU GPLv3 found in the
+// license file in the root directory of this source tree.
+
 package internal
 
 import (
@@ -23,6 +27,7 @@ type BuildOpts struct {
 	NodeModulePath string
 	PublicDir      string
 	Dirs           []string
+	NoWrite        bool
 }
 
 func Build(opts *BuildOpts) (srcpack.PackedComponentList, error) {
@@ -49,7 +54,7 @@ func Build(opts *BuildOpts) (srcpack.PackedComponentList, error) {
 	pageFiles := fsutils.DirFiles(fmt.Sprintf("%s/pages", opts.WebDir))
 
 	c, err := CachedEnvFromFile(fmt.Sprintf("%s/%s/orb_env.go", opts.OutDir, opts.Packname))
-	if err != nil && !errors.Is(err, os.ErrNotExist) {
+	if err != nil && !errors.Is(err, os.ErrNotExist) && !opts.NoWrite {
 		return nil, err
 	}
 
@@ -80,17 +85,19 @@ func Build(opts *BuildOpts) (srcpack.PackedComponentList, error) {
 		WebPrefix: "/p/",
 	})
 
-	err = bg.WriteLibout(libout.NewGOLibout(
-		ats.AssetKey(assets.Tests),
-		ats.AssetKey(assets.PrimaryPackage),
-	), &libout.FilePathOpts{
-		TestFile: fmt.Sprintf("%s/%s/orb_test.go", opts.OutDir, opts.Packname),
-		EnvFile:  fmt.Sprintf("%s/%s/orb_env.go", opts.OutDir, opts.Packname),
-		HTTPFile: fmt.Sprintf("%s/%s/orb_http.go", opts.OutDir, opts.Packname),
-	})
+	if !opts.NoWrite {
+		err = bg.WriteLibout(libout.NewGOLibout(
+			ats.AssetKey(assets.Tests),
+			ats.AssetKey(assets.PrimaryPackage),
+		), &libout.FilePathOpts{
+			TestFile: fmt.Sprintf("%s/%s/orb_test.go", opts.OutDir, opts.Packname),
+			EnvFile:  fmt.Sprintf("%s/%s/orb_env.go", opts.OutDir, opts.Packname),
+			HTTPFile: fmt.Sprintf("%s/%s/orb_http.go", opts.OutDir, opts.Packname),
+		})
 
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return components, nil

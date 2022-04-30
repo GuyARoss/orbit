@@ -27,6 +27,7 @@ type SyncHook struct {
 
 	order       *list.List
 	initialized bool
+	m           *sync.Mutex
 }
 
 func NewSyncHook(logger log.Logger) *SyncHook {
@@ -35,6 +36,7 @@ func NewSyncHook(logger log.Logger) *SyncHook {
 		postmap: make(map[string]float64),
 		premap:  make(map[string]bool),
 		order:   list.New(),
+		m:       &sync.Mutex{},
 	}
 }
 
@@ -71,19 +73,14 @@ func (s *SyncHook) Post(filePath string, elapsedTime float64) {
 
 func (s *SyncHook) WrapFunc(filepath string, do func()) {
 	starttime := time.Now()
-	m := sync.Mutex{}
-
-	m.Lock()
+	s.m.Lock()
 	s.Pre(filepath)
-	m.Unlock()
 
 	do()
 
-	m.Lock()
 	s.Post(filepath, time.Since(starttime).Seconds())
 	s.postmap[filepath] = time.Since(starttime).Seconds()
-
-	m.Unlock()
+	s.m.Unlock()
 }
 
 func (s *SyncHook) Close() {

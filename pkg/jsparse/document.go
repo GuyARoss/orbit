@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/google/uuid"
 )
@@ -324,6 +325,7 @@ type jsSwitchValue struct {
 type JsDocSwitch struct {
 	varname      string
 	valueBodyMap map[string]jsSwitchValue
+	m            sync.Mutex
 }
 
 func (s *JsDocSwitch) Serialize() string {
@@ -353,6 +355,7 @@ func NewSwitch(varname string) *JsDocSwitch {
 	return &JsDocSwitch{
 		varname:      varname,
 		valueBodyMap: make(map[string]jsSwitchValue),
+		m:            sync.Mutex{},
 	}
 }
 
@@ -364,11 +367,15 @@ const (
 )
 
 func (s *JsDocSwitch) Add(t JSType, value string, body string) {
+	s.m.Lock()
+
 	s.valueBodyMap[value] = jsSwitchValue{
 		Value:  value,
 		JSType: t,
 		Body:   body,
 	}
+
+	s.m.Unlock()
 }
 
 type JSExport int

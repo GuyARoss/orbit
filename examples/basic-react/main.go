@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/GuyARoss/orbit/examples/basic-react/orbitgen"
 )
@@ -12,27 +13,27 @@ func main() {
 		panic(err)
 	}
 
-	// orb.HandleFunc("/", func(c *orbitgen.Request) {
-	// 	now := time.Now()
+	orb.HandleFunc("/", func(c *orbitgen.Request) {
+		now := time.Now()
 
-	// 	props := make(map[string]interface{})
-	// 	props["day"] = now.Day()
-	// 	props["month"] = now.Month()
-	// 	props["year"] = now.Year()
+		props := make(map[string]interface{})
+		props["day"] = now.Day()
+		props["month"] = now.Month()
+		props["year"] = now.Year()
 
-	// 	c.RenderPage(orbitgen.ExamplePage, props)
-	// })
+		c.RenderPage(orbitgen.ExamplePage, props)
+	})
 
-	// orb.HandleFunc("/second", func(c *orbitgen.Request) {
-	// 	now := time.Now()
+	orb.HandleFunc("/second", func(c *orbitgen.Request) {
+		now := time.Now()
 
-	// 	props := make(map[string]interface{})
-	// 	props["day"] = now.Day()
-	// 	props["month"] = now.Month()
-	// 	props["year"] = now.Year()
+		props := make(map[string]interface{})
+		props["day"] = now.Day()
+		props["month"] = now.Month()
+		props["year"] = now.Year()
 
-	// 	c.RenderPage(orbitgen.ExampleTwoPage, props)
-	// })
+		c.RenderPage(orbitgen.ExampleTwoPage, props)
+	})
 
 	http.ListenAndServe(":3030", orb.Serve())
 }
