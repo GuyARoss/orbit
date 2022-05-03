@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/GuyARoss/orbit/pkg/jsparse"
+	"github.com/GuyARoss/orbit/pkg/jsparse/mock"
 	"github.com/GuyARoss/orbit/pkg/webwrap"
 	webwrapmock "github.com/GuyARoss/orbit/pkg/webwrap/mock"
 )
@@ -19,10 +20,13 @@ func TestNewComponent_BundleKey(t *testing.T) {
 		k string
 	}{
 		{&NewComponentOpts{
-			FilePath:      "something.test",
-			WebDir:        "./webDir",
-			DefaultKey:    "thing",
-			JSParser:      &jsparse.EmptyParser{},
+			FilePath:   "something.test",
+			WebDir:     "./webDir",
+			DefaultKey: "thing",
+			JSParser: &mock.MockJSParser{
+				Err:           nil,
+				ParseDocument: mock.NewMockJSDocument("test", "jsx", "test"),
+			},
 			JSWebWrappers: []webwrap.JSWebWrapper{&webwrapmock.MockWrapper{Satisfy: true, FailBundle: false}},
 		}, "thing"},
 	}
@@ -48,10 +52,24 @@ func TestNewComponent_Failures(t *testing.T) {
 		{&NewComponentOpts{JSParser: &jsparse.JSFileParser{}}},
 
 		// bad web wrap
-		{&NewComponentOpts{JSParser: &jsparse.EmptyParser{}}},
+		{&NewComponentOpts{JSParser: &mock.MockJSParser{
+			Err:           nil,
+			ParseDocument: mock.NewMockJSDocument("test", "jsx", "test"),
+		}}},
 
 		// bundler failure
-		{&NewComponentOpts{JSParser: &jsparse.EmptyParser{},
+		{&NewComponentOpts{JSParser: &mock.MockJSParser{
+			Err:           nil,
+			ParseDocument: mock.NewMockJSDocument("test", "jsx", "test"),
+		},
+			JSWebWrappers: []webwrap.JSWebWrapper{&webwrapmock.MockWrapper{Satisfy: true, FailBundle: true}},
+		}},
+
+		// default export is not present
+		{&NewComponentOpts{JSParser: &mock.MockJSParser{
+			Err:           nil,
+			ParseDocument: mock.NewMockJSDocument("test", "jsx", ""),
+		},
 			JSWebWrappers: []webwrap.JSWebWrapper{&webwrapmock.MockWrapper{Satisfy: true, FailBundle: true}},
 		}},
 	}

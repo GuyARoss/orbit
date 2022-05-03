@@ -7,6 +7,7 @@ package jsparse
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -64,6 +65,106 @@ type JsDocumentScope struct {
 	Name      string
 	Export    JSExport
 	Args      JSDocArgList
+}
+
+// tokenizeLine tokenizes each line and serializes it to the provided JSDocument
+func (p *DefaultJSDocument) tokenizeLine(line string) error {
+	for _, decToken := range declarationTokens {
+		if strings.Contains(line, string(decToken)) {
+			switch decToken {
+			case ImportToken:
+				p.imports = append(p.imports, p.formatImportLine(line))
+				return nil
+			case ExportDefaultToken, ExportConstToken:
+				name, err := extractJSTokenName(line, decToken)
+
+				if err != nil {
+					return err
+				}
+
+				if p.scope[name] != nil {
+					if decToken == ExportDefaultToken {
+						p.defaultExport = p.scope[name]
+						p.name = name
+					}
+					return nil
+				} else {
+					v, err := p.parseInformalExportDefault(line)
+					if err != nil || v {
+						return err
+					}
+				}
+			}
+
+			name, err := extractJSTokenName(line, decToken)
+			if err != nil {
+				return err
+			}
+			exportMethod := ExportNone
+
+			isDefault := false
+			for _, e := range exportTokens {
+				if strings.Contains(line, string(e)) {
+					switch e {
+					case ExportDefaultToken:
+						exportMethod = ExportDefault
+						isDefault = true
+					case ExportConstToken:
+						exportMethod = ExportConst
+					}
+				}
+			}
+
+			args, err := parseArgs(line)
+			if err != nil {
+				return err
+			}
+
+			scope := &JsDocumentScope{
+				Name:      name,
+				Export:    exportMethod,
+				TokenType: decToken,
+				Args:      args,
+			}
+
+			p.scope[name] = scope
+
+			if isDefault {
+				if decToken == ExportDefaultToken {
+					p.defaultExport = p.scope[name]
+					p.name = name
+				}
+				return nil
+			}
+		}
+	}
+
+	p.AddOther(line)
+
+	return nil
+}
+
+func (p *DefaultJSDocument) parseInformalExportDefault(line string) (bool, error) {
+	exportData := strings.TrimSpace(strings.Split(line, string(ExportDefaultToken))[1])
+	if len(exportData) == 0 {
+		return false, nil
+	}
+	if match := regexp.MustCompile("\\{|\\}|\\[|\\]|\\(|\\)"); !match.Match([]byte(exportData)) {
+		return false, nil
+	}
+
+	p.AddOther(fmt.Sprintf("const DefaultExportedUnnamedComponent = %s", exportData))
+	p.scope["DefaultExportedUnnamedComponent"] = &JsDocumentScope{
+		Name:      "DefaultExportedUnnamedComponent",
+		Export:    ExportDefault,
+		TokenType: ConstToken,
+		Args:      make(JSDocArgList, 0),
+	}
+
+	p.defaultExport = p.scope["DefaultExportedUnnamedComponent"]
+	p.name = "DefaultExportedUnnamedComponent"
+
+	return true, nil
 }
 
 // formatImportLine parses an import line to create an import dependency
@@ -133,80 +234,6 @@ func (p *DefaultJSDocument) formatImportLine(line string) *ImportDependency {
 		InitialPath:    fmt.Sprintf("%s.%s", initialPath, extension),
 		Type:           importType,
 	}
-}
-
-// tokenizeLine tokenizes each line and serializes it to the provided JSDocument
-func (p *DefaultJSDocument) tokenizeLine(line string) error {
-	// @@todo(guy): replace this process with a ll instead of reading from the lines directly
-	for _, decToken := range declarationTokens {
-		if strings.Contains(line, string(decToken)) {
-			switch decToken {
-			case ImportToken:
-				p.imports = append(p.imports, p.formatImportLine(line))
-				return nil
-			case ExportDefaultToken, ExportConstToken:
-				// does the name already exist?
-				name, err := extractJSTokenName(line, decToken)
-
-				if err != nil {
-					return err
-				}
-
-				if p.scope[name] != nil {
-					if decToken == ExportDefaultToken {
-						p.defaultExport = p.scope[name]
-						p.name = name
-					}
-					return nil
-				}
-			}
-
-			name, err := extractJSTokenName(line, decToken)
-			if err != nil {
-				return err
-			}
-			exportMethod := ExportNone
-
-			isDefault := false
-			for _, e := range exportTokens {
-				if strings.Contains(line, string(e)) {
-					switch e {
-					case ExportDefaultToken:
-						exportMethod = ExportDefault
-						isDefault = true
-					case ExportConstToken:
-						exportMethod = ExportConst
-					}
-				}
-			}
-
-			args, err := parseArgs(line)
-			if err != nil {
-				return err
-			}
-
-			scope := &JsDocumentScope{
-				Name:      name,
-				Export:    exportMethod,
-				TokenType: decToken,
-				Args:      args,
-			}
-
-			p.scope[name] = scope
-
-			if isDefault {
-				if decToken == ExportDefaultToken {
-					p.defaultExport = p.scope[name]
-					p.name = name
-				}
-				return nil
-			}
-		}
-	}
-
-	p.AddOther(line)
-
-	return nil
 }
 
 func (p *DefaultJSDocument) WriteFile(dir string) error {
@@ -287,6 +314,7 @@ func NewEmptyDocument() *DefaultJSDocument {
 		scope:         make(map[string]*JsDocumentScope),
 		imports:       make([]*ImportDependency, 0),
 		defaultExport: &JsDocumentScope{},
+		other:         make([]string, 0),
 	}
 }
 
