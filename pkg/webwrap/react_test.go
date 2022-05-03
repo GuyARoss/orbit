@@ -16,8 +16,8 @@ func TestApplyReact_Error(t *testing.T) {
 		doc *mock.MockJsDocument
 		err error
 	}{
-		{mock.NewMockJSDocument("", "blah"), ErrInvalidComponent},
-		{mock.NewMockJSDocument("lowercaseThing", "jsx"), ErrComponentExport},
+		{mock.NewMockJSDocument("", "blah", "test"), ErrInvalidComponent},
+		{mock.NewMockJSDocument("lowercaseThing", "jsx", "test"), ErrComponentExport},
 	}
 
 	r := &ReactWebWrapper{}
@@ -34,7 +34,7 @@ func TestApplyReact_Error(t *testing.T) {
 func TestApplyReact(t *testing.T) {
 	r := &ReactWebWrapper{}
 
-	p, err := r.Apply(mock.NewMockJSDocument("Thing", "jsx"))
+	p, err := r.Apply(mock.NewMockJSDocument("Thing", "jsx", "test"))
 	if err != nil {
 		t.Error("should not expect error during valid jsx parsing")
 	}

@@ -52,14 +52,18 @@ type NewComponentOpts struct {
 }
 
 var ErrInvalidComponentType = errors.New("invalid component type")
-
 var ErrInvalidPageName = errors.New("invalid page name")
+var ErrComponentNotExported = errors.New("component not exported")
 
 // NewComponent creates a new component that represents a packaged & bundled web component
 func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, error) {
 	page, err := opts.JSParser.Parse(opts.FilePath, opts.WebDir)
 	if err != nil {
 		return nil, err
+	}
+
+	if page == nil || page.DefaultExport() == nil || page.DefaultExport().Name == "" {
+		return nil, ErrComponentNotExported
 	}
 
 	// we attempt to find the first web wrapper that satisfies the extension requirements

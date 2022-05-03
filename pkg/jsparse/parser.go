@@ -15,14 +15,6 @@ type JSParser interface {
 	Parse(string, string) (JSDocument, error)
 }
 
-type EmptyParser struct {
-	BadParse bool
-}
-
-func (p *EmptyParser) Parse(string, string) (JSDocument, error) {
-	return &DefaultJSDocument{}, nil
-}
-
 type JSFileParser struct{}
 
 func (p *JSFileParser) Parse(pageDir string, webDir string) (JSDocument, error) {

@@ -5,6 +5,7 @@
 package jsparse
 
 import (
+	"fmt"
 	"io/ioutil"
 	"strings"
 	"testing"
@@ -80,6 +81,14 @@ func TestVerifyPath(t *testing.T) {
 	}
 }
 
+func TestParseInformalExportDefault(t *testing.T) {
+	p := &DefaultJSDocument{
+		other: []string{},
+		scope: map[string]*JsDocumentScope{},
+	}
+	p.parseInformalExportDefault("export default Thing(Thing2)")
+}
+
 func TestTokenizeLine(t *testing.T) {
 	var tt = []struct {
 		i          string
@@ -98,6 +107,18 @@ func TestTokenizeLine(t *testing.T) {
 		{"export default Thing", DefaultJSDocument{
 			extension: "jsx",
 		}, "Thing"},
+		{"export default HOCSomething(Component)", DefaultJSDocument{
+			extension: "jsx",
+			other:     []string{"const DefaultExportedUnnamedComponent = HOCSomething(Component)"},
+		}, "DefaultExportedUnnamedComponent"},
+		{"", DefaultJSDocument{
+			other:     []string{""},
+			extension: "jsx",
+		}, ""},
+		{"export default () => (<> </>)", DefaultJSDocument{
+			extension: "jsx",
+			other:     []string{"const DefaultExportedUnnamedComponent = () => (<> </>)"},
+		}, "DefaultExportedUnnamedComponent"},
 	}
 
 	for i, d := range tt {
@@ -106,22 +127,23 @@ func TestTokenizeLine(t *testing.T) {
 
 		if got != nil {
 			t.Error("did not expect error during line tokenization")
-			return
+			continue
 		}
 
 		if cdoc.defaultExport.Name != d.exportName {
 			t.Errorf("(%d) expected name %s got %s", i, d.exportName, cdoc.defaultExport.Name)
-			return
+			continue
 		}
 
 		if len(cdoc.imports) != len(d.o.imports) {
 			t.Errorf("(%d) import missmatch", i)
-			return
+			continue
 		}
 
 		if len(cdoc.other) != len(d.o.other) {
+			fmt.Println(cdoc.other, d.o.other, len(cdoc.other), len(d.o.other))
 			t.Errorf("(%d) other missmatch", i)
-			return
+			continue
 		}
 
 		cdoc = &DefaultJSDocument{}
