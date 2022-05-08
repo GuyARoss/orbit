@@ -97,18 +97,18 @@ def setup_repo(dir: str, tag: str) -> str:
     return dir + "/orbit/examples/basic-react"
 
 if __name__ == "__main__":
-    # tags = ['v0.2.0', 'v0.3.0', 'v0.3.2', 'v0.3.6', 'v0.7.0', 'v0.7.1', 'latest']
+    tags = ['v0.2.0', 'v0.3.0', 'v0.3.2', 'v0.3.6', 'v0.7.0', 'v0.7.1', 'latest']
 
-    tags = [
-        'latest',
-        'commit@6a131ded2e281846a1ca71d87a41ee14c30bcdfa',
-        'commit@9184fce235309eb26a0451d4facbecd1aa3566bb',
-        'commit@e5f0835c519cf400c2fd4bbd41f8e5a30fb1b09a',
-        'commit@4cbfbbb0b4deaf770274b65591bd310f418791d9',
-        'commit@571d3ced6cec838c622a47201be5420d3ff0ee16',
-        'commit@1cbf8146637b88c37e8e93338051325ea2077f00',
-        'commit@4e52e3ce9cd5b0689d00d395caa182afe983debd']
-    tags.reverse()
+    # tags = [
+    #     'latest',
+    #     'commit@6a131ded2e281846a1ca71d87a41ee14c30bcdfa',
+    #     'commit@9184fce235309eb26a0451d4facbecd1aa3566bb',
+    #     'commit@e5f0835c519cf400c2fd4bbd41f8e5a30fb1b09a',
+    #     'commit@4cbfbbb0b4deaf770274b65591bd310f418791d9',
+    #     'commit@571d3ced6cec838c622a47201be5420d3ff0ee16',
+    #     'commit@1cbf8146637b88c37e8e93338051325ea2077f00',
+    #     'commit@4e52e3ce9cd5b0689d00d395caa182afe983debd']
+    # tags.reverse()
     main(
         tags
     )
