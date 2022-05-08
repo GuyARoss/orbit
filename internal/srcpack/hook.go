@@ -75,9 +75,11 @@ func (s *SyncHook) WrapFunc(filepath string, do func()) {
 	starttime := time.Now()
 	s.m.Lock()
 	s.Pre(filepath)
+	s.m.Unlock()
 
 	do()
 
+	s.m.Lock()
 	s.Post(filepath, time.Since(starttime).Seconds())
 	s.postmap[filepath] = time.Since(starttime).Seconds()
 	s.m.Unlock()
