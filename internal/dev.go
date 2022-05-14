@@ -255,7 +255,7 @@ func New(ctx context.Context, opts *SessionOpts) (*devSession, error) {
 
 	c, err := CachedEnvFromFile(fmt.Sprintf("%s/%s/orb_env.go", opts.OutDir, opts.Pacname))
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
-		panic(err)
+		return nil, err
 	}
 
 	packer := srcpack.NewDefaultPacker(log.NewEmptyLogger(), &srcpack.DefaultPackerOpts{
@@ -269,7 +269,7 @@ func New(ctx context.Context, opts *SessionOpts) (*devSession, error) {
 	pageFiles := fsutils.DirFiles(fmt.Sprintf("%s/pages", opts.WebDir))
 	components, err := packer.PackMany(pageFiles)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	bg := libout.New(&libout.BundleGroupOpts{
@@ -282,10 +282,12 @@ func New(ctx context.Context, opts *SessionOpts) (*devSession, error) {
 
 	ctx = context.WithValue(ctx, webwrap.BundlerID, opts.Mode)
 
-	bg.AcceptComponents(ctx, components, &webwrap.CacheDOMOpts{
+	if err = bg.AcceptComponents(ctx, components, &webwrap.CacheDOMOpts{
 		CacheDir:  ".orbit/dist",
 		WebPrefix: "/p/",
-	})
+	}); err != nil {
+		return nil, err
+	}
 
 	err = bg.WriteLibout(libout.NewGOLibout(
 		ats.AssetKey(assets.Tests),

@@ -59,13 +59,8 @@ func (s *JSPacker) PackMany(pages []string) (PackedComponentList, error) {
 	wg := &sync.WaitGroup{}
 	wg.Add(len(pages))
 
-	errchan := make(chan error)
-
-	go func() {
-		err := <-errchan
-		// @@todo: do something more with this error?
-		fmt.Println("error occurred", err.Error())
-	}()
+	var errOnce sync.Once
+	var packErr error
 
 	sh := NewSyncHook(s.Logger)
 
@@ -76,12 +71,19 @@ func (s *JSPacker) PackMany(pages []string) (PackedComponentList, error) {
 		t := dir
 		// go routine to pack every page found in the pages directory
 		// we wrap this routine with the sync hook to measure & log time deltas.
-		go sh.WrapFunc(dir, func() { cp.PackSingle(errchan, wg, t) })
+		go sh.WrapFunc(dir, func() {
+			err := cp.PackSingle(wg, t)
+			if err != nil {
+				errOnce.Do(func() {
+					packErr = err
+				})
+			}
+		})
 	}
 
 	wg.Wait()
 
-	return cp.packedPages, nil
+	return cp.packedPages, packErr
 }
 
 func (p *JSPacker) PackSingle(logger log.Logger, file string) (PackComponent, error) {
@@ -111,11 +113,11 @@ type DefaultPackerOpts struct {
 // this process includes the following:
 // 1. wrapping the component with the specified front-end web framework.
 // 2. bundling the component with the specified javascript bundler.
-func (p *concPack) PackSingle(errchan chan error, wg *sync.WaitGroup, path string) {
+func (p *concPack) PackSingle(wg *sync.WaitGroup, path string) error {
 	// this page has already been packed before and does not need to be repacked.
 	if p.packMap[path] {
 		wg.Done()
-		return
+		return nil
 	}
 
 	// @@todo: we should validate if these components exist on our source map yet, if so we should
@@ -129,11 +131,8 @@ func (p *concPack) PackSingle(errchan chan error, wg *sync.WaitGroup, path strin
 	})
 
 	if err != nil {
-		errchan <- err
-		fmt.Println(err)
-
 		wg.Done()
-		return
+		return err
 	}
 
 	p.m.Lock()
@@ -142,6 +141,7 @@ func (p *concPack) PackSingle(errchan chan error, wg *sync.WaitGroup, path strin
 	p.m.Unlock()
 
 	wg.Done()
+	return nil
 }
 
 type PackedComponentList []PackComponent
@@ -150,13 +150,8 @@ func (l *PackedComponentList) RepackMany(logger log.Logger) error {
 	wg := &sync.WaitGroup{}
 	wg.Add(len(*l))
 
-	errchan := make(chan error)
-
-	go func() {
-		err := <-errchan
-		// @@todo: do something more with this error?
-		fmt.Println("error occurred", err.Error())
-	}()
+	var errOnce sync.Once
+	var packErr error
 
 	sh := NewSyncHook(logger)
 
@@ -167,12 +162,19 @@ func (l *PackedComponentList) RepackMany(logger log.Logger) error {
 		t := comp
 		// go routine to pack every page found in the pages directory
 		// we wrap this routine with the sync hook to measure & log time deltas.
-		go sh.WrapFunc(t.OriginalFilePath(), func() { comp.RepackForWaitGroup(wg, errchan) })
+		go sh.WrapFunc(t.OriginalFilePath(), func() {
+			err := comp.RepackForWaitGroup(wg)
+			if err != nil {
+				errOnce.Do(func() {
+					packErr = err
+				})
+			}
+		})
 	}
 
 	wg.Wait()
 
-	return nil
+	return packErr
 }
 
 // Write creates an audit file of all the current components to the specified file
@@ -195,7 +197,7 @@ func (l *PackedComponentList) Write(path string) error {
 }
 
 func NewDefaultPacker(logger log.Logger, opts *DefaultPackerOpts) Packer {
-	return &JSPacker{
+	packer := &JSPacker{
 		WebDir:   opts.WebDir,
 		JsParser: &jsparse.JSFileParser{},
 		ValidWebWrappers: webwrap.NewActiveMap(&webwrap.BaseBundler{
@@ -208,4 +210,6 @@ func NewDefaultPacker(logger log.Logger, opts *DefaultPackerOpts) Packer {
 		Logger:           logger,
 		cachedBundleKeys: opts.CachedBundleKeys,
 	}
+
+	return packer
 }

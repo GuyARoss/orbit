@@ -8,6 +8,7 @@ import (
 	"github.com/GuyARoss/orbit/internal"
 	"github.com/GuyARoss/orbit/internal/srcpack"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
+	"github.com/GuyARoss/orbit/pkg/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -26,8 +27,10 @@ var buildCMD = &cobra.Command{
 			PublicDir:      viper.GetString("publicdir"),
 		})
 
+		logger := log.NewDefaultLogger()
 		if err != nil {
-			panic(err)
+			logger.Error(err.Error())
+			return
 		}
 
 		if viper.GetString("auditpage") != "" {

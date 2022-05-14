@@ -15,7 +15,7 @@ import (
 
 type PackComponent interface {
 	Repack() error
-	RepackForWaitGroup(wg *sync.WaitGroup, c chan error)
+	RepackForWaitGroup(wg *sync.WaitGroup) error
 	OriginalFilePath() string
 	Dependencies() []*jsparse.ImportDependency
 	BundleKey() string
@@ -72,6 +72,10 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, e
 
 	if wrapMethod == nil {
 		return nil, ErrInvalidComponentType
+	}
+
+	if err := wrapMethod.VerifyRequirements(); err != nil {
+		return nil, err
 	}
 
 	page, err = wrapMethod.Apply(page)
@@ -150,6 +154,10 @@ func (s *Component) Repack() error {
 		return ErrInvalidPageName
 	}
 
+	if err := s.webWrapper.VerifyRequirements(); err != nil {
+		return err
+	}
+
 	// apply the necessary requirements for the web framework to the original page
 	page, err = s.webWrapper.Apply(page)
 	if err != nil {
@@ -183,24 +191,21 @@ func (s *Component) Repack() error {
 			return err
 		}
 	}
-
-	s.m.Unlock()
-
-	s.m.Lock()
 	s.m.Unlock()
 
 	return nil
 }
 
 // RepackForWaitGroup given a wait group, repacks the component using the underlying "Repack" method.
-func (s *Component) RepackForWaitGroup(wg *sync.WaitGroup, c chan error) {
+func (s *Component) RepackForWaitGroup(wg *sync.WaitGroup) error {
 	err := s.Repack()
 
 	if err != nil {
-		c <- err
+		return err
 	}
 
 	wg.Done()
+	return nil
 }
 
 // OriginalFilePath returns the original file path on the component

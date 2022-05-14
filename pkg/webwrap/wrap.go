@@ -32,6 +32,7 @@ type JSWebWrapper interface {
 	Version() string
 	Bundle(string) error
 	HydrationFile() []embedutils.FileReader
+	VerifyRequirements() error
 }
 
 type JSWebWrapperList []JSWebWrapper
@@ -77,6 +78,16 @@ func NewActiveMap(bundler *BaseBundler) JSWebWrapperList {
 	}
 
 	return baseList
+}
+
+func (l JSWebWrapperList) VerifyAll() error {
+	for _, w := range l {
+		err := w.VerifyRequirements()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type BaseWebWrapper struct {

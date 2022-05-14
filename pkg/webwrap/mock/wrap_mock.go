@@ -19,6 +19,10 @@ type MockWrapper struct {
 	FailBundle bool
 }
 
+func (m *MockWrapper) VerifyRequirements() error {
+	return nil
+}
+
 func (m *MockWrapper) Apply(doc jsparse.JSDocument) (jsparse.JSDocument, error) {
 	return &jsparsemock.MockJsDocument{}, nil
 }

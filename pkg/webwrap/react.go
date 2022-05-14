@@ -53,6 +53,22 @@ func (s *ReactWebWrapper) Apply(page jsparse.JSDocument) (jsparse.JSDocument, er
 	return page, nil
 }
 
+func (r *ReactWebWrapper) VerifyRequirements() error {
+	webpackPath := fmt.Sprintf("%s%c%s%c%s", r.NodeModulesDir, os.PathSeparator, ".bin", os.PathSeparator, "webpack")
+
+	// due to a "bug" with windows, it has an issue with shebang cmds, so we prefer the webpack.js file instead.
+	if runtime.GOOS == "windows" {
+		webpackPath = r.NodeModulesDir + "/webpack/bin/webpack.js"
+	}
+
+	_, err := os.Stat(webpackPath)
+	if err != nil {
+		return fmt.Errorf("node module not found: webpack. It is possible that you need to run `npm i` in your workspace directory to remedy this issue.")
+	}
+
+	return nil
+}
+
 func (s *ReactWebWrapper) DoesSatisfyConstraints(fileExtension string) bool {
 	return fileExtension == reactExtension
 }

@@ -40,7 +40,8 @@ var devCMD = &cobra.Command{
 		})
 
 		if err != nil {
-			panic(err)
+			logger.Error(err.Error())
+			return
 		}
 
 		watcher, _ := fsnotify.NewWatcher()
@@ -68,6 +69,11 @@ var devCMD = &cobra.Command{
 				select {
 				case e := <-watcher.Events:
 					err := s.DoFileChangeRequest(e.Name, fileChangeOpts)
+
+					if err != nil {
+						logger.Error(err.Error())
+						return
+					}
 
 					if err == nil && len(viper.GetString("depout")) > 0 {
 						s.SourceMap.Write(viper.GetString("depout"))
