@@ -5,6 +5,7 @@
 package internal
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -163,10 +164,19 @@ func TestDoChangeRequest_IndirectFile(t *testing.T) {
 
 type mockPacker struct {
 	components []srcpack.Component
+	failPack   bool
 }
 
-func (m *mockPacker) PackMany(pages []string) (srcpack.PackedComponentList, error) { return nil, nil }
+func (m *mockPacker) PackMany(pages []string) (srcpack.PackedComponentList, error) {
+	if m.failPack {
+		return nil, fmt.Errorf("error")
+	}
+	return nil, nil
+}
 func (m *mockPacker) PackSingle(logger log.Logger, file string) (srcpack.PackComponent, error) {
+	if m.failPack {
+		return nil, fmt.Errorf("error")
+	}
 	return &m.components[0], nil
 }
 func (m *mockPacker) ReattachLogger(logger log.Logger) srcpack.Packer { return nil }
@@ -259,5 +269,57 @@ func TestDoBundleChangeRequest(t *testing.T) {
 
 	if len(s.RootComponents) != 1 {
 		t.Errorf("page was not correctly identified")
+	}
+}
+
+func TestUnknownPageError(t *testing.T) {
+	fn := "/pages/filename.jsx"
+
+	s := devSession{
+		ChangeRequest: &changeRequest{
+			LastProcessedAt: time.Now(),
+			LastFileName:    "",
+			changeRequests:  allocatedstack.New(1),
+		},
+		SessionOpts:    &SessionOpts{},
+		RootComponents: map[string]srcpack.PackComponent{},
+		SourceMap:      map[string][]string{},
+		packer: &mockPacker{
+			failPack: true,
+			components: []srcpack.Component{
+				{},
+			},
+		},
+		libout: &liboutmock.MockBundleWriter{},
+	}
+	hotReloader := &hotreloadmock.MockHotReload{}
+	err := s.DoFileChangeRequest(fn, &ChangeRequestOpts{
+		SafeFileTimeout: time.Hour * 2,
+		HotReload:       hotReloader,
+		Hook:            srcpack.NewSyncHook(log.NewEmptyLogger()),
+		Parser: &mock.MockJSParser{
+			ParseDocument: jsparse.NewEmptyDocument(),
+			Err:           nil,
+		},
+	})
+
+	if err == nil {
+		t.Errorf("error should have been thrown during invalid pack")
+	}
+}
+
+func TestNew(t *testing.T) {
+	ops := &SessionOpts{
+		WebDir:     "",
+		Mode:       "development",
+		Pacname:    "test",
+		OutDir:     t.TempDir() + "/out",
+		NodeModDir: t.TempDir() + "/node_module",
+		PublicDir:  t.TempDir() + "/publicdir",
+	}
+
+	_, err := New(context.TODO(), ops)
+	if err == nil {
+		t.Errorf("")
 	}
 }
