@@ -17,7 +17,9 @@ type MockBundleWriter struct{}
 func (m *MockBundleWriter) WriteLibout(files libout.Libout, fOpts *libout.FilePathOpts) error {
 	return nil
 }
-func (m *MockBundleWriter) AcceptComponent(ctx context.Context, c srcpack.PackComponent, cacheOpts *webwrap.CacheDOMOpts) {
+func (m *MockBundleWriter) AcceptComponent(ctx context.Context, c srcpack.PackComponent, cacheOpts *webwrap.CacheDOMOpts) error {
+	return nil
 }
-func (m *MockBundleWriter) AcceptComponents(ctx context.Context, comps []srcpack.PackComponent, cacheOpts *webwrap.CacheDOMOpts) {
+func (m *MockBundleWriter) AcceptComponents(ctx context.Context, comps []srcpack.PackComponent, cacheOpts *webwrap.CacheDOMOpts) error {
+	return nil
 }

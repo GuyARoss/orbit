@@ -183,11 +183,13 @@ func (s *devSession) IndirectFileChangeRequest(sources []string, indirectFile st
 	return nil
 }
 
+var ErrCannotBuildAssetKeys = errors.New("cannot build asset keys")
+
 // NewPageFileChangeRequest processes a change request for file that is detected as a new page
 func (s *devSession) NewPageFileChangeRequest(ctx context.Context, file string) error {
 	ats, err := assets.AssetKeys()
 	if err != nil {
-		panic(err)
+		return ErrCannotBuildAssetKeys
 	}
 
 	component, err := s.packer.PackSingle(log.NewEmptyLogger(), file)
@@ -201,15 +203,14 @@ func (s *devSession) NewPageFileChangeRequest(ctx context.Context, file string) 
 		WebPrefix: "/p/",
 	})
 
-	err = s.libout.WriteLibout(libout.NewGOLibout(
+	if err = s.libout.WriteLibout(libout.NewGOLibout(
 		ats.AssetKey(assets.Tests),
 		ats.AssetKey(assets.PrimaryPackage),
 	), &libout.FilePathOpts{
 		TestFile: fmt.Sprintf("%s/%s/orb_test.go", s.OutDir, s.Pacname),
 		EnvFile:  fmt.Sprintf("%s/%s/orb_env.go", s.OutDir, s.Pacname),
 		HTTPFile: fmt.Sprintf("%s/%s/orb_http.go", s.OutDir, s.Pacname),
-	})
-	if err != nil {
+	}); err != nil {
 		return err
 	}
 
@@ -255,7 +256,7 @@ func New(ctx context.Context, opts *SessionOpts) (*devSession, error) {
 
 	c, err := CachedEnvFromFile(fmt.Sprintf("%s/%s/orb_env.go", opts.OutDir, opts.Pacname))
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
-		panic(err)
+		return nil, err
 	}
 
 	packer := srcpack.NewDefaultPacker(log.NewEmptyLogger(), &srcpack.DefaultPackerOpts{
@@ -269,7 +270,7 @@ func New(ctx context.Context, opts *SessionOpts) (*devSession, error) {
 	pageFiles := fsutils.DirFiles(fmt.Sprintf("%s/pages", opts.WebDir))
 	components, err := packer.PackMany(pageFiles)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	bg := libout.New(&libout.BundleGroupOpts{
@@ -282,10 +283,12 @@ func New(ctx context.Context, opts *SessionOpts) (*devSession, error) {
 
 	ctx = context.WithValue(ctx, webwrap.BundlerID, opts.Mode)
 
-	bg.AcceptComponents(ctx, components, &webwrap.CacheDOMOpts{
+	if err = bg.AcceptComponents(ctx, components, &webwrap.CacheDOMOpts{
 		CacheDir:  ".orbit/dist",
 		WebPrefix: "/p/",
-	})
+	}); err != nil {
+		return nil, err
+	}
 
 	err = bg.WriteLibout(libout.NewGOLibout(
 		ats.AssetKey(assets.Tests),

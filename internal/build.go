@@ -36,7 +36,7 @@ func Build(opts *BuildOpts) (srcpack.PackedComponentList, error) {
 		return nil, err
 	}
 
-	err = OrbitFileStructure(&FileStructureOpts{
+	if err = OrbitFileStructure(&FileStructureOpts{
 		PackageName: opts.Packname,
 		OutDir:      opts.OutDir,
 		Assets: []fs.DirEntry{
@@ -45,9 +45,7 @@ func Build(opts *BuildOpts) (srcpack.PackedComponentList, error) {
 			ats.AssetEntry(assets.JsWebPackConfig),
 		},
 		Mkdirs: opts.Dirs,
-	})
-
-	if err != nil {
+	}); err != nil {
 		return nil, err
 	}
 
@@ -80,10 +78,12 @@ func Build(opts *BuildOpts) (srcpack.PackedComponentList, error) {
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, webwrap.BundlerID, opts.Mode)
 
-	bg.AcceptComponents(ctx, components, &webwrap.CacheDOMOpts{
+	if err = bg.AcceptComponents(ctx, components, &webwrap.CacheDOMOpts{
 		CacheDir:  ".orbit/dist",
 		WebPrefix: "/p/",
-	})
+	}); err != nil {
+		return nil, err
+	}
 
 	if !opts.NoWrite {
 		err = bg.WriteLibout(libout.NewGOLibout(

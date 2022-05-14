@@ -38,6 +38,22 @@ func (s *JavascriptWrapper) Apply(page jsparse.JSDocument) (jsparse.JSDocument, 
 	return page, nil
 }
 
+func (b *JavascriptWrapper) VerifyRequirements() error {
+	webpackPath := fmt.Sprintf("%s%c%s%c%s", b.NodeModulesDir, os.PathSeparator, ".bin", os.PathSeparator, "webpack")
+
+	// due to a "bug" with windows, it has an issue with shebang cmds, so we prefer the webpack.js file instead.
+	if runtime.GOOS == "windows" {
+		webpackPath = b.NodeModulesDir + "/webpack/bin/webpack.js"
+	}
+
+	_, err := os.Stat(webpackPath)
+	if err != nil {
+		return fmt.Errorf("node module not found: webpack. It is possible that you need to run `npm i` in your workspace directory to remedy this issue.")
+	}
+
+	return nil
+}
+
 func (s *JavascriptWrapper) DoesSatisfyConstraints(fileExtension string) bool {
 	return fileExtension == javascriptExtension
 }
@@ -94,7 +110,6 @@ func (b *JavascriptWrapper) Bundle(configuratorFilePath string) error {
 	cmd := exec.Command("node", webpackPath, "--config", configuratorFilePath)
 
 	_, err := cmd.Output()
-
 	if err != nil {
 		b.Logger.Warn(fmt.Sprintf(`invalid pack: "node %s --config %s"`, fmt.Sprintf("%s/.bin/webpack", b.NodeModulesDir), configuratorFilePath))
 	}

@@ -111,6 +111,11 @@ func (r *ReactSSR) RequiredBodyDOMElements(context.Context, *CacheDOMOpts) []str
 	return []string{}
 }
 
+func (r *ReactSSR) VerifyRequirements() error {
+	// TODO: verify node is installed & node_modules path exists
+	return nil
+}
+
 func (r *ReactSSR) Setup(ctx context.Context, settings *BundleOpts) ([]*BundledResource, error) {
 	bundleFilePath := fmt.Sprintf("%s/%s.js", r.PageOutputDir, settings.BundleKey)
 	r.sourceMapDoc.AddImport(&jsparse.ImportDependency{

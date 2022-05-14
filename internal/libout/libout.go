@@ -48,8 +48,8 @@ type FilePathOpts struct {
 
 type BundleWriter interface {
 	WriteLibout(files Libout, fOpts *FilePathOpts) error
-	AcceptComponent(ctx context.Context, c srcpack.PackComponent, cacheOpts *webwrap.CacheDOMOpts)
-	AcceptComponents(ctx context.Context, comps []srcpack.PackComponent, cacheOpts *webwrap.CacheDOMOpts)
+	AcceptComponent(ctx context.Context, c srcpack.PackComponent, cacheOpts *webwrap.CacheDOMOpts) error
+	AcceptComponents(ctx context.Context, comps []srcpack.PackComponent, cacheOpts *webwrap.CacheDOMOpts) error
 }
 
 type BundleGroup struct {
@@ -103,9 +103,12 @@ func parseVersionKey(k string) string {
 }
 
 // AcceptComponent collects the required DOM elements and applies it to the component body map
-func (l *BundleGroup) AcceptComponent(ctx context.Context, c srcpack.PackComponent, cacheOpts *webwrap.CacheDOMOpts) {
-	v := parseVersionKey(c.WebWrapper().Version())
+func (l *BundleGroup) AcceptComponent(ctx context.Context, c srcpack.PackComponent, cacheOpts *webwrap.CacheDOMOpts) error {
+	if err := c.WebWrapper().VerifyRequirements(); err != nil {
+		return err
+	}
 
+	v := parseVersionKey(c.WebWrapper().Version())
 	if !l.pageMap[c.Name()] {
 		l.pages = append(l.pages, &page{c.Name(), c.BundleKey(), v, c.OriginalFilePath(), c.IsStaticResource()})
 		l.pageMap[c.Name()] = true
@@ -118,10 +121,12 @@ func (l *BundleGroup) AcceptComponent(ctx context.Context, c srcpack.PackCompone
 	if l.wrapDocRender[v] == nil {
 		l.wrapDocRender[v] = c.WebWrapper().HydrationFile()
 	}
+
+	return nil
 }
 
 // AcceptComponents collects the required DOM elements and applies it to the component body map
-func (l *BundleGroup) AcceptComponents(ctx context.Context, comps []srcpack.PackComponent, cacheOpts *webwrap.CacheDOMOpts) {
+func (l *BundleGroup) AcceptComponents(ctx context.Context, comps []srcpack.PackComponent, cacheOpts *webwrap.CacheDOMOpts) error {
 	for _, c := range comps {
 		v := parseVersionKey(c.WebWrapper().Version())
 
@@ -140,6 +145,7 @@ func (l *BundleGroup) AcceptComponents(ctx context.Context, comps []srcpack.Pack
 			l.wrapDocRender[v] = c.WebWrapper().HydrationFile()
 		}
 	}
+	return nil
 }
 
 func New(opts *BundleGroupOpts) *BundleGroup {
