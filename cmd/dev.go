@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -70,9 +71,9 @@ var devCMD = &cobra.Command{
 				case e := <-watcher.Events:
 					err := s.DoFileChangeRequest(e.Name, fileChangeOpts)
 
-					if err != nil {
+					if err != nil && !errors.Is(err, internal.ErrFileTooRecentlyProcessed) {
 						logger.Error(err.Error())
-						return
+						break
 					}
 
 					if err == nil && len(viper.GetString("depout")) > 0 {
