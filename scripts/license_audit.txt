@@ -1,3 +1,4 @@
+./scripts/build-times.py
 ./scripts/finalize-docs.py
 ./scripts/integration.py
 ./scripts/verify_website.py
