@@ -73,7 +73,6 @@ var devCMD = &cobra.Command{
 
 					if err != nil && !errors.Is(err, internal.ErrFileTooRecentlyProcessed) {
 						logger.Error(err.Error())
-						break
 					}
 
 					if err == nil && len(viper.GetString("depout")) > 0 {
