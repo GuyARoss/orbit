@@ -116,7 +116,7 @@ func (r *ReactSSR) VerifyRequirements() error {
 	return nil
 }
 
-func (r *ReactSSR) Setup(ctx context.Context, settings *BundleOpts) ([]*BundledResource, error) {
+func (r *ReactSSR) Setup(ctx context.Context, settings *BundleOpts) (*BundledResource, error) {
 	bundleFilePath := fmt.Sprintf("%s/%s.js", r.PageOutputDir, settings.BundleKey)
 	r.sourceMapDoc.AddImport(&jsparse.ImportDependency{
 		FinalStatement: fmt.Sprintf("import %s from '%s'", settings.Name, fmt.Sprintf("./%s", settings.BundleKey)),
@@ -131,14 +131,17 @@ func (r *ReactSSR) Setup(ctx context.Context, settings *BundleOpts) ([]*BundledR
 
 	r.jsSwitch.Add(jsparse.JSString, settings.BundleKey, fmt.Sprintf(`return %s(JSON.parse(JSONData))`, strings.ToLower(settings.Name)))
 
-	return []*BundledResource{
-		{BundleFilePath: bundleFilePath,
-			ConfiguratorFilePath: fmt.Sprintf("%s/react_ssr.map.js", r.PageOutputDir),
-			ConfiguratorPage:     r.sourceMapDoc},
-		{BundleFilePath: bundleFilePath,
-			ConfiguratorFilePath: fmt.Sprintf("%s/react_ssr.js", r.PageOutputDir),
-			ConfiguratorPage:     r.initDoc},
-	}, nil
+	return &BundledResource{
+		BundleFilePath: bundleFilePath,
+		Configurators: []BundleConfigurator{
+			{
+				FilePath: fmt.Sprintf("%s/react_ssr.map.js", r.PageOutputDir),
+				Page:     r.sourceMapDoc,
+			}, {
+				FilePath: fmt.Sprintf("%s/react_ssr.js", r.PageOutputDir),
+				Page:     r.initDoc,
+			},
+		}}, nil
 }
 func (r *ReactSSR) Apply(doc jsparse.JSDocument) (jsparse.JSDocument, error) {
 	doc.AddImport(&jsparse.ImportDependency{

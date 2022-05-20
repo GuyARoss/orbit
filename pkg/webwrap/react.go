@@ -103,7 +103,7 @@ func (s *ReactWebWrapper) RequiredBodyDOMElements(ctx context.Context, cache *Ca
 	return files
 }
 
-func (b *ReactWebWrapper) Setup(ctx context.Context, settings *BundleOpts) ([]*BundledResource, error) {
+func (b *ReactWebWrapper) Setup(ctx context.Context, settings *BundleOpts) (*BundledResource, error) {
 	page := jsparse.NewEmptyDocument()
 
 	page.AddImport(&jsparse.ImportDependency{
@@ -127,11 +127,15 @@ func (b *ReactWebWrapper) Setup(ctx context.Context, settings *BundleOpts) ([]*B
 		},
 	})`, bundleFilePath, string(b.Mode), outputFileName))
 
-	return []*BundledResource{{
-		BundleFilePath:       bundleFilePath,
-		ConfiguratorFilePath: fmt.Sprintf("%s/%s.config.js", b.PageOutputDir, settings.BundleKey),
-		ConfiguratorPage:     page,
-	}}, nil
+	return &BundledResource{
+		BundleFilePath: bundleFilePath,
+		Configurators: []BundleConfigurator{
+			{
+				FilePath: fmt.Sprintf("%s/%s.config.js", b.PageOutputDir, settings.BundleKey),
+				Page:     page,
+			},
+		},
+	}, nil
 }
 
 func (b *ReactWebWrapper) Bundle(configuratorFilePath string) error {

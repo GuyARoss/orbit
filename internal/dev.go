@@ -260,10 +260,11 @@ func New(ctx context.Context, opts *SessionOpts) (*devSession, error) {
 	}
 
 	packer := srcpack.NewDefaultPacker(log.NewEmptyLogger(), &srcpack.DefaultPackerOpts{
-		WebDir:           opts.WebDir,
-		BundlerMode:      opts.Mode,
-		NodeModuleDir:    opts.NodeModDir,
-		CachedBundleKeys: c,
+		WebDir:              opts.WebDir,
+		BundlerMode:         opts.Mode,
+		NodeModuleDir:       opts.NodeModDir,
+		CachedBundleKeys:    c,
+		SkipFirstPassBundle: true,
 	})
 
 	// @@todo(guy) magic string : "pages" allow support for this keyword from a flag

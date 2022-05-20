@@ -33,13 +33,13 @@ type DocumentRenderer struct {
 var reactManifestFallback_bodywrap = []string{
 `<script src="/p/02bab3977c197c77b270370f110270b1.js"></script>`,
 `<script src="/p/8cfc2b31824016492ec09fc306264efd.js"></script>`,
-`<div id="b647b6d4-da06-49a3-961a-4fe69b34eb1d"></div>`,
+`<div id="b87b936c-fc10-42b5-8ff1-1f95d04455e9"></div>`,
 }
 
 var bundleDir string = ".orbit/dist"
 
 var publicDir string = "./public/index.html"
-var hotReloadPort int = 0
+var hotReloadPort int = 3005
 type PageRender string
 
 const ( 
