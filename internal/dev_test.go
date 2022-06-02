@@ -6,7 +6,6 @@ package internal
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -38,7 +37,7 @@ func TestProcessChangeRequest_TooRecentlyProcessed(t *testing.T) {
 		SafeFileTimeout: time.Second * 50,
 	})
 
-	if err == nil || !errors.Is(err, ErrFileTooRecentlyProcessed) {
+	if err == nil {
 		fmt.Println("err name", err)
 		t.Errorf("expected err file too recently processed")
 	}

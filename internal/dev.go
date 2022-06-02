@@ -22,6 +22,7 @@ import (
 	"github.com/GuyARoss/orbit/pkg/hotreload"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/log"
+	parseerror "github.com/GuyARoss/orbit/pkg/parse_error"
 	"github.com/GuyARoss/orbit/pkg/webwrap"
 )
 
@@ -63,17 +64,21 @@ func (s *devSession) DoBundleKeyChangeRequest(bundleKey string, opts *ChangeRequ
 	err := s.DirectFileChangeRequest("", component, opts)
 
 	if err != nil {
-		return err
+		return parseerror.FromError(err, component.OriginalFilePath())
 	}
 
-	return opts.HotReload.ReloadSignal()
+	err = opts.HotReload.ReloadSignal()
+	if err != nil {
+		return parseerror.FromError(err, component.OriginalFilePath())
+	}
+	return nil
 }
 
 // ProcessChangeRequest will determine which type of change request is required for computation of the request file
 func (s *devSession) DoFileChangeRequest(filePath string, opts *ChangeRequestOpts) error {
 	// if this file has been recently processed (specificed by the timeout flag), do not process it.
 	if !s.ChangeRequest.IsWithinRage(filePath, opts.SafeFileTimeout) {
-		return ErrFileTooRecentlyProcessed
+		return parseerror.FromError(ErrFileTooRecentlyProcessed, filePath)
 	}
 
 	// file detected in the orbit output, we don't want to process any of these
@@ -87,12 +92,12 @@ func (s *devSession) DoFileChangeRequest(filePath string, opts *ChangeRequestOpt
 	if root != nil && opts.HotReload.IsActiveBundle(root.BundleKey()) {
 		err := s.DirectFileChangeRequest(filePath, root, opts)
 		if err != nil {
-			return err
+			return parseerror.FromError(err, filePath)
 		}
 
 		err = opts.HotReload.ReloadSignal()
 		if err != nil {
-			return err
+			return parseerror.FromError(err, filePath)
 		}
 
 		// no need to continue, root file has already been processed.
@@ -104,22 +109,24 @@ func (s *devSession) DoFileChangeRequest(filePath string, opts *ChangeRequestOpt
 	if strings.Contains(filePath, "pages/") {
 		err := s.NewPageFileChangeRequest(context.Background(), filePath)
 
-		return err
+		if err != nil {
+			return parseerror.FromError(err, filePath)
+		}
 	}
 
-	// component may exist as a page depencency, if so, recompute and send refresh signal
+	// component may exist as a page dependency, if so, recompute and send refresh signal
 	sources := s.SourceMap.FindRoot(filePath)
 	if len(sources) > 0 {
 		// component is not root, we need to find in which tree(s) the component exists & execute
 		// a repack for each of those components & their dependent branches.
 		err := s.IndirectFileChangeRequest(sources, filePath, opts)
 		if err != nil {
-			return err
+			return parseerror.FromError(err, filePath)
 		}
 
 		err = opts.HotReload.ReloadSignal()
 		if err != nil {
-			return err
+			return parseerror.FromError(err, filePath)
 		}
 	}
 
