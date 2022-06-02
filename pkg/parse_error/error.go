@@ -7,5 +7,8 @@ func New(err string, fileName string) error {
 }
 
 func FromError(err error, fileName string) error {
+	if err == nil {
+		return nil
+	}
 	return fmt.Errorf("%s: %s", fileName, err.Error())
 }

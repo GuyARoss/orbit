@@ -68,7 +68,10 @@ func (s *devSession) DoBundleKeyChangeRequest(bundleKey string, opts *ChangeRequ
 	}
 
 	err = opts.HotReload.ReloadSignal()
-	return parseerror.FromError(err, component.OriginalFilePath())
+	if err != nil {
+		return parseerror.FromError(err, component.OriginalFilePath())
+	}
+	return nil
 }
 
 // ProcessChangeRequest will determine which type of change request is required for computation of the request file
@@ -106,7 +109,9 @@ func (s *devSession) DoFileChangeRequest(filePath string, opts *ChangeRequestOpt
 	if strings.Contains(filePath, "pages/") {
 		err := s.NewPageFileChangeRequest(context.Background(), filePath)
 
-		return parseerror.FromError(err, filePath)
+		if err != nil {
+			return parseerror.FromError(err, filePath)
+		}
 	}
 
 	// component may exist as a page dependency, if so, recompute and send refresh signal
