@@ -40,11 +40,6 @@ var devCMD = &cobra.Command{
 			HotReloadPort: viper.GetInt("hotreloadport"),
 		})
 
-		if err != nil {
-			logger.Error(err.Error())
-			return
-		}
-
 		watcher, _ := fsnotify.NewWatcher()
 		defer watcher.Close()
 
@@ -110,6 +105,9 @@ var devCMD = &cobra.Command{
 
 		logger.Info(fmt.Sprintf("Hot reload server started on port '%d'", viper.GetInt("hotreloadport")))
 		logger.Info("You will still need to run your application")
+		if err != nil {
+			logger.Warn(err.Error())
+		}
 
 		err = http.ListenAndServe(fmt.Sprintf("localhost:%d", viper.GetInt("hotreloadport")), nil)
 		if err != nil {

@@ -162,7 +162,7 @@ func (r *ReactSSR) Version() string {
 	return "reactSSR"
 }
 
-func (r *ReactSSR) Bundle(configuratorFilePath string) error {
+func (r *ReactSSR) Bundle(configuratorFilePath string, filePath string) error {
 	return nil
 }
 

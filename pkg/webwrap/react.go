@@ -15,6 +15,7 @@ import (
 
 	"github.com/GuyARoss/orbit/pkg/embedutils"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
+	parseerror "github.com/GuyARoss/orbit/pkg/parse_error"
 	"github.com/google/uuid"
 )
 
@@ -131,10 +132,11 @@ func (b *ReactWebWrapper) Setup(ctx context.Context, settings *BundleOpts) ([]*B
 		BundleFilePath:       bundleFilePath,
 		ConfiguratorFilePath: fmt.Sprintf("%s/%s.config.js", b.PageOutputDir, settings.BundleKey),
 		ConfiguratorPage:     page,
+		OriginalFilePath:     settings.FileName,
 	}}, nil
 }
 
-func (b *ReactWebWrapper) Bundle(configuratorFilePath string) error {
+func (b *ReactWebWrapper) Bundle(configuratorFilePath string, filePath string) error {
 	webpackPath := fmt.Sprintf("%s%c%s%c%s", b.NodeModulesDir, os.PathSeparator, ".bin", os.PathSeparator, "webpack")
 
 	// due to a "bug" with windows, it has an issue with shebang cmds, so we prefer the webpack.js file instead.
@@ -147,9 +149,10 @@ func (b *ReactWebWrapper) Bundle(configuratorFilePath string) error {
 
 	if err != nil {
 		b.Logger.Warn(fmt.Sprintf(`invalid pack: "node %s --config %s"`, webpackPath, configuratorFilePath))
+		return parseerror.New("failed to bundle, this could denote a syntax error", filePath)
 	}
 
-	return err
+	return nil
 }
 
 func (b *ReactWebWrapper) HydrationFile() []embedutils.FileReader {

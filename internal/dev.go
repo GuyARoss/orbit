@@ -354,7 +354,7 @@ func (c *changeRequest) Push(fileName string, bundleKey string) {
 }
 
 func (c *changeRequest) IsWithinRage(file string, t time.Duration) bool {
-	if file == c.LastFileName {
+	if c != nil && file == c.LastFileName {
 		return time.Since(c.LastProcessedAt).Seconds() > t.Seconds()
 	}
 

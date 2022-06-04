@@ -30,7 +30,7 @@ type JSWebWrapper interface {
 	Apply(jsparse.JSDocument) (jsparse.JSDocument, error)
 	DoesSatisfyConstraints(string) bool
 	Version() string
-	Bundle(string) error
+	Bundle(configuratorFile string, originalFilePath string) error
 	HydrationFile() []embedutils.FileReader
 	VerifyRequirements() error
 }
@@ -125,6 +125,7 @@ type BundleOpts struct {
 type BundledResource struct {
 	BundleFilePath       string
 	ConfiguratorFilePath string
+	OriginalFilePath     string
 
 	// ConfiguratorPage represents a bundler setup file
 	ConfiguratorPage jsparse.JSDocument
