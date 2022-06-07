@@ -220,11 +220,21 @@ func (p *DefaultJSDocument) formatImportLine(line string) *ImportDependency {
 	}
 
 	finalPath := strings.Join(cleanWebDirPaths, "/")
+
+	// possible that the path is referencing a index
+	// we can validate this but checking if the import path is a dir
+	stat, err := os.Stat(finalPath)
+	if err == nil && stat.IsDir() {
+		// check for index
+		finalPath += "/index"
+		cleanWebDirPaths = append(cleanWebDirPaths, "/index")
+	}
+
 	extension := pageExtension(verifyPath(finalPath))
 
 	finalPath = strings.ReplaceAll(finalPath, fmt.Sprintf(".%s", extension), "")
-
 	newPath := fmt.Sprintf("'../../../%s.%s'", finalPath, extension)
+
 	statementWithoutPath := strings.Replace(line, fmt.Sprintf("%c%s%c", pathChar, path, pathChar), newPath, 1)
 
 	initialPath := strings.ReplaceAll(strings.Join(cleanWebDirPaths, "/"), fmt.Sprintf(".%s", extension), "")

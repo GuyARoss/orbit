@@ -143,7 +143,7 @@ func (b *ReactWebWrapper) Bundle(configuratorFilePath string, filePath string) e
 	if runtime.GOOS == "windows" {
 		webpackPath = b.NodeModulesDir + "/webpack/bin/webpack.js"
 	}
-
+	fmt.Println("node", webpackPath, "--config ", configuratorFilePath)
 	cmd := exec.Command("node", webpackPath, "--config", configuratorFilePath)
 	_, err := cmd.Output()
 

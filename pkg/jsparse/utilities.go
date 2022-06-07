@@ -157,6 +157,10 @@ func lineImportType(line string) ImportType {
 	pathToken := pathToken(line)
 	path := subsetRune(line, rune(pathToken), rune(pathToken))
 
+	if path[0] == '.' || path[0] == '/' {
+		return LocalImportType
+	}
+
 	if path[1] == '.' || path[1] == '/' {
 		return LocalImportType
 	}

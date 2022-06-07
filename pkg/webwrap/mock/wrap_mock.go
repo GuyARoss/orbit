@@ -43,7 +43,7 @@ func (b *MockWrapper) HydrationFile() []embedutils.FileReader {
 	return nil
 }
 
-func (b *MockWrapper) Bundle(string) error {
+func (b *MockWrapper) Bundle(string, string) error {
 	if b.FailBundle {
 		return errors.New("fail")
 	}
