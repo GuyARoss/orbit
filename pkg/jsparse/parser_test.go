@@ -37,3 +37,23 @@ func TestPathToken(t *testing.T) {
 		}
 	}
 }
+
+func TestCanParse(t *testing.T) {
+	var tt = []struct {
+		i string
+		o bool
+	}{
+		{`thing.jsx`, true},
+		{"cat.css", false},
+		{"tose.js", true},
+	}
+
+	j := &JSFileParser{}
+	for i, d := range tt {
+		got := j.CanParse(d.i)
+
+		if got != d.o {
+			t.Errorf("(%d) expected %t got %t", i, d.o, got)
+		}
+	}
+}

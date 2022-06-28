@@ -99,7 +99,7 @@ func (b *JavascriptWrapper) Setup(ctx context.Context, settings *BundleOpts) ([]
 	}}, nil
 }
 
-func (b *JavascriptWrapper) Bundle(configuratorFilePath string) error {
+func (b *JavascriptWrapper) Bundle(configuratorFilePath string, filePath string) error {
 	webpackPath := fmt.Sprintf("%s%c%s%c%s", b.NodeModulesDir, os.PathSeparator, ".bin", os.PathSeparator, "webpack")
 
 	// due to a "bug" with windows, it has an issue with shebang cmds, so we prefer the webpack.js file instead.

@@ -41,7 +41,7 @@ var devCMD = &cobra.Command{
 		})
 
 		if err != nil {
-			logger.Error(err.Error())
+			logger.Warn(err.Error())
 			return
 		}
 

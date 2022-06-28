@@ -109,7 +109,7 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, e
 			return nil, configErr
 		}
 
-		bundleErr := wrapMethod.Bundle(r.ConfiguratorFilePath)
+		bundleErr := wrapMethod.Bundle(r.ConfiguratorFilePath, r.OriginalFilePath)
 		if bundleErr != nil {
 			return nil, bundleErr
 		}
@@ -186,7 +186,7 @@ func (s *Component) Repack() error {
 			return err
 		}
 
-		err = s.webWrapper.Bundle(b.ConfiguratorFilePath)
+		err = s.webWrapper.Bundle(b.ConfiguratorFilePath, b.OriginalFilePath)
 		if err != nil {
 			return err
 		}

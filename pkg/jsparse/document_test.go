@@ -7,6 +7,7 @@ package jsparse
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 )
@@ -34,6 +35,22 @@ func TestFormatImportLine(t *testing.T) {
 		if c.o != got.FinalStatement {
 			t.Errorf("(%d) expected %s got %s \n", i, c.o, got.FinalStatement)
 		}
+	}
+}
+
+func TestFormatImportLine_Index(t *testing.T) {
+	dir := t.TempDir() + "/thing/"
+	os.Mkdir(dir, 0666)
+
+	f, _ := os.Create(dir + "index.js")
+	f.Close()
+
+	p := DefaultJSDocument{webDir: "", pageDir: "./thing/apple.js"}
+	got := p.formatImportLine(fmt.Sprintf("import Thing from '%s'", dir))
+	expect := fmt.Sprintf("import Thing from '../../..//%s/index.jsx'", dir)
+
+	if got.FinalStatement != expect {
+		t.Errorf("expected '%s' got '%s'", expect, got.FinalStatement)
 	}
 }
 
