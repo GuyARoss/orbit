@@ -7,6 +7,8 @@ package dependtree
 import (
 	"fmt"
 	"os"
+
+	parseerror "github.com/GuyARoss/orbit/pkg/parse_error"
 )
 
 type DependencyTreeNode struct {
@@ -134,7 +136,7 @@ func mapNode(s DependencyTree, path string) (*DependencyTreeNode, error) {
 	for _, d := range dependencies {
 		mapResp, err := mapNode(s, d)
 		if err != nil {
-			return nil, err
+			return nil, parseerror.FromError(err, d)
 		}
 
 		current.IsRoot = false

@@ -13,9 +13,23 @@ import (
 
 type JSParser interface {
 	Parse(string, string) (JSDocument, error)
+	CanParse(path string) bool
 }
 
 type JSFileParser struct{}
+
+func (p *JSFileParser) CanParse(path string) bool {
+	validExts := []string{"jsx", "js"}
+	ext := strings.Split(path, ".")
+
+	for _, e := range validExts {
+		if ext[len(ext)-1] == e {
+			return true
+		}
+	}
+
+	return false
+}
 
 func (p *JSFileParser) Parse(pageDir string, webDir string) (JSDocument, error) {
 	if len(pageDir) >= 2 && pageDir[0:2] != "./" {

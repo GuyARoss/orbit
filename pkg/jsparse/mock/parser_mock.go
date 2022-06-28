@@ -14,3 +14,7 @@ type MockJSParser struct {
 func (m *MockJSParser) Parse(string, string) (jsparse.JSDocument, error) {
 	return m.ParseDocument, m.Err
 }
+
+func (m *MockJSParser) CanParse(path string) bool {
+	return true
+}

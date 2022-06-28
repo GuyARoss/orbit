@@ -138,3 +138,22 @@ func TestParseArgs(t *testing.T) {
 		}
 	}
 }
+
+func TestLineImportType(t *testing.T) {
+	var tt = []struct {
+		i string
+		o ImportType
+	}{
+		{"import Thing from '../apple.jsx'", LocalImportType},
+		{"import Thing from 'apple'", ModuleImportType},
+		{"import '../apple.css'", LocalImportType},
+	}
+
+	for i, d := range tt {
+		got := lineImportType(d.i)
+
+		if got != d.o {
+			t.Errorf("(%d) expected %d got %d", i, d.o, got)
+		}
+	}
+}

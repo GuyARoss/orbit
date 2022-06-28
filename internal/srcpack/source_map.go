@@ -74,6 +74,10 @@ func (s *JSDependencyTree) DirList(path string) ([]string, error) {
 
 // uses the js parser to get all of the dependencies for the specified file.
 func (s *JSDependencyTree) PathDependencies(path string) ([]string, error) {
+	if !s.JsParser.CanParse(path) {
+		return []string{}, nil
+	}
+
 	pdm := *s.pathDependencyMap
 
 	if c := pdm[path]; c != nil {
