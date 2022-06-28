@@ -47,9 +47,10 @@ func TestFormatImportLine_Index(t *testing.T) {
 
 	p := DefaultJSDocument{webDir: "", pageDir: "./thing/apple.js"}
 	got := p.formatImportLine(fmt.Sprintf("import Thing from '%s'", dir))
+	expect := fmt.Sprintf("import Thing from '../../..//%s/index.jsx'", dir)
 
-	if got.FinalStatement != fmt.Sprintf("import Thing from '../../..///%s/index.jsx'", dir) {
-		t.Errorf("did not find the index got %s", got.FinalStatement)
+	if got.FinalStatement != expect {
+		t.Errorf("expected '%s' got '%s'", expect, got.FinalStatement)
 	}
 }
 

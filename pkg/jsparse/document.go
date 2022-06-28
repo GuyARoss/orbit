@@ -55,7 +55,6 @@ const (
 	FuncToken          JSToken = "function"
 	VarToken           JSToken = "var"
 	LetToken           JSToken = "let"
-	CommentToken       JSToken = "//"
 )
 
 var declarationTokens = []JSToken{VarToken, ConstToken, FuncToken, LetToken, ExportDefaultToken, ImportToken}
