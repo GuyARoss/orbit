@@ -4,16 +4,12 @@ import (
 	"context"
 	"fmt"
 )
-
-
 func reactManifestFallback(ctx context.Context, bundleKey string, data []byte, doc *htmlDoc) (*htmlDoc, context.Context) {
 	if v := ctx.Value(OrbitManifest); v == nil {
 		doc.Head = append(doc.Head, fmt.Sprintf(`<script id="orbit_manifest" type="application/json">%s</script>`, data))
 		ctx = context.WithValue(ctx, OrbitManifest, true)
 	}
-
 	doc.Body = append(doc.Body, fmt.Sprintf(`<script class="orbit_bk" src="/p/%s.js"></script>`, bundleKey))
-
 	return doc, ctx
 }
 var staticResourceMap = map[PageRender]bool{
@@ -33,7 +29,7 @@ type DocumentRenderer struct {
 var reactManifestFallback_bodywrap = []string{
 `<script src="/p/02bab3977c197c77b270370f110270b1.js"></script>`,
 `<script src="/p/8cfc2b31824016492ec09fc306264efd.js"></script>`,
-`<div id="b647b6d4-da06-49a3-961a-4fe69b34eb1d"></div>`,
+`<div id="eaa6a4c7-2bdf-436b-9fd6-a0468c0d4340"></div>`,
 }
 
 var bundleDir string = ".orbit/dist"
