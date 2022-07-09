@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/GuyARoss/orbit/pkg/embedutils"
@@ -224,6 +225,8 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 
 	b := newParsedGoFile()
 	b.Imports = append(b.Imports, "context")
+
+	sort.Sort(bg.pages)
 
 	for _, p := range bg.pages {
 		// since all of the the valid bundle names can only be refererred to "pages"

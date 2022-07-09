@@ -16,14 +16,11 @@ import (
 	"github.com/GuyARoss/orbit/pkg/embedutils"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	parseerror "github.com/GuyARoss/orbit/pkg/parse_error"
-	"github.com/google/uuid"
 )
 
 type ReactWebWrapper struct {
 	*BaseWebWrapper
 	*BaseBundler
-
-	elementID string
 }
 
 var ErrComponentExport = errors.New("prefer capitalization for jsx components")
@@ -46,9 +43,10 @@ func (s *ReactWebWrapper) Apply(page jsparse.JSDocument) (jsparse.JSDocument, er
 		Type:           jsparse.ModuleImportType,
 	})
 
+	fmt.Printf("'%s_react_frame'\n", page.Key())
 	page.AddOther(fmt.Sprintf(
-		"ReactDOM.render(<%s {...JSON.parse(document.getElementById('orbit_manifest').textContent)}/>, document.getElementById('%s'))",
-		page.Name(), s.elementID),
+		"ReactDOM.render(<%s {...JSON.parse(document.getElementById('orbit_manifest').textContent)}/>, document.getElementById('%s_react_frame'))",
+		page.Name(), page.Key()),
 	)
 
 	return page, nil
@@ -64,7 +62,7 @@ func (r *ReactWebWrapper) VerifyRequirements() error {
 
 	_, err := os.Stat(webpackPath)
 	if err != nil {
-		return fmt.Errorf("node module not found: webpack. It is possible that you need to run `npm i` in your workspace directory to remedy this issue.")
+		return fmt.Errorf("node module not found: webpack. It is possible that you need to run `npm i` in your workspace directory to remedy this issue")
 	}
 
 	return nil
@@ -98,8 +96,6 @@ func (s *ReactWebWrapper) RequiredBodyDOMElements(ctx context.Context, cache *Ca
 	for i, f := range files {
 		files[i] = fmt.Sprintf(`<script src="%s"></script>`, f)
 	}
-
-	files = append(files, fmt.Sprintf(`<div id="%s"></div>`, s.elementID))
 
 	return files
 }
@@ -172,6 +168,5 @@ func (b *ReactWebWrapper) HydrationFile() []embedutils.FileReader {
 func NewReactWebWrap(bundler *BaseBundler) *ReactWebWrapper {
 	return &ReactWebWrapper{
 		BaseBundler: bundler,
-		elementID:   uuid.NewString(),
 	}
 }

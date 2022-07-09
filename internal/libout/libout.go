@@ -29,6 +29,20 @@ type page struct {
 	isStaticResource bool
 }
 
+type pageList []*page
+
+func (e pageList) Len() int {
+	return len(e)
+}
+
+func (e pageList) Less(i, j int) bool {
+	return strings.ToLower(e[i].name) > strings.ToLower(e[j].name)
+}
+
+func (e pageList) Swap(i, j int) {
+	e[i], e[j] = e[j], e[i]
+}
+
 type LiboutFile interface {
 	Write(path string) error
 }
@@ -55,7 +69,7 @@ type BundleWriter interface {
 type BundleGroup struct {
 	*BundleGroupOpts
 
-	pages            []*page
+	pages            pageList
 	pageMap          map[string]bool
 	componentBodyMap map[string][]string
 	wrapDocRender    map[string][]embedutils.FileReader

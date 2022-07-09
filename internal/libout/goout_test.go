@@ -39,6 +39,7 @@ func TestGoParserParseLine(t *testing.T) {
 	p := &goParser{
 		imports:         make([]string, 0),
 		contextOfImport: false,
+		softImports:     make(map[string]bool),
 	}
 
 	f := []struct {

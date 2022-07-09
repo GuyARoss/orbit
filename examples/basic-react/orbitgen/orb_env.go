@@ -10,6 +10,14 @@ func reactManifestFallback(ctx context.Context, bundleKey string, data []byte, d
 		ctx = context.WithValue(ctx, OrbitManifest, true)
 	}
 	doc.Body = append(doc.Body, fmt.Sprintf(`<script class="orbit_bk" src="/p/%s.js"></script>`, bundleKey))
+	copy := doc.Body
+	// the doc body is adjusted +1 indicies to insert the react frame at the front of the list
+	// this is due to react requiring the div id to exist before the necessary javascript is loaded in
+	doc.Body = make([]string, len(doc.Body)+1)
+	doc.Body[0] = fmt.Sprintf(`<div id="%s_react_frame"></div>`, bundleKey)
+	for i, c := range copy {
+		doc.Body[i+1] = c
+	}
 	return doc, ctx
 }
 var staticResourceMap = map[PageRender]bool{
@@ -29,7 +37,6 @@ type DocumentRenderer struct {
 var reactManifestFallback_bodywrap = []string{
 `<script src="/p/02bab3977c197c77b270370f110270b1.js"></script>`,
 `<script src="/p/8cfc2b31824016492ec09fc306264efd.js"></script>`,
-`<div id="eaa6a4c7-2bdf-436b-9fd6-a0468c0d4340"></div>`,
 }
 
 var bundleDir string = ".orbit/dist"
