@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/GuyARoss/orbit/pkg/embedutils"
@@ -63,13 +64,13 @@ type GOLibout struct {
 
 type parsedGoFile struct {
 	Body    string
-	Imports map[string]bool
+	Imports []string
 }
 
 func newParsedGoFile() *parsedGoFile {
 	return &parsedGoFile{
 		Body:    "",
-		Imports: make(map[string]bool),
+		Imports: make([]string, 0),
 	}
 }
 
@@ -77,24 +78,88 @@ func (g *parsedGoFile) Serialize() string {
 	s := strings.Builder{}
 
 	s.WriteString("import (" + "\n")
-	for i := range g.Imports {
-		s.WriteString(fmt.Sprintf(`	"%s"`, i) + "\n")
+	exist := make(map[string]bool)
+	for _, im := range g.Imports {
+		if exist[im] {
+			continue
+		}
+
+		s.WriteString(fmt.Sprintf(`	"%s"`, im) + "\n")
+		exist[im] = true
 	}
 	s.WriteString(")" + "\n")
-
 	s.WriteString(g.Body)
 
 	return s.String()
 }
 
-func (g *parsedGoFile) MergeImports(imp map[string]bool) {
-	for i := range imp {
-		g.Imports[i] = true
+// MergeImports given a map of imports, merge imports merges the two together
+// while still retaining the order of the imports.
+func (g *parsedGoFile) MergeImports(imp []string) {
+	exist := make(map[string]bool)
+
+	for _, i := range imp {
+		if exist[i] {
+			continue
+		}
+		g.Imports = append(g.Imports, i)
+		exist[i] = true
 	}
 }
 
 func (g *parsedGoFile) MergeBody(body string) {
 	g.Body = g.Body + body
+}
+
+type goParser struct {
+	contextOfImport bool
+	imports         []string
+	softImports     map[string]bool
+}
+
+func (p *goParser) parseLine(line string) string {
+	// part of the write process includes applying a provided package name. To ensure
+	// that we do not have two package names, we skip over the line that contains one.
+	if strings.Contains(line, "package") {
+		return ""
+	}
+
+	if strings.Contains(line, "import") {
+		if !strings.Contains(line, "(") {
+			imp := strings.Split(line, `"`)
+
+			if len(imp) > 1 {
+				if p.softImports[imp[1]] {
+					return ""
+				}
+
+				p.imports = append(p.imports, imp[1])
+				p.softImports[imp[1]] = true
+			}
+			return ""
+		} else {
+			p.contextOfImport = true
+			return ""
+		}
+	}
+
+	if p.contextOfImport {
+		if strings.Contains(line, ")") {
+			p.contextOfImport = false
+		}
+
+		imp := strings.Split(line, `"`)
+
+		if len(imp) > 1 {
+			if p.softImports[imp[1]] {
+				return ""
+			}
+			p.imports = append(p.imports, imp[1])
+			p.softImports[imp[1]] = true
+		}
+		return ""
+	}
+	return line
 }
 
 func parseFile(entry embedutils.FileReader) (*parsedGoFile, error) {
@@ -110,49 +175,23 @@ func parseFile(entry embedutils.FileReader) (*parsedGoFile, error) {
 
 	out := strings.Builder{}
 
-	imports := make(map[string]bool)
+	p := &goParser{
+		imports:         make([]string, 0),
+		contextOfImport: false,
+		softImports:     make(map[string]bool),
+	}
 
-	contextOfImport := false
 	for scanner.Scan() {
-		line := scanner.Text()
-
-		// part of the write process includes applying a provided package name. To ensure
-		// that we do not have two package names, we skip over the line that contains one.
-		if strings.Contains(line, "package") {
-			continue
-		}
-		if strings.Contains(line, "import") {
-			if !strings.Contains(line, "(") {
-				imp := strings.Split(line, `"`)
-
-				if len(imp) > 1 {
-					imports[imp[1]] = true
-				}
-				continue
-			} else {
-				contextOfImport = true
-				continue
-			}
-		}
-
-		if contextOfImport {
-			if strings.Contains(line, ")") {
-				contextOfImport = false
-			}
-
-			imp := strings.Split(line, `"`)
-
-			if len(imp) > 1 {
-				imports[imp[1]] = true
-			}
+		output := p.parseLine(scanner.Text())
+		if output == "" {
 			continue
 		}
 
-		out.WriteString(fmt.Sprintf("%s\n", line))
+		out.WriteString(fmt.Sprintf("%s\n", output))
 	}
 
 	return &parsedGoFile{
-		Imports: imports,
+		Imports: p.imports,
 		Body:    out.String(),
 	}, nil
 }
@@ -185,7 +224,9 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 	out := strings.Builder{}
 
 	b := newParsedGoFile()
-	b.Imports["context"] = true
+	b.Imports = append(b.Imports, "context")
+
+	sort.Sort(bg.pages)
 
 	for _, p := range bg.pages {
 		// since all of the the valid bundle names can only be refererred to "pages"
@@ -209,7 +250,6 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 	}
 
 	out.WriteString(b.Serialize())
-
 	out.WriteString("var staticResourceMap = map[PageRender]bool{\n")
 
 	for _, p := range bg.pages {

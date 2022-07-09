@@ -17,8 +17,8 @@ func main() {
 		props["age"] = 23
 		props["name"] = "Guy"
 
-		c.RenderPages(props, orbitgen.NamePage, orbitgen.AgePage, orbitgen.StaticPage)
+		c.RenderPages(props, orbitgen.NamePage, orbitgen.AgePage, orbitgen.StaticPage, orbitgen.ThingPage)
 	})
 
-	http.ListenAndServe(":3030", orb.Serve())
+	http.ListenAndServe(":3034", orb.Serve())
 }
