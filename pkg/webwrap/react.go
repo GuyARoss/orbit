@@ -43,7 +43,6 @@ func (s *ReactWebWrapper) Apply(page jsparse.JSDocument) (jsparse.JSDocument, er
 		Type:           jsparse.ModuleImportType,
 	})
 
-	fmt.Printf("'%s_react_frame'\n", page.Key())
 	page.AddOther(fmt.Sprintf(
 		"ReactDOM.render(<%s {...JSON.parse(document.getElementById('orbit_manifest').textContent)}/>, document.getElementById('%s_react_frame'))",
 		page.Name(), page.Key()),
