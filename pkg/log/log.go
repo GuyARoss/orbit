@@ -69,7 +69,7 @@ func (l *DefaultLogger) Warn(text string) (int, error) {
 }
 
 func (l *DefaultLogger) Info(text string) (int, error) {
-	return l.outf("%s%s%s\n", string(colorBlue), text, string(colorReset))
+	return l.outf("%s%s\n", text, string(colorReset))
 }
 
 func (l *DefaultLogger) Title(text string) (int, error) {

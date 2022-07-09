@@ -71,13 +71,14 @@ func (s *JSPacker) PackMany(pages []string) (PackedComponentList, error) {
 		t := dir
 		// go routine to pack every page found in the pages directory
 		// we wrap this routine with the sync hook to measure & log time deltas.
-		go sh.WrapFunc(dir, func() {
-			err := cp.PackSingle(wg, t)
+		go sh.WrapFunc(dir, func() *webwrap.WrapStats {
+			page, err := cp.PackSingle(wg, t)
 			if err != nil {
 				errOnce.Do(func() {
 					packErr = err
 				})
 			}
+			return page.WebWrapper().Stats()
 		})
 	}
 
@@ -113,11 +114,11 @@ type DefaultPackerOpts struct {
 // this process includes the following:
 // 1. wrapping the component with the specified front-end web framework.
 // 2. bundling the component with the specified javascript bundler.
-func (p *concPack) PackSingle(wg *sync.WaitGroup, path string) error {
+func (p *concPack) PackSingle(wg *sync.WaitGroup, path string) (PackComponent, error) {
 	// this page has already been packed before and does not need to be repacked.
 	if p.packMap[path] {
 		wg.Done()
-		return nil
+		return nil, nil
 	}
 
 	// @@todo: we should validate if these components exist on our source map yet, if so we should
@@ -132,7 +133,7 @@ func (p *concPack) PackSingle(wg *sync.WaitGroup, path string) error {
 
 	if err != nil {
 		wg.Done()
-		return err
+		return nil, err
 	}
 
 	p.m.Lock()
@@ -141,7 +142,7 @@ func (p *concPack) PackSingle(wg *sync.WaitGroup, path string) error {
 	p.m.Unlock()
 
 	wg.Done()
-	return nil
+	return page, nil
 }
 
 type PackedComponentList []PackComponent
@@ -162,13 +163,15 @@ func (l *PackedComponentList) RepackMany(logger log.Logger) error {
 		t := comp
 		// go routine to pack every page found in the pages directory
 		// we wrap this routine with the sync hook to measure & log time deltas.
-		go sh.WrapFunc(t.OriginalFilePath(), func() {
+		go sh.WrapFunc(t.OriginalFilePath(), func() *webwrap.WrapStats {
 			err := comp.RepackForWaitGroup(wg)
 			if err != nil {
 				errOnce.Do(func() {
 					packErr = err
 				})
 			}
+
+			return comp.WebWrapper().Stats()
 		})
 	}
 

@@ -62,6 +62,13 @@ func (s *JavascriptWrapper) Version() string {
 	return "javascriptWebpack"
 }
 
+func (s *JavascriptWrapper) Stats() *WrapStats {
+	return &WrapStats{
+		WebVersion: "javascript",
+		Bundler:    "webpack",
+	}
+}
+
 func (s *JavascriptWrapper) RequiredBodyDOMElements(ctx context.Context, cache *CacheDOMOpts) []string {
 	return []string{
 		`<script> const onLoadTasks = []; window.onload = (e) => { onLoadTasks.forEach(t => t(e))} </script>`,

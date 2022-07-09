@@ -7,10 +7,12 @@ package srcpack
 import (
 	"container/list"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/GuyARoss/orbit/pkg/log"
+	"github.com/GuyARoss/orbit/pkg/webwrap"
 )
 
 // hooks for logging the pre & post operations of the packing process.
@@ -71,17 +73,14 @@ func (s *SyncHook) Post(filePath string, elapsedTime float64) {
 	s.postmap[filePath] = elapsedTime
 }
 
-func (s *SyncHook) WrapFunc(filepath string, do func()) {
+func (s *SyncHook) WrapFunc(filepath string, do func() *webwrap.WrapStats) {
 	starttime := time.Now()
-	s.m.Lock()
-	s.Pre(filepath)
-	s.m.Unlock()
-
-	do()
+	stats := do()
 
 	s.m.Lock()
-	s.Post(filepath, time.Since(starttime).Seconds())
-	s.postmap[filepath] = time.Since(starttime).Seconds()
+	elapsed := strings.Split(fmt.Sprintf("%f", time.Since(starttime).Seconds()), ".")
+	s.logger.Info(fmt.Sprintf("%s - %s.%ss", filepath, elapsed[0], elapsed[1][0:1]))
+	s.logger.Info(fmt.Sprintf("[web: %s, bundler: %s]\n", stats.WebVersion, stats.Bundler))
 	s.m.Unlock()
 }
 

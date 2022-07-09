@@ -75,6 +75,13 @@ func (s *ReactWebWrapper) Version() string {
 	return "reactManifestFallback"
 }
 
+func (s *ReactWebWrapper) Stats() *WrapStats {
+	return &WrapStats{
+		WebVersion: "react",
+		Bundler:    "webpack",
+	}
+}
+
 func (s *ReactWebWrapper) RequiredBodyDOMElements(ctx context.Context, cache *CacheDOMOpts) []string {
 	mode := ctx.Value(BundlerID).(string)
 
