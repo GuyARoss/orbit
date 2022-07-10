@@ -64,8 +64,6 @@ func (s *JSPacker) PackMany(pages []string) (PackedComponentList, error) {
 
 	sh := NewSyncHook(s.Logger)
 
-	defer sh.Close()
-
 	for _, dir := range pages {
 		// we copy dir here to avoid the pointer of dir being passed to our wrap func.
 		t := dir
@@ -155,8 +153,6 @@ func (l *PackedComponentList) RepackMany(logger log.Logger) error {
 	var packErr error
 
 	sh := NewSyncHook(logger)
-
-	defer sh.Close()
 
 	for _, comp := range *l {
 		// we copy dir here to avoid the pointer of dir being passed to our wrap func.

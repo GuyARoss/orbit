@@ -1,7 +1,5 @@
 name: Test and coverage
-on:
-  pull_request:
-    types: [opened, synchronize]
+on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
