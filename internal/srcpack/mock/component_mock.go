@@ -9,6 +9,7 @@ import (
 
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/webwrap"
+	"github.com/GuyARoss/orbit/pkg/webwrap/mock"
 )
 
 type MockPackedComponent struct {
@@ -31,4 +32,4 @@ func (m *MockPackedComponent) OriginalFilePath() string                  { retur
 func (m *MockPackedComponent) Dependencies() []*jsparse.ImportDependency { return m.Depends }
 func (m *MockPackedComponent) BundleKey() string                         { return m.Key }
 func (m *MockPackedComponent) Name() string                              { return "" }
-func (m *MockPackedComponent) WebWrapper() webwrap.JSWebWrapper          { return nil }
+func (m *MockPackedComponent) WebWrapper() webwrap.JSWebWrapper          { return &mock.MockWrapper{} }

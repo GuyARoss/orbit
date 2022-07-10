@@ -144,7 +144,11 @@ func (s *devSession) DirectFileChangeRequest(filePath string, component srcpack.
 		filePath = component.OriginalFilePath()
 	}
 
-	opts.Hook.WrapFunc(component.OriginalFilePath(), func() { component.Repack() })
+	opts.Hook.WrapFunc(component.OriginalFilePath(), func() *webwrap.WrapStats {
+		component.Repack()
+
+		return component.WebWrapper().Stats()
+	})
 
 	s.ChangeRequest.Push(filePath, component.BundleKey())
 
@@ -171,7 +175,11 @@ func (s *devSession) IndirectFileChangeRequest(sources []string, indirectFile st
 			continue
 		}
 
-		opts.Hook.WrapFunc(component.OriginalFilePath(), func() { component.Repack() })
+		opts.Hook.WrapFunc(component.OriginalFilePath(), func() *webwrap.WrapStats {
+			component.Repack()
+
+			return component.WebWrapper().Stats()
+		})
 
 		s.ChangeRequest.Push(indirectFile, component.BundleKey())
 

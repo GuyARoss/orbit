@@ -162,6 +162,13 @@ func (r *ReactSSR) Version() string {
 	return "reactSSR"
 }
 
+func (s *ReactSSR) Stats() *WrapStats {
+	return &WrapStats{
+		WebVersion: "react",
+		Bundler:    "ssr",
+	}
+}
+
 func (r *ReactSSR) Bundle(configuratorFilePath string, filePath string) error {
 	return nil
 }

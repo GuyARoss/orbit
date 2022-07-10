@@ -30,9 +30,15 @@ type JSWebWrapper interface {
 	Apply(jsparse.JSDocument) (jsparse.JSDocument, error)
 	DoesSatisfyConstraints(string) bool
 	Version() string
+	Stats() *WrapStats
 	Bundle(configuratorFile string, originalFilePath string) error
 	HydrationFile() []embedutils.FileReader
 	VerifyRequirements() error
+}
+
+type WrapStats struct {
+	WebVersion string
+	Bundler    string
 }
 
 type JSWebWrapperList []JSWebWrapper
