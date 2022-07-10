@@ -147,10 +147,10 @@ func (b *ReactWebWrapper) Bundle(configuratorFilePath string, filePath string) e
 	}
 
 	cmd := exec.Command("node", webpackPath, "--config", configuratorFilePath)
-	_, err := cmd.Output()
+	output, err := cmd.Output()
 
 	if err != nil {
-		b.Logger.Warn(fmt.Sprintf(`invalid pack: "node %s --config %s"`, webpackPath, configuratorFilePath))
+		b.Logger.Warn(fmt.Sprintf(`invalid pack: "node %s --config %s"\n "%s"`, webpackPath, configuratorFilePath, string(output)))
 		return parseerror.New("failed to bundle, this could denote a syntax error", filePath)
 	}
 
