@@ -75,7 +75,9 @@ func (s *JSPacker) PackMany(pages []string) (PackedComponentList, error) {
 				errOnce.Do(func() {
 					packErr = err
 				})
+				return nil
 			}
+			fmt.Println("page!", page, err)
 			return page.WebWrapper().Stats()
 		})
 	}

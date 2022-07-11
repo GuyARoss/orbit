@@ -10,6 +10,7 @@ import (
 
 	"github.com/GuyARoss/orbit/pkg/embedutils"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
+	"github.com/GuyARoss/orbit/pkg/jsparse/mock"
 	jsparsemock "github.com/GuyARoss/orbit/pkg/jsparse/mock"
 	"github.com/GuyARoss/orbit/pkg/webwrap"
 )
@@ -38,7 +39,11 @@ func (m *MockWrapper) Stats() *webwrap.WrapStats {
 }
 
 func (b *MockWrapper) Setup(context.Context, *webwrap.BundleOpts) (*webwrap.BundledResource, error) {
-	return &webwrap.BundledResource{}, nil
+	return &webwrap.BundledResource{
+		Configurators: []webwrap.BundleConfigurator{
+			{Page: mock.NewMockJSDocument("test", "jsx", "test"), FilePath: ""},
+		},
+	}, nil
 }
 
 func (b *MockWrapper) HydrationFile() []embedutils.FileReader {
