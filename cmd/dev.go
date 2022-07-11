@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/GuyARoss/orbit/internal"
@@ -122,6 +123,10 @@ var devCMD = &cobra.Command{
 // each sub directory found under a path to the file watcher
 func WatchDir(watcher *fsnotify.Watcher) func(path string, fi os.FileInfo, err error) error {
 	return func(path string, fi os.FileInfo, err error) error {
+		if strings.Contains(path, "node_modules") {
+			return nil
+		}
+
 		if fi.Mode().IsDir() {
 			return watcher.Add(path)
 		}

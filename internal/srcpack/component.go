@@ -7,6 +7,7 @@ package srcpack
 import (
 	"context"
 	"errors"
+	"os"
 	"sync"
 
 	"github.com/GuyARoss/orbit/pkg/jsparse"
@@ -42,13 +43,12 @@ type Component struct {
 
 // NewComponentOpts options for creating a new component
 type NewComponentOpts struct {
-	FilePath   string
-	WebDir     string
-	DefaultKey string
-
-	JSParser jsparse.JSParser
-
-	JSWebWrappers webwrap.JSWebWrapperList
+	FilePath            string
+	WebDir              string
+	DefaultKey          string
+	JSParser            jsparse.JSParser
+	JSWebWrappers       webwrap.JSWebWrapperList
+	SkipFirstPassBundle bool
 }
 
 var ErrInvalidComponentType = errors.New("invalid component type")
@@ -98,20 +98,26 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, e
 		return nil, err
 	}
 
-	for _, r := range resource {
-		bundlePageErr := page.WriteFile(r.BundleFilePath)
+	_, err = os.Stat(resource.BundleFilePath)
+
+	// this addresses a performance issue that resulted in slow startup times for bundles that already existed.
+	// this bundle process can be skipped during the initial startup of the application as long as stale bundle data exists.
+	if !opts.SkipFirstPassBundle || errors.Is(err, os.ErrNotExist) {
+		bundlePageErr := page.WriteFile(resource.BundleFilePath)
 		if bundlePageErr != nil {
 			return nil, bundlePageErr
 		}
 
-		configErr := r.ConfiguratorPage.WriteFile(r.ConfiguratorFilePath)
-		if configErr != nil {
-			return nil, configErr
-		}
+		for _, r := range resource.Configurators {
+			configErr := r.Page.WriteFile(r.FilePath)
+			if configErr != nil {
+				return nil, configErr
+			}
 
-		bundleErr := wrapMethod.Bundle(r.ConfiguratorFilePath, r.OriginalFilePath)
-		if bundleErr != nil {
-			return nil, bundleErr
+			bundleErr := wrapMethod.Bundle(resource.BundleFilePath, r.FilePath)
+			if bundleErr != nil {
+				return nil, bundleErr
+			}
 		}
 	}
 
@@ -175,18 +181,17 @@ func (s *Component) Repack() error {
 	}
 
 	s.m.Lock()
-	for _, b := range resource {
-		err = page.WriteFile(b.BundleFilePath)
+	err = page.WriteFile(resource.BundleFilePath)
+	if err != nil {
+		return err
+	}
+	for _, b := range resource.Configurators {
+		err = b.Page.WriteFile(b.FilePath)
 		if err != nil {
 			return err
 		}
 
-		err = b.ConfiguratorPage.WriteFile(b.ConfiguratorFilePath)
-		if err != nil {
-			return err
-		}
-
-		err = s.webWrapper.Bundle(b.ConfiguratorFilePath, b.OriginalFilePath)
+		err = s.webWrapper.Bundle(resource.BundleFilePath, b.FilePath)
 		if err != nil {
 			return err
 		}

@@ -37,10 +37,8 @@ func (m *MockWrapper) Stats() *webwrap.WrapStats {
 	return &webwrap.WrapStats{}
 }
 
-func (b *MockWrapper) Setup(context.Context, *webwrap.BundleOpts) ([]*webwrap.BundledResource, error) {
-	return []*webwrap.BundledResource{{
-		ConfiguratorPage: &jsparsemock.MockJsDocument{},
-	}}, nil
+func (b *MockWrapper) Setup(context.Context, *webwrap.BundleOpts) (*webwrap.BundledResource, error) {
+	return &webwrap.BundledResource{}, nil
 }
 
 func (b *MockWrapper) HydrationFile() []embedutils.FileReader {

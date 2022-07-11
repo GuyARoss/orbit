@@ -28,13 +28,13 @@ type CachedEnvKeys map[string]string
 // packer is the primary struct used for packing a directory of javascript files into
 // valid web components.
 type JSPacker struct {
-	JsParser         jsparse.JSParser
-	ValidWebWrappers webwrap.JSWebWrapperList
-	Logger           log.Logger
-
-	AssetDir         string
-	WebDir           string
-	cachedBundleKeys CachedEnvKeys
+	JsParser            jsparse.JSParser
+	ValidWebWrappers    webwrap.JSWebWrapperList
+	Logger              log.Logger
+	SkipFirstPassBundle bool
+	AssetDir            string
+	WebDir              string
+	cachedBundleKeys    CachedEnvKeys
 }
 
 // concpack is a private packing mechanism embedding the packer to pack a set of files concurrently.
@@ -102,10 +102,11 @@ func (p *JSPacker) ReattachLogger(logger log.Logger) Packer {
 
 // DefaultPackerOpts options for creating a new default packer
 type DefaultPackerOpts struct {
-	WebDir           string
-	BundlerMode      string
-	NodeModuleDir    string
-	CachedBundleKeys CachedEnvKeys
+	WebDir              string
+	BundlerMode         string
+	NodeModuleDir       string
+	CachedBundleKeys    CachedEnvKeys
+	SkipFirstPassBundle bool
 }
 
 // pack single packs a single file path into a usable web component
@@ -122,11 +123,12 @@ func (p *concPack) PackSingle(wg *sync.WaitGroup, path string) (PackComponent, e
 	// @@todo: we should validate if these components exist on our source map yet, if so we should
 	// inherit the metadata, rather than generate new metadata.
 	page, err := NewComponent(context.TODO(), &NewComponentOpts{
-		DefaultKey:    p.cachedBundleKeys[path],
-		FilePath:      path,
-		WebDir:        p.WebDir,
-		JSWebWrappers: p.ValidWebWrappers,
-		JSParser:      p.JsParser,
+		DefaultKey:          p.cachedBundleKeys[path],
+		FilePath:            path,
+		WebDir:              p.WebDir,
+		JSWebWrappers:       p.ValidWebWrappers,
+		JSParser:            p.JsParser,
+		SkipFirstPassBundle: p.SkipFirstPassBundle,
 	})
 
 	if err != nil {
@@ -206,8 +208,9 @@ func NewDefaultPacker(logger log.Logger, opts *DefaultPackerOpts) Packer {
 			NodeModulesDir: opts.NodeModuleDir,
 			Logger:         logger,
 		}),
-		Logger:           logger,
-		cachedBundleKeys: opts.CachedBundleKeys,
+		Logger:              logger,
+		cachedBundleKeys:    opts.CachedBundleKeys,
+		SkipFirstPassBundle: opts.SkipFirstPassBundle,
 	}
 
 	return packer

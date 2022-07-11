@@ -26,7 +26,7 @@ import (
 
 type JSWebWrapper interface {
 	RequiredBodyDOMElements(context.Context, *CacheDOMOpts) []string
-	Setup(context.Context, *BundleOpts) ([]*BundledResource, error)
+	Setup(context.Context, *BundleOpts) (*BundledResource, error)
 	Apply(jsparse.JSDocument) (jsparse.JSDocument, error)
 	DoesSatisfyConstraints(string) bool
 	Version() string
@@ -128,13 +128,15 @@ type BundleOpts struct {
 	Name      string
 }
 
-type BundledResource struct {
-	BundleFilePath       string
-	ConfiguratorFilePath string
-	OriginalFilePath     string
-
+type BundleConfigurator struct {
 	// ConfiguratorPage represents a bundler setup file
-	ConfiguratorPage jsparse.JSDocument
+	Page     jsparse.JSDocument
+	FilePath string
+}
+
+type BundledResource struct {
+	Configurators  []BundleConfigurator
+	BundleFilePath string
 }
 
 const (

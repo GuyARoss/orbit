@@ -58,15 +58,9 @@ type FileStructureOpts struct {
 // 2. the ./.orbit file structure
 // 3. asset directory
 func OrbitFileStructure(s *FileStructureOpts) error {
-	err := os.RemoveAll(".orbit/base")
-	if err != nil {
-		return err
-	}
-
 	for _, dir := range s.Mkdirs {
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			err := os.Mkdir(dir, os.ModePerm)
-			if err != nil {
+			if err := os.Mkdir(dir, os.ModePerm); err != nil {
 				return err
 			}
 		}
@@ -94,15 +88,13 @@ func OrbitFileStructure(s *FileStructureOpts) error {
 	}
 
 	for _, a := range s.Assets {
-		err = assets.WriteFile(".orbit/assets", a)
-		if err != nil {
+		if err := assets.WriteFile(".orbit/assets", a); err != nil {
 			return err
 		}
 	}
 
 	for _, a := range s.Dist {
-		err = assets.WriteFile(".orbit/dist", a)
-		if err != nil {
+		if err := assets.WriteFile(".orbit/dist", a); err != nil {
 			return err
 		}
 	}
