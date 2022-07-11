@@ -119,6 +119,14 @@ func TestTokenizeLine(t *testing.T) {
 		}, ""},
 		{"// some random text", DefaultJSDocument{
 			extension: "jsx",
+			other:     []string{""},
+		}, ""},
+		{"// import thing from 'thing'", DefaultJSDocument{
+			extension: "jsx",
+			other:     []string{"some random text"},
+		}, ""},
+		{"some random text // import thing from 'thing'", DefaultJSDocument{
+			extension: "jsx",
 			other:     []string{"some random text"},
 		}, ""},
 		{"export default Thing", DefaultJSDocument{
@@ -153,7 +161,7 @@ func TestTokenizeLine(t *testing.T) {
 		}
 
 		if len(cdoc.imports) != len(d.o.imports) {
-			t.Errorf("(%d) import missmatch", i)
+			t.Errorf("(%d) import missmatch expected '%d' got '%d'", i, len(d.o.imports), len(cdoc.imports))
 			continue
 		}
 

@@ -55,6 +55,7 @@ const (
 	FuncToken          JSToken = "function"
 	VarToken           JSToken = "var"
 	LetToken           JSToken = "let"
+	CommentToken       JSToken = "//"
 )
 
 var declarationTokens = []JSToken{VarToken, ConstToken, FuncToken, LetToken, ExportDefaultToken, ImportToken}
@@ -70,6 +71,12 @@ type JsDocumentScope struct {
 // tokenizeLine tokenizes each line and serializes it to the provided JSDocument
 func (p *DefaultJSDocument) tokenizeLine(line string) error {
 	for _, decToken := range declarationTokens {
+		if strings.Contains(line, string(CommentToken)) {
+			// the only part of the comment line that is vaild would be everything before the comment
+			commentDelimited := strings.Split(line, string(CommentToken))
+			line = commentDelimited[0]
+		}
+
 		if strings.Contains(line, string(decToken)) {
 			switch decToken {
 			case ImportToken:
