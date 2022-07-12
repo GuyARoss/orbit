@@ -166,7 +166,6 @@ func TestTokenizeLine(t *testing.T) {
 		}
 
 		if len(cdoc.other) != len(d.o.other) {
-			fmt.Println(cdoc.other, d.o.other, len(cdoc.other), len(d.o.other))
 			t.Errorf("(%d) other missmatch", i)
 			continue
 		}

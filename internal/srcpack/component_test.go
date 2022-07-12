@@ -58,11 +58,13 @@ func TestNewComponent_Failures(t *testing.T) {
 		}}},
 
 		// bundler failure
-		{&NewComponentOpts{JSParser: &mock.MockJSParser{
-			Err:           nil,
-			ParseDocument: mock.NewMockJSDocument("test", "jsx", "test"),
-		},
-			JSWebWrappers: []webwrap.JSWebWrapper{&webwrapmock.MockWrapper{Satisfy: true, FailBundle: true}},
+		{&NewComponentOpts{
+			JSParser: &mock.MockJSParser{
+				Err:           nil,
+				ParseDocument: mock.NewMockJSDocument("test", "jsx", "test"),
+			},
+			JSWebWrappers:       []webwrap.JSWebWrapper{&webwrapmock.MockWrapper{Satisfy: true, FailBundle: true}},
+			SkipFirstPassBundle: false,
 		}},
 
 		// default export is not present
@@ -74,10 +76,10 @@ func TestNewComponent_Failures(t *testing.T) {
 		}},
 	}
 
-	for _, d := range tt {
+	for i, d := range tt {
 		_, err := NewComponent(context.TODO(), d.s)
 		if err == nil {
-			t.Errorf("expected failure upon component creation")
+			t.Errorf("(%d) expected failure upon component creation '%s'", i, err)
 		}
 	}
 }

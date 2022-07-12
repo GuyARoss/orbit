@@ -75,7 +75,7 @@ func (s *JavascriptWrapper) RequiredBodyDOMElements(ctx context.Context, cache *
 	}
 }
 
-func (b *JavascriptWrapper) Setup(ctx context.Context, settings *BundleOpts) ([]*BundledResource, error) {
+func (b *JavascriptWrapper) Setup(ctx context.Context, settings *BundleOpts) (*BundledResource, error) {
 	page := jsparse.NewEmptyDocument()
 
 	page.AddImport(&jsparse.ImportDependency{
@@ -99,11 +99,15 @@ func (b *JavascriptWrapper) Setup(ctx context.Context, settings *BundleOpts) ([]
 		},
 	})`, bundleFilePath, string(b.Mode), outputFileName))
 
-	return []*BundledResource{{
-		BundleFilePath:       bundleFilePath,
-		ConfiguratorFilePath: fmt.Sprintf("%s/%s.config.js", b.PageOutputDir, settings.BundleKey),
-		ConfiguratorPage:     page,
-	}}, nil
+	return &BundledResource{
+		BundleFilePath: bundleFilePath,
+		Configurators: []BundleConfigurator{
+			{
+				FilePath: fmt.Sprintf("%s/%s.config.js", b.PageOutputDir, settings.BundleKey),
+				Page:     page,
+			},
+		},
+	}, nil
 }
 
 func (b *JavascriptWrapper) Bundle(configuratorFilePath string, filePath string) error {

@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/GuyARoss/orbit/internal"
@@ -61,6 +62,10 @@ var devCMD = &cobra.Command{
 			Hook:            srcpack.NewSyncHook(log.NewEmptyLogger()),
 			HotReload:       hotReload,
 			Parser:          &jsparse.JSFileParser{},
+		}
+
+		if viper.GetBool("terminateonstartup") {
+			return
 		}
 
 		go func() {
@@ -122,6 +127,10 @@ var devCMD = &cobra.Command{
 // each sub directory found under a path to the file watcher
 func WatchDir(watcher *fsnotify.Watcher) func(path string, fi os.FileInfo, err error) error {
 	return func(path string, fi os.FileInfo, err error) error {
+		if strings.Contains(path, "node_modules") {
+			return nil
+		}
+
 		if fi.Mode().IsDir() {
 			return watcher.Add(path)
 		}
@@ -134,6 +143,7 @@ func init() {
 	var timeoutDuration int
 	var samefileTimeout int
 	var port int
+	var terminateStartup bool
 
 	devCMD.PersistentFlags().IntVar(&timeoutDuration, "timeout", 2000, "specifies the timeout duration in milliseconds until a change will be detected")
 	viper.BindPFlag("timeout", devCMD.PersistentFlags().Lookup("timeout"))
@@ -143,4 +153,7 @@ func init() {
 
 	devCMD.PersistentFlags().IntVar(&port, "hotreloadport", 3005, "port used for hotreload")
 	viper.BindPFlag("hotreloadport", devCMD.PersistentFlags().Lookup("hotreloadport"))
+
+	devCMD.PersistentFlags().BoolVar(&terminateStartup, "terminateonstartup", false, "flag used for terminating the dev command after startup")
+	viper.BindPFlag("terminateonstartup", devCMD.PersistentFlags().Lookup("terminateonstartup"))
 }
