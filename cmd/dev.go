@@ -6,7 +6,6 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -74,9 +73,16 @@ var devCMD = &cobra.Command{
 
 				select {
 				case e := <-watcher.Events:
+					if IsBlacklistedDirectory(e.Name) {
+						continue
+					}
+
 					err := s.DoFileChangeRequest(e.Name, fileChangeOpts)
 
-					if err != nil && !errors.Is(err, internal.ErrFileTooRecentlyProcessed) {
+					switch err {
+					case nil, internal.ErrFileTooRecentlyProcessed:
+						//
+					default:
 						logger.Error(err.Error())
 					}
 
@@ -137,6 +143,19 @@ func WatchDir(watcher *fsnotify.Watcher) func(path string, fi os.FileInfo, err e
 
 		return nil
 	}
+}
+
+var blacklistedDirectories = []string{
+	".orbit/",
+}
+
+func IsBlacklistedDirectory(dir string) bool {
+	for _, b := range blacklistedDirectories {
+		if strings.Contains(dir, b) {
+			return true
+		}
+	}
+	return false
 }
 
 func init() {
