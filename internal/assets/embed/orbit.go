@@ -43,8 +43,8 @@ func (s *htmlDoc) render() string {
 }
 
 func (s *htmlDoc) merge(doc *htmlDoc) *htmlDoc {
-	s.Body = append(s.Body, doc.Body...)
-	s.Head = append(s.Head, doc.Head...)
+	s.Body = append(doc.Body, s.Body...)
+	s.Head = append(doc.Head, s.Head...)
 
 	return s
 }
