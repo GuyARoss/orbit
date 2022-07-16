@@ -52,6 +52,7 @@ async function initHotReload() {
     
             switch (incoming?.operation) {
                 case "reload": {
+                    resetErrors()
                     window.location.reload()
                 }
             }
@@ -68,3 +69,96 @@ const interval = setInterval(() => {
         initHotReload()
     }
 })
+
+let globalErrors = []
+const resetErrors = () => {
+    globalErrors = []
+}
+
+window.onerror = function(error) {
+    renderOrbitErrFrame(error)
+};
+
+function renderOrbitErrFrame(error) {
+    if (!!error) {
+        globalErrors.push(error)
+    }
+    
+    if (globalErrors.length === 1) {
+        document.querySelector('body').innerHTML += renderErrorFrame(globalErrors)
+    } else {
+        document.getElementById('orbit-error-frame').innerHTML = renderErrorFrame(globalErrors, true)
+    }
+}
+
+let currentErrorIdx = 0
+function decrementErrorIndex() {
+    if (currentErrorIdx <= 0) {
+        return
+    }
+    currentErrorIdx -= 1
+    renderOrbitErrFrame(undefined)
+}
+
+function incrementErrorIndex() {
+    if (currentErrorIdx >= globalErrors.length - 1) {
+        return
+    }
+    currentErrorIdx +=1
+    renderOrbitErrFrame(undefined)
+}
+
+function closeErrorFrame() {
+    document.getElementById('orbit-error-container').innerHTML = ""
+}
+
+function renderErrorFrame(errors, noParent=false) {        
+    const body = `
+    <div>
+        <div style="display: flex;">
+            <div style="margin-right: 15px;">
+                <button onclick="decrementErrorIndex()">Back</button>
+                <button onclick="incrementErrorIndex()">Next</button>
+            </div>
+            <div>
+                ${currentErrorIdx + 1} of ${errors.length} unhandled errors
+            </div>
+        </div>
+
+        <div style="
+            margin-top: 20px;
+        ">
+            ${errors[currentErrorIdx]}
+        </div>
+    </div>
+    `
+    
+    if(noParent) {
+        return body
+    }
+
+    return `
+    <div id="orbit-error-container">
+        <div onclick="closeErrorFrame()" style="position: absolute; width: 100vw; height: 100vh; background: #ababab8a;">
+        </div>
+
+        <div id="orbit-error-frame" style="
+            position: absolute;
+            width: 500px;
+            height: fit-content;
+            left: 0;
+            right: 0;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 20px;
+            margin-top: 10%;
+            box-shadow: 0px 4px 19px #d5d5d596;
+            border-top: solid #e54e4e 5px;
+            border-radius: 10px;
+            background: white;
+        ">        
+            ${body}
+        </div>
+    </div>    
+    `
+}
