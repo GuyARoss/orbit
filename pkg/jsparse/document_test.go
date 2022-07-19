@@ -5,6 +5,7 @@
 package jsparse
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -106,6 +107,32 @@ func TestParseInformalExportDefault(t *testing.T) {
 	p.parseInformalExportDefault("export default Thing(Thing2)")
 }
 
+func TestTokenizeCommentString(t *testing.T) {
+	var tt = []struct {
+		i        string
+		o        DefaultJSDocument
+		lineData string
+	}{
+		{`"http://site.com"`, DefaultJSDocument{
+			extension: "jsx",
+			other:     []string{""},
+		}, `"http://site.com"`},
+	}
+
+	for _, d := range tt {
+		cdoc := NewEmptyDocument()
+		_, err := cdoc.tokenizeLine(context.TODO(), d.i)
+
+		if err != nil {
+			t.Errorf("error not expected %s", err)
+		}
+
+		if cdoc.other[0] != d.lineData {
+			t.Errorf("expected '%s' got '%s'", d.lineData, cdoc.other[0])
+		}
+	}
+}
+
 func TestTokenizeLine(t *testing.T) {
 	var tt = []struct {
 		i          string
@@ -119,11 +146,11 @@ func TestTokenizeLine(t *testing.T) {
 		}, ""},
 		{"// some random text", DefaultJSDocument{
 			extension: "jsx",
-			other:     []string{""},
+			other:     []string{},
 		}, ""},
 		{"// import thing from 'thing'", DefaultJSDocument{
 			extension: "jsx",
-			other:     []string{"some random text"},
+			other:     []string{},
 		}, ""},
 		{"some random text // import thing from 'thing'", DefaultJSDocument{
 			extension: "jsx",
@@ -137,18 +164,22 @@ func TestTokenizeLine(t *testing.T) {
 			other:     []string{"const DefaultExportedUnnamedComponent = HOCSomething(Component)"},
 		}, "DefaultExportedUnnamedComponent"},
 		{"", DefaultJSDocument{
-			other:     []string{""},
+			other:     []string{},
 			extension: "jsx",
 		}, ""},
 		{"export default () => (<> </>)", DefaultJSDocument{
 			extension: "jsx",
 			other:     []string{"const DefaultExportedUnnamedComponent = () => (<> </>)"},
 		}, "DefaultExportedUnnamedComponent"},
+		{"const thing = `//cat", DefaultJSDocument{
+			extension: "jsx",
+			other:     []string{"const thing = `//cat"},
+		}, ""},
 	}
 
 	for i, d := range tt {
 		cdoc := NewEmptyDocument()
-		got := cdoc.tokenizeLine(d.i)
+		_, got := cdoc.tokenizeLine(context.TODO(), d.i)
 
 		if got != nil {
 			t.Error("did not expect error during line tokenization")
@@ -166,7 +197,8 @@ func TestTokenizeLine(t *testing.T) {
 		}
 
 		if len(cdoc.other) != len(d.o.other) {
-			t.Errorf("(%d) other missmatch", i)
+			fmt.Println(i, len(cdoc.other), len(d.o.other), cdoc.other, d.o.other)
+			t.Errorf("(%d) other missmatch expected '%d' got '%d'", i, len(d.o.other), len(cdoc.other))
 			continue
 		}
 
@@ -176,13 +208,13 @@ func TestTokenizeLine(t *testing.T) {
 
 func TestTokenizeLine_DetectExport(t *testing.T) {
 	cdoc := NewEmptyDocument()
-	err := cdoc.tokenizeLine("function Thing() {}")
+	_, err := cdoc.tokenizeLine(context.TODO(), "function Thing() {}")
 	if err != nil {
 		t.Errorf("error occurred %s", err)
 		return
 	}
 
-	err = cdoc.tokenizeLine("export default Thing")
+	_, err = cdoc.tokenizeLine(context.TODO(), "export default Thing")
 	if err != nil {
 		t.Errorf("error occurred %s", err)
 		return
@@ -196,5 +228,22 @@ func TestTokenizeLine_DetectExport(t *testing.T) {
 	if len(cdoc.defaultExport.Args) != 0 {
 		t.Error("did not expect args to be present on resource default export")
 		return
+	}
+}
+
+func TestRemoveCenterOfToken(t *testing.T) {
+	cases := []struct {
+		l string
+		t string
+		e string
+	}{
+		{`import {withLayout} from "../components/layout"`, `"`, `import {withLayout} from ""`},
+	}
+
+	for _, c := range cases {
+		got, _ := removeCenterOfToken(c.l, c.t)
+		if got != c.e {
+			t.Errorf("got '%s' expected '%s'", got, c.e)
+		}
 	}
 }
