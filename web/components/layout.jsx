@@ -21,7 +21,7 @@ const Layout = ({ active, children, title, description }) => {
     
                 <div className="links">
                     <a href="http://github.com/GuyARoss/orbit">GitHub <BoxArrowSvg /></a> 
-                    <a href="./changes.html">v0.10.0</a>
+                    <a href="./changes.html">v0.16.0</a>
                 </div>
                 <hr />
             </header>
