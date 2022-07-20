@@ -28,7 +28,7 @@ const ApiCommands = withLayout(() => {
                         <li><strong>--publicdir</strong>a path for an html file, that will override the default HTML structure (note: this only overrides the head & body tags)</li>
                         <li><strong>--nodemod</strong>a path that specifies the location of node_modules</li>
                         <li><strong>--depout</strong>a path that specifies the output location of a <a className="local" href="#tool-dependgraph">dependency map</a></li>
-                        <li><strong>--experimental</strong>command delimited string specifying a list of experimental features <a href="./experimental.html">List of experimental features</a></li>                
+                        <li><strong>--experimental</strong>command delimited string specifying a list of experimental features <a href="./experimental.html">List of experimental features</a></li>
                     </ul>
                 </section>
             </header>            
@@ -68,6 +68,7 @@ const ApiCommands = withLayout(() => {
                     <li><strong>--timeout</strong>duration in milliseconds until a change will be detected <span>default: 2000</span></li>
                     <li><strong>--samefiletimeout</strong>specifies the timeout duration in milliseconds until a change will be detected for repeating files <span>default: 2000</span></li>
                     <li><strong>--hotreloadport</strong>port used for hotreloading <span>default: 3005</span></li>
+                    <li><strong>--terminateonstartup</strong>terminates the process after the startup sequence has been completed (uses for regression testing). <span>default: false</span></li>
                 </ul>
             </section>
             <section id="experimental">

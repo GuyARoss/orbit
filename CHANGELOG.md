@@ -1,6 +1,26 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 0.16.0 (July 19, 2022)
+
+Bugfixes: 
+- [#118](https://github.com/GuyARoss/orbit/issues/118): Added support for js document comment parsing.
+- [#115](https://github.com/GuyARoss/orbit/issues/115): Index file support for javascript importing.
+- [#123](https://github.com/GuyARoss/orbit/issues/123): React frames no longer overwrite each other during micro frontends.
+
+QOL-Enhancements:
+- [#110](https://github.com/GuyARoss/orbit/issues/110): Run-time tracing for file errors.
+- [#117](https://github.com/GuyARoss/orbit/issues/117): Cleanup formatting of the build and dev command output.
+- [#116](https://github.com/GuyARoss/orbit/issues/116): Directory blacklisting & logging cleanup.
+
+Performance:
+- [#121](https://github.com/GuyARoss/orbit/issues/121): Skip file parsing for import cycles that are not of supported extension type.
+- [#112](https://github.com/GuyARoss/orbit/issues/112): Increase startup time for reoccuring bundles within dev command (100x increase).
+
+Enhancements:
+- [#122](https://github.com/GuyARoss/orbit/issues/122): Lib generation maintains variable placement.
+- [#81](https://github.com/GuyARoss/orbit/issues/81): Orbit client side display during error occurrence.
+
 ## 0.10.0 (May 17, 2022)
 
 Bugfixes:

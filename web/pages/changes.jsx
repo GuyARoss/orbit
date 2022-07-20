@@ -3,6 +3,9 @@ import {withLayout} from "../components/layout"
 const Changes = withLayout(() => {
     return (
         <>
+            <h2>0.16.0</h2>
+            <li><a href="https://github.com/GuyARoss/orbit/blob/master/CHANGELOG.md#0160-july-19-2022">Changelog</a></li>
+
             <h2>0.10.0</h2>
             <li><a href="https://github.com/GuyARoss/orbit/blob/master/CHANGELOG.md#0100-may-17-2022">Changelog</a></li>        
 
