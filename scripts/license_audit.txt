@@ -1,3 +1,6 @@
+./internal/libout/goout_test.go
+./pkg/parse_error/error.go
+./pkg/parse_error/error_test.go
 ./scripts/build-times.py
 ./scripts/finalize-docs.py
 ./scripts/integration.py
