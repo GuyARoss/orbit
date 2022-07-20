@@ -5,6 +5,7 @@
 package jsparse
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"regexp"
@@ -42,6 +43,7 @@ type DefaultJSDocument struct {
 
 	defaultExport *JsDocumentScope
 	name          string
+	inDeadBlock   bool
 }
 
 // JSToken is some keyword(s) found in javascript used to tokenize js documents.
@@ -56,10 +58,14 @@ const (
 	VarToken           JSToken = "var"
 	LetToken           JSToken = "let"
 	CommentToken       JSToken = "//"
+	DoubleQuoteToken   JSToken = `"`
+	SingleQuoteToken   JSToken = "'"
+	MultiStringToken   JSToken = "`"
 )
 
 var declarationTokens = []JSToken{VarToken, ConstToken, FuncToken, LetToken, ExportDefaultToken, ImportToken}
 var exportTokens = []JSToken{ExportDefaultToken, ExportConstToken}
+var stringTokens = []JSToken{DoubleQuoteToken, SingleQuoteToken, MultiStringToken}
 
 type JsDocumentScope struct {
 	TokenType JSToken
@@ -68,25 +74,68 @@ type JsDocumentScope struct {
 	Args      JSDocArgList
 }
 
+func removeCenterOfToken(line string, token string) (string, int) {
+	parsedLine := line
+
+	startIdx := 0
+	opened := false
+	foundCount := 0
+	for idx, c := range line {
+		if string(c) == string(token) {
+			foundCount += 1
+			if !opened {
+				startIdx = idx
+				opened = true
+			} else {
+				opened = false
+				subset := line[startIdx+1 : idx]
+				parsedLine = strings.ReplaceAll(parsedLine, subset, "")
+			}
+		}
+	}
+
+	return parsedLine, foundCount
+}
+
 // tokenizeLine tokenizes each line and serializes it to the provided JSDocument
-func (p *DefaultJSDocument) tokenizeLine(line string) error {
-	for _, decToken := range declarationTokens {
-		if strings.Contains(line, string(CommentToken)) {
-			// the only part of the comment line that is vaild would be everything before the comment
-			commentDelimited := strings.Split(line, string(CommentToken))
-			line = commentDelimited[0]
+func (p *DefaultJSDocument) tokenizeLine(ctx context.Context, line string) (context.Context, error) {
+	if len(line) == 0 {
+		return ctx, nil
+	}
+
+	parsedLine := line
+	for _, t := range stringTokens {
+		out, v := removeCenterOfToken(parsedLine, string(t))
+		if t == MultiStringToken && v%2 == 1 {
+			p.inDeadBlock = !p.inDeadBlock
 		}
 
-		if strings.Contains(line, string(decToken)) {
+		parsedLine = out
+	}
+
+	if p.inDeadBlock {
+		p.AddOther(line)
+
+		return ctx, nil
+	}
+
+	if strings.Contains(parsedLine, string(CommentToken)) {
+		// the only part of the comment line that is vaild would be everything before the comment
+		commentDelimited := strings.Split(line, string(CommentToken))
+		return p.tokenizeLine(ctx, commentDelimited[0])
+	}
+
+	for _, decToken := range declarationTokens {
+		if strings.Contains(parsedLine, string(decToken)) {
 			switch decToken {
 			case ImportToken:
 				p.imports = append(p.imports, p.formatImportLine(line))
-				return nil
+				return ctx, nil
 			case ExportDefaultToken, ExportConstToken:
 				name, err := extractJSTokenName(line, decToken)
 
 				if err != nil {
-					return err
+					return ctx, err
 				}
 
 				if p.scope[name] != nil {
@@ -94,18 +143,18 @@ func (p *DefaultJSDocument) tokenizeLine(line string) error {
 						p.defaultExport = p.scope[name]
 						p.name = name
 					}
-					return nil
+					return ctx, nil
 				} else {
 					v, err := p.parseInformalExportDefault(line)
 					if err != nil || v {
-						return err
+						return ctx, err
 					}
 				}
 			}
 
 			name, err := extractJSTokenName(line, decToken)
 			if err != nil {
-				return err
+				return ctx, err
 			}
 			exportMethod := ExportNone
 
@@ -124,7 +173,7 @@ func (p *DefaultJSDocument) tokenizeLine(line string) error {
 
 			args, err := parseArgs(line)
 			if err != nil {
-				return err
+				return ctx, err
 			}
 
 			scope := &JsDocumentScope{
@@ -141,14 +190,14 @@ func (p *DefaultJSDocument) tokenizeLine(line string) error {
 					p.defaultExport = p.scope[name]
 					p.name = name
 				}
-				return nil
+				return ctx, nil
 			}
 		}
 	}
 
 	p.AddOther(line)
 
-	return nil
+	return ctx, nil
 }
 
 func (p *DefaultJSDocument) parseInformalExportDefault(line string) (bool, error) {

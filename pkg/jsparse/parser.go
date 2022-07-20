@@ -6,6 +6,7 @@ package jsparse
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -47,8 +48,9 @@ func (p *JSFileParser) Parse(pageDir string, webDir string) (JSDocument, error) 
 
 	page := NewDocument(webDir, pageDir)
 
+	ctx := context.Background()
 	for scanner.Scan() {
-		err := page.tokenizeLine(scanner.Text())
+		ctx, err = page.tokenizeLine(ctx, scanner.Text())
 		if err != nil {
 			return nil, err
 		}

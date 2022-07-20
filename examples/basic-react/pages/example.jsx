@@ -1,5 +1,4 @@
 const Example = ({day, month, year}) => {
-    ff
     return (
         <div className="orbit-integration-applied">
             <h1>Orbit!</h1>            
