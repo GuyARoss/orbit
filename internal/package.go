@@ -53,6 +53,23 @@ type FileStructureOpts struct {
 	Mkdirs      []string
 }
 
+var dirs = []string{
+	".orbit", ".orbit/base", ".orbit/base/pages",
+	".orbit/dist", ".orbit/assets",
+}
+
+// OrbitRemoveFileStructure removes all required file paths
+func OrbitRemoveFileStructure() error {
+	for _, dir := range dirs {
+		err := os.RemoveAll(dir)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // OrbitFileStructure creates the foundation for orbits file structure, this includes:
 // 1. creating the out package directory
 // 2. the ./.orbit file structure
@@ -73,10 +90,6 @@ func OrbitFileStructure(s *FileStructureOpts) error {
 		}
 	}
 
-	dirs := []string{
-		".orbit", ".orbit/base", ".orbit/base/pages",
-		".orbit/dist", ".orbit/assets",
-	}
 	for _, dir := range dirs {
 		_, err := os.Stat(dir)
 		if errors.Is(err, os.ErrNotExist) {

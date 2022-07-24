@@ -72,6 +72,7 @@ func Execute() {
 	RootCMD.AddCommand(toolCMD)
 	RootCMD.AddCommand(experiementalCMD)
 	RootCMD.AddCommand(deployCMD)
+	RootCMD.AddCommand(cleanCMD)
 
 	if err := RootCMD.Execute(); err != nil {
 		panic(err)
