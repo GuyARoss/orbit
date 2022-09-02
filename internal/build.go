@@ -36,7 +36,7 @@ func Build(opts *BuildOpts) (srcpack.PackedComponentList, error) {
 		return nil, err
 	}
 
-	if err = OrbitFileStructure(&FileStructureOpts{
+	s := &FileStructure{
 		PackageName: opts.Packname,
 		OutDir:      opts.OutDir,
 		Assets: []fs.DirEntry{
@@ -45,7 +45,9 @@ func Build(opts *BuildOpts) (srcpack.PackedComponentList, error) {
 			ats.AssetEntry(assets.JsWebPackConfig),
 		},
 		Mkdirs: opts.Dirs,
-	}); err != nil {
+	}
+
+	if err = s.Make(); err != nil {
 		return nil, err
 	}
 

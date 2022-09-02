@@ -45,7 +45,7 @@ func (p *PackageJSONTemplate) Write(path string) error {
 }
 
 // FileStructureOpts reqired structure options for the file structure creation
-type FileStructureOpts struct {
+type FileStructure struct {
 	PackageName string
 	OutDir      string
 	Assets      []fs.DirEntry
@@ -58,8 +58,8 @@ var dirs = []string{
 	".orbit/dist", ".orbit/assets",
 }
 
-// OrbitRemoveFileStructure removes all required file paths
-func OrbitRemoveFileStructure() error {
+// Cleanup removes all required file paths
+func (s *FileStructure) Cleanup() error {
 	for _, dir := range dirs {
 		err := os.RemoveAll(dir)
 		if err != nil {
@@ -67,14 +67,15 @@ func OrbitRemoveFileStructure() error {
 		}
 	}
 
+	for _, dir := range s.Mkdirs {
+		os.RemoveAll(dir)
+	}
+
 	return nil
 }
 
-// OrbitFileStructure creates the foundation for orbits file structure, this includes:
-// 1. creating the out package directory
-// 2. the ./.orbit file structure
-// 3. asset directory
-func OrbitFileStructure(s *FileStructureOpts) error {
+// Make creates the foundation for orbits file structure
+func (s *FileStructure) Make() error {
 	for _, dir := range s.Mkdirs {
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
 			if err := os.Mkdir(dir, os.ModePerm); err != nil {
@@ -119,7 +120,7 @@ func OrbitFileStructure(s *FileStructureOpts) error {
 // for this method, we prefer using a single pass file reader over something like
 // reflection due to the speed constraints of reflection
 func CachedEnvFromFile(path string) (srcpack.CachedEnvKeys, error) {
-	// @@todo: if we plan to add support for another output langauge, this
+	// TODO(language-support): if we plan to add support for another output langauge, this
 	// function needs to validate the extension to determine parsing method.
 	file, err := os.Open(path)
 
@@ -142,7 +143,7 @@ func CachedEnvFromFile(path string) (srcpack.CachedEnvKeys, error) {
 			continue
 		}
 
-		// @@todo: to provide extensibility this should be specific to the language parser
+		// TODO(language-support): to provide extensibility this should be specific to the language parser
 		// rather than a hardcoded value.
 		if current != "" && strings.Contains(line, "PageRender") {
 			k[current] = strings.ReplaceAll(strings.Split(line, " ")[3], `"`, ``)

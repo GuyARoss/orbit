@@ -65,7 +65,7 @@ var initCMD = &cobra.Command{
 			panic(err)
 		}
 
-		err = internal.OrbitFileStructure(&internal.FileStructureOpts{
+		err = (&internal.FileStructure{
 			PackageName: viper.GetString("pacname"),
 			OutDir:      viper.GetString("out"),
 			Assets: []fs.DirEntry{
@@ -73,7 +73,7 @@ var initCMD = &cobra.Command{
 				ats.AssetEntry(assets.SSRProtoFile),
 				ats.AssetEntry(assets.JsWebPackConfig),
 			},
-		})
+		}).Make()
 
 		if err != nil {
 			log.Fatal(err)

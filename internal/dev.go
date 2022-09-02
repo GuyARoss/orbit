@@ -254,7 +254,7 @@ func New(ctx context.Context, opts *SessionOpts) (*devSession, error) {
 		panic(err)
 	}
 
-	err = OrbitFileStructure(&FileStructureOpts{
+	err = (&FileStructure{
 		PackageName: opts.Pacname,
 		OutDir:      opts.OutDir,
 		Assets: []fs.DirEntry{
@@ -263,7 +263,7 @@ func New(ctx context.Context, opts *SessionOpts) (*devSession, error) {
 			ats.AssetEntry(assets.JsWebPackConfig),
 		},
 		Dist: []fs.DirEntry{ats.AssetEntry(assets.HotReload)},
-	})
+	}).Make()
 
 	if err != nil {
 		return nil, err
