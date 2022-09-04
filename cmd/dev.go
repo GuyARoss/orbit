@@ -48,7 +48,7 @@ var devCMD = &cobra.Command{
 		watcher, _ := fsnotify.NewWatcher()
 		defer watcher.Close()
 
-		hotReload := hotreload.New()
+		reloader := hotreload.New()
 
 		if err := filepath.Walk(viper.GetString("webdir"), WatchDir(watcher)); err != nil {
 			panic("invalid walk on watchDir")
@@ -59,7 +59,7 @@ var devCMD = &cobra.Command{
 		fileChangeOpts := &internal.ChangeRequestOpts{
 			SafeFileTimeout: time.Duration(viper.GetInt("samefiletimeout")) * time.Millisecond,
 			Hook:            srcpack.NewSyncHook(log.NewEmptyLogger()),
-			HotReload:       hotReload,
+			HotReload:       reloader,
 			Parser:          &jsparse.JSFileParser{},
 		}
 
@@ -67,9 +67,10 @@ var devCMD = &cobra.Command{
 			return
 		}
 
-		go func() {
+		go func(hr *hotreload.HotReload) {
 			for {
 				time.Sleep(timeout)
+				hr.EmitLog(hotreload.Error, "blah blah")
 
 				select {
 				case e := <-watcher.Events:
@@ -83,6 +84,7 @@ var devCMD = &cobra.Command{
 					case nil, internal.ErrFileTooRecentlyProcessed:
 						//
 					default:
+						hr.EmitLog(hotreload.Error, err.Error())
 						logger.Error(err.Error())
 					}
 
@@ -93,13 +95,13 @@ var devCMD = &cobra.Command{
 					panic(fmt.Sprintf("watcher failed %s", err.Error()))
 				}
 			}
-		}()
+		}(reloader)
 
-		go func() {
+		go func(hr *hotreload.HotReload) {
 			for {
 				// during dev mode when the browser redirects, we want to process
 				// the file only if the bundle has not already been processed
-				event := <-hotReload.Redirected
+				event := <-reloader.Redirected
 
 				for _, r := range event.BundleKeys.Diff(event.PreviousBundleKeys) {
 					// the change request maintains a cache of recently bundled pages
@@ -109,15 +111,16 @@ var devCMD = &cobra.Command{
 							err := s.DoBundleKeyChangeRequest(change, fileChangeOpts)
 
 							if err != nil {
-								fmt.Println(err)
+								hr.EmitLog(hotreload.Warning, err.Error())
+								logger.Warn(err.Error())
 							}
 						}(r)
 					}
 				}
 			}
-		}()
+		}(reloader)
 
-		http.HandleFunc("/ws", hotReload.HandleWebSocket)
+		http.HandleFunc("/ws", reloader.HandleWebSocket)
 
 		logger.Info(fmt.Sprintf("Hot reload server started on port '%d'", viper.GetInt("hotreloadport")))
 		logger.Info("You will still need to run your application")

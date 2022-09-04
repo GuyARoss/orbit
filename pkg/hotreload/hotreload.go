@@ -6,6 +6,7 @@ package hotreload
 
 import (
 	"net/http"
+	"strconv"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -102,6 +103,26 @@ func (s *HotReload) CurrentBundleKeys() []string {
 
 func (s *HotReload) upgraderSocket(w http.ResponseWriter, r *http.Request) (socket, error) {
 	return s.upgrader.Upgrade(w, r, nil)
+}
+
+type LogLevel int32
+
+const (
+	Info LogLevel = iota
+	Warning
+	Error
+)
+
+func (s *HotReload) EmitLog(level LogLevel, message string) error {
+	if !s.IsActive() {
+		return nil
+	}
+
+	r := &SocketRequest{
+		Operation: "logger",
+		Value:     []string{strconv.Itoa(int(level)), message},
+	}
+	return s.socket.WriteJSON(r)
 }
 
 func (s *HotReload) HandleWebSocket(w http.ResponseWriter, r *http.Request) {

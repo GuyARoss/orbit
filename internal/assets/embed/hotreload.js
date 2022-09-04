@@ -52,8 +52,12 @@ async function initHotReload() {
     
             switch (incoming?.operation) {
                 case "reload": {
-                    resetErrors()
+                    resetNotices()
                     window.location.reload()
+                }
+                case "logger": {
+                    const [logLevel, message] = incoming?.value
+                    attachNoticeFrame(message, logLevel, 'compiler')
                 }
             }
         }
@@ -70,65 +74,91 @@ const interval = setInterval(() => {
     }
 })
 
-let globalErrors = []
-const resetErrors = () => {
-    globalErrors = []
+let globalNotices = []
+const resetNotices = () => {
+    globalNotices = []
 }
 
 window.onerror = function(error) {
-    renderOrbitErrFrame(error)
+    attachNoticeFrame(error, 2)
 };
 
-function renderOrbitErrFrame(error) {
-    if (!!error) {
-        globalErrors.push(error)
+function attachNoticeFrame(message, logLevel=2, origin='client') {
+    if (!!message) {
+        globalNotices.push({ message, logLevel, origin })
     }
     
-    if (globalErrors.length === 1) {
-        document.querySelector('body').innerHTML += renderErrorFrame(globalErrors)
+    if (globalNotices.length === 1) {
+        document.querySelector('body').innerHTML += renderNoticeFrame({
+            stack: globalNotices,
+            logLevel,
+            origin,
+        })
     } else {
-        document.getElementById('orbit-error-frame').innerHTML = renderErrorFrame(globalErrors, true)
+        document.getElementById('orbit-notice-frame').innerHTML = renderNoticeFrame({
+            stack: globalNotices,
+            noParent: true,
+            logLevel,
+            origin,
+        })
     }
 }
 
-let currentErrorIdx = 0
-function decrementErrorIndex() {
-    if (currentErrorIdx <= 0) {
+let currentNoticeIdx = 0
+function decrementFrameIndex() {
+    if (currentNoticeIdx <= 0) {
         return
     }
-    currentErrorIdx -= 1
-    renderOrbitErrFrame(undefined)
+    currentNoticeIdx -= 1
+    attachNoticeFrame(undefined)
 }
 
-function incrementErrorIndex() {
-    if (currentErrorIdx >= globalErrors.length - 1) {
+function incrementFrameIndex() {
+    if (currentNoticeIdx >= globalNotices.length - 1) {
         return
     }
-    currentErrorIdx +=1
-    renderOrbitErrFrame(undefined)
+    currentNoticeIdx +=1
+    attachNoticeFrame(undefined)
 }
 
-function closeErrorFrame() {
-    document.getElementById('orbit-error-container').innerHTML = ""
+function closeNoticeFrame() {
+    document.getElementById('orbit-notice-container').innerHTML = ""
 }
 
-function renderErrorFrame(errors, noParent=false) {        
+function renderNoticeFrame({
+    stack,
+    noParent=false,
+}) {        
+    const { message, logLevel, origin } = stack[currentNoticeIdx]
+
+    const logStr = ({
+        [0]: 'Info',
+        [1]: 'Warning',
+        [2]: 'Error',
+    })[logLevel]
+
     const body = `
     <div>
         <div style="display: flex;">
             <div style="margin-right: 15px;">
-                <button onclick="decrementErrorIndex()">Back</button>
-                <button onclick="incrementErrorIndex()">Next</button>
+                <button onclick="decrementFrameIndex()">Back</button>
+                <button onclick="incrementFrameIndex()">Next</button>
             </div>
             <div>
-                ${currentErrorIdx + 1} of ${errors.length} unhandled errors
+                ${currentNoticeIdx + 1} of ${stack.length} unhandled notices
             </div>
         </div>
-
+        <div style="
+            margin-top: 10px;
+            font-size: 1.3rem;
+            text-transform: capitalize;
+        ">
+            ${logStr} - ${origin}
+        </div>
         <div style="
             margin-top: 20px;
         ">
-            ${errors[currentErrorIdx]}
+            ${message}
         </div>
     </div>
     `
@@ -137,13 +167,20 @@ function renderErrorFrame(errors, noParent=false) {
         return body
     }
 
+    const color = ({
+        [0]: '#336fcc',
+        [1]: '#d6a828',
+        [2]: '#e54e4e'
+    })[logLevel]
+
     return `
-    <div id="orbit-error-container">
-        <div onclick="closeErrorFrame()" style="position: absolute; width: 100vw; height: 100vh; background: #ababab8a;">
+    <div id="orbit-notice-container">
+        <div onclick="closeNoticeFrame()" style="position: absolute; top: 0; left:0; width: 100vw; height: 100vh; background: #ababab8a;">
         </div>
 
-        <div id="orbit-error-frame" style="
+        <div id="orbit-notice-frame" style="
             position: absolute;
+            top: 0;
             width: 500px;
             height: fit-content;
             left: 0;
@@ -153,7 +190,7 @@ function renderErrorFrame(errors, noParent=false) {
             padding: 20px;
             margin-top: 10%;
             box-shadow: 0px 4px 19px #d5d5d596;
-            border-top: solid #e54e4e 5px;
+            border-top: solid ${color} 5px;
             border-radius: 10px;
             background: white;
         ">        
