@@ -43,6 +43,7 @@ func Build(opts *BuildOpts) (srcpack.PackedComponentList, error) {
 			ats.AssetEntry(assets.WebPackConfig),
 			ats.AssetEntry(assets.SSRProtoFile),
 			ats.AssetEntry(assets.JsWebPackConfig),
+			ats.AssetEntry(assets.WebPackSWCConfig),
 		},
 		Mkdirs: opts.Dirs,
 	}

@@ -1,4 +1,4 @@
-const path = require('path');
+const path = require('path')
 
 const dirName = () => {
     const correct = []
@@ -22,55 +22,12 @@ const dirName = () => {
 }
 
 module.exports = {
-    entry: './index.js',
+    entry: ['@babel/polyfill'],
     output: {
         path: dirName() + "/dist"
     },
     module: {
         rules: [
-            {
-                test: /\.(js|jsx)$/,
-                exclude: /(node_modules|bower_components)/,
-                use: {
-                    loader: 'swc-loader',
-                    options: {
-                        jsc: {
-                            target: "es5",
-                            parser: {
-                                syntax: "ecmascript",
-                                jsx: true,
-                                numericSeparator: false,
-                                classPrivateProperty: false,
-                                privateMethod: false,
-                                classProperty: false,
-                                functionBind: false,
-                                decorators: false,
-                                decoratorsBeforeExport: false
-                            },
-                            transform: {
-                                react: {
-                                    pragma: "React.createElement",
-                                    pragmaFrag: "React.Fragment",
-                                    throwIfNamespace: true,
-                                    development: true,
-                                    useBuiltins: false
-                                },
-                                optimizer: {
-                                    globals: {
-                                        vars: {
-                                            __DEBUG__: "true"
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        module: {
-                            type: "es6"
-                        },
-                        minify: false
-                    }
-                }
-            },
             {
                 test: /\.css$/i,
                 exclude: /node_modules/,
@@ -85,6 +42,29 @@ module.exports = {
                 ],
             },
             {
+                test: /\.(js|jsx)$/,
+                exclude: /node_modules/,
+                use: {
+                    loader: "babel-loader",
+                    options: {
+                        "presets": [
+                            [
+                                "@babel/preset-env",
+                                {
+                                    "useBuiltIns": "entry"
+                                }
+                            ],
+                            "@babel/preset-react"
+                        ],
+                        "plugins": [
+                            "@babel/plugin-proposal-class-properties",
+                            "@babel/plugin-proposal-export-default-from",
+                            "react-hot-loader/babel"
+                        ]
+                    }
+                }
+            },
+            {
                 test: /\.html$/,
                 use: [
                     {
@@ -92,8 +72,7 @@ module.exports = {
                     }
                 ]
             }
-
-        ],
+        ]
     },
     resolve: {
         extensions: ['.js', '.jsx'],

@@ -261,6 +261,7 @@ func New(ctx context.Context, opts *SessionOpts) (*devSession, error) {
 			ats.AssetEntry(assets.WebPackConfig),
 			ats.AssetEntry(assets.SSRProtoFile),
 			ats.AssetEntry(assets.JsWebPackConfig),
+			ats.AssetEntry(assets.WebPackSWCConfig),
 		},
 		Dist: []fs.DirEntry{ats.AssetEntry(assets.HotReload)},
 	}).Make()
