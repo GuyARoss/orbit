@@ -14,10 +14,10 @@ func LoadSingleton(logger log.Logger, features []string) error {
 		switch e {
 		case "ssr":
 			GlobalExperimentalFeatures.PreferSSR = true
-			logger.Warn("experimental feature 'prefer ssr' enabled\n")
+			logger.Info("experimental feature 'prefer ssr' enabled\n")
 		case "swc":
 			GlobalExperimentalFeatures.PreferSWCCompiler = true
-			logger.Warn("experimental feature 'prefer swc compiler' enabled\n")
+			logger.Info("experimental feature 'prefer swc compiler' enabled\n")
 		}
 	}
 
