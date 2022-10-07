@@ -73,7 +73,6 @@ func (s *JSPacker) PackMany(pages []string) (PackedComponentList, error) {
 			page, err := cp.PackSingle(wg, t)
 			if err != nil {
 				errOnce.Do(func() {
-					sh.logger.Error(err.Error())
 					packErr = err
 				})
 				return nil
