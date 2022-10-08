@@ -7,6 +7,7 @@ package cmd
 import (
 	"github.com/GuyARoss/orbit/internal"
 	"github.com/GuyARoss/orbit/internal/srcpack"
+	"github.com/GuyARoss/orbit/pkg/experiments"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/log"
 	"github.com/spf13/cobra"
@@ -18,6 +19,13 @@ var buildCMD = &cobra.Command{
 	Long:  "bundle data given the specified pages in prod mode",
 	Short: "bundle data given the specified pages in prod mode",
 	Run: func(cmd *cobra.Command, args []string) {
+		logger := log.NewDefaultLogger()
+
+		err := experiments.LoadSingleton(logger, viper.GetStringSlice("experimental"))
+		if err != nil {
+			logger.Warn(err.Error())
+		}
+
 		components, err := internal.Build(&internal.BuildOpts{
 			Packname:       viper.GetString("pacname"),
 			OutDir:         viper.GetString("out"),
@@ -27,7 +35,6 @@ var buildCMD = &cobra.Command{
 			PublicDir:      viper.GetString("publicdir"),
 		})
 
-		logger := log.NewDefaultLogger()
 		if err != nil {
 			logger.Error(err.Error())
 			return

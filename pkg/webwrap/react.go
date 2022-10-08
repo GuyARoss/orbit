@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/GuyARoss/orbit/pkg/embedutils"
+	"github.com/GuyARoss/orbit/pkg/experiments"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	parseerror "github.com/GuyARoss/orbit/pkg/parse_error"
 )
@@ -114,10 +115,17 @@ func (b *ReactWebWrapper) Setup(ctx context.Context, settings *BundleOpts) (*Bun
 		Type:           jsparse.ModuleImportType,
 	})
 
-	page.AddImport(&jsparse.ImportDependency{
-		FinalStatement: "const baseConfig = require('../../assets/base.config.js')",
-		Type:           jsparse.ModuleImportType,
-	})
+	if experiments.GlobalExperimentalFeatures.PreferSWCCompiler {
+		page.AddImport(&jsparse.ImportDependency{
+			FinalStatement: "const baseConfig = require('../../assets/swc-base.config.js')",
+			Type:           jsparse.ModuleImportType,
+		})
+	} else {
+		page.AddImport(&jsparse.ImportDependency{
+			FinalStatement: "const baseConfig = require('../../assets/base.config.js')",
+			Type:           jsparse.ModuleImportType,
+		})
+	}
 
 	outputFileName := fmt.Sprintf("%s.js", settings.BundleKey)
 	bundleFilePath := fmt.Sprintf("%s/%s.js", b.PageOutputDir, settings.BundleKey)

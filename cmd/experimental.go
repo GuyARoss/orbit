@@ -19,6 +19,7 @@ var experiementalCMD = &cobra.Command{
 Experimental Options:
 
 ssr 	enables the usage of ssr functionality for available web wrappers 
+swc 	enables the usage of the swc compiler in place of babel
 	
 		`)
 	},

@@ -35,5 +35,8 @@ func main() {
 		c.RenderPage(orbitgen.ExampleTwoPage, props)
 	})
 
-	http.ListenAndServe(":3030", orb.Serve())
+	err = http.ListenAndServe(":3030", orb.Serve())
+	if err != nil {
+		panic(err)
+	}
 }

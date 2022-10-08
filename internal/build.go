@@ -43,6 +43,7 @@ func Build(opts *BuildOpts) (srcpack.PackedComponentList, error) {
 			ats.AssetEntry(assets.WebPackConfig),
 			ats.AssetEntry(assets.SSRProtoFile),
 			ats.AssetEntry(assets.JsWebPackConfig),
+			ats.AssetEntry(assets.WebPackSWCConfig),
 		},
 		Mkdirs: opts.Dirs,
 	}
@@ -51,6 +52,7 @@ func Build(opts *BuildOpts) (srcpack.PackedComponentList, error) {
 		return nil, err
 	}
 
+	// TODO(pages): remove hardcode pages path
 	pageFiles := fsutils.DirFiles(fmt.Sprintf("%s/pages", opts.WebDir))
 
 	c, err := CachedEnvFromFile(fmt.Sprintf("%s/%s/orb_env.go", opts.OutDir, opts.Packname))

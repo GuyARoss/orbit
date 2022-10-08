@@ -95,6 +95,8 @@ if __name__ == '__main__':
     path = './examples/basic-react'
     os.chdir(path)
 
+    # TODO: precheck- install latest node packages
+
     tmp_dir = os.getcwd()
 
     assert is_orbit_gooutput_valid(tmp_dir), "invalid go orbit output"
