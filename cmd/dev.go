@@ -67,58 +67,10 @@ var devCMD = &cobra.Command{
 			return
 		}
 
-		go func(hr *hotreload.HotReload) {
-			for {
-				time.Sleep(timeout)
-				hr.EmitLog(hotreload.Error, "blah blah")
+		devServer := internal.NewDevServer(reloader, logger, s, fileChangeOpts)
 
-				select {
-				case e := <-watcher.Events:
-					if IsBlacklistedDirectory(e.Name) {
-						continue
-					}
-
-					err := s.DoFileChangeRequest(e.Name, fileChangeOpts)
-
-					switch err {
-					case nil, internal.ErrFileTooRecentlyProcessed:
-						//
-					default:
-						hr.EmitLog(hotreload.Error, err.Error())
-						logger.Error(err.Error())
-					}
-
-					if err == nil && len(viper.GetString("depout")) > 0 {
-						s.SourceMap.Write(viper.GetString("depout"))
-					}
-				case err := <-watcher.Errors:
-					panic(fmt.Sprintf("watcher failed %s", err.Error()))
-				}
-			}
-		}(reloader)
-
-		go func(hr *hotreload.HotReload) {
-			for {
-				// during dev mode when the browser redirects, we want to process
-				// the file only if the bundle has not already been processed
-				event := <-reloader.Redirected
-
-				for _, r := range event.BundleKeys.Diff(event.PreviousBundleKeys) {
-					// the change request maintains a cache of recently bundled pages
-					// if it exists on the cache, then we don't care to process it
-					if !s.ChangeRequest.ExistsInCache(r) {
-						go func(change string) {
-							err := s.DoBundleKeyChangeRequest(change, fileChangeOpts)
-
-							if err != nil {
-								hr.EmitLog(hotreload.Warning, err.Error())
-								logger.Warn(err.Error())
-							}
-						}(r)
-					}
-				}
-			}
-		}(reloader)
+		go devServer.FileWatcherBundler(timeout, watcher)
+		go devServer.RedirectionBundler()
 
 		http.HandleFunc("/ws", reloader.HandleWebSocket)
 
@@ -146,19 +98,6 @@ func WatchDir(watcher *fsnotify.Watcher) func(path string, fi os.FileInfo, err e
 
 		return nil
 	}
-}
-
-var blacklistedDirectories = []string{
-	".orbit/",
-}
-
-func IsBlacklistedDirectory(dir string) bool {
-	for _, b := range blacklistedDirectories {
-		if strings.Contains(dir, b) {
-			return true
-		}
-	}
-	return false
 }
 
 func init() {

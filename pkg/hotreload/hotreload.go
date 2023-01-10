@@ -113,6 +113,7 @@ const (
 	Error
 )
 
+// EmitLog emits a log to the current hot reload socket if one is available
 func (s *HotReload) EmitLog(level LogLevel, message string) error {
 	if !s.IsActive() {
 		return nil

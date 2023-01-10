@@ -100,3 +100,39 @@ func TestHotReloadActiveBundle(t *testing.T) {
 		}
 	})
 }
+
+func TestEmitLog_SocketNotAvailable(t *testing.T) {
+	hr := &HotReload{
+		currentBundleKeys: []string{
+			"thing", "cat",
+		},
+		socket: nil,
+	}
+
+	resp := hr.EmitLog(Warning, "should not work")
+	if resp != nil {
+		t.Errorf("socket not available")
+	}
+}
+
+func TestEmitLog(t *testing.T) {
+	ms := &mock.MockSocket{}
+
+	hr := &HotReload{
+		currentBundleKeys: []string{
+			"thing", "cat",
+		},
+		socket: ms,
+	}
+
+	err := hr.EmitLog(Warning, "warning text")
+	if err != nil {
+		t.Errorf("error was not expected '%s'", err)
+		return
+	}
+
+	if !ms.DidWrite {
+		t.Error("did not write to socket")
+		return
+	}
+}

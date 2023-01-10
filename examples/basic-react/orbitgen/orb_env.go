@@ -42,7 +42,7 @@ var reactManifestFallback_bodywrap = []string{
 var bundleDir string = ".orbit/dist"
 
 var publicDir string = "./public/index.html"
-var hotReloadPort int = 3005
+var hotReloadPort int = 0
 type PageRender string
 
 const ( 
