@@ -4,8 +4,11 @@
 
 package mock
 
+import "encoding/json"
+
 type MockSocket struct {
 	DidWrite bool
+	ReadData interface{}
 }
 
 func (m *MockSocket) WriteJSON(interface{}) error {
@@ -15,6 +18,9 @@ func (m *MockSocket) WriteJSON(interface{}) error {
 func (m *MockSocket) Close() error {
 	return nil
 }
-func (m *MockSocket) ReadJSON(interface{}) error {
+func (m *MockSocket) ReadJSON(data interface{}) error {
+	b, _ := json.Marshal(m.ReadData)
+	json.Unmarshal(b, data)
+
 	return nil
 }

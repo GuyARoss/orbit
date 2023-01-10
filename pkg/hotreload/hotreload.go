@@ -59,6 +59,7 @@ type HotReload struct {
 
 	currentBundleKeys BundleKeyList
 	Redirected        chan RedirectionEvent
+	skipUpgrade       bool
 }
 
 type SocketRequest struct {
@@ -102,6 +103,10 @@ func (s *HotReload) CurrentBundleKeys() []string {
 }
 
 func (s *HotReload) upgraderSocket(w http.ResponseWriter, r *http.Request) (socket, error) {
+	if s.skipUpgrade {
+		return s.socket, nil
+	}
+
 	return s.upgrader.Upgrade(w, r, nil)
 }
 
@@ -172,5 +177,6 @@ func New() *HotReload {
 		upgrader:          u,
 		Redirected:        make(chan RedirectionEvent),
 		currentBundleKeys: make([]string, 0),
+		skipUpgrade:       false,
 	}
 }
