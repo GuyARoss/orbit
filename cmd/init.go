@@ -28,6 +28,13 @@ var initCMD = &cobra.Command{
 			"@babel/preset-env":   "^7.11.0",
 			"@babel/preset-react": "^7.10.4",
 			"babel-loader":        "^8.1.0",
+
+			// note: SWC is currently being used as a experimental replacement for babel
+			// plans to deprecate babel will exist in future revisions of this program.
+			"swc-loader": "^0.2.3",
+			"@swc/cli":   "^0.1.57",
+			"@swc/core":  "^1.3.0",
+
 			"css-loader":          "^4.2.2",
 			"html-loader":         "^1.1.0",
 			"html-webpack-plugin": "^4.3.0",
@@ -72,6 +79,7 @@ var initCMD = &cobra.Command{
 				ats.AssetEntry(assets.WebPackConfig),
 				ats.AssetEntry(assets.SSRProtoFile),
 				ats.AssetEntry(assets.JsWebPackConfig),
+				ats.AssetEntry(assets.WebPackSWCConfig),
 			},
 		}).Make()
 

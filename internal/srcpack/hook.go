@@ -39,6 +39,11 @@ func (s *SyncHook) WrapFunc(filepath string, do func() *webwrap.WrapStats) {
 	stats := do()
 
 	s.m.Lock()
+	if stats == nil {
+		s.m.Unlock()
+		s.logger.Error(fmt.Sprintf("failed to bundle '%s'", filepath))
+		return
+	}
 	elapsed := strings.Split(fmt.Sprintf("%f", time.Since(starttime).Seconds()), ".")
 	s.logger.Info(fmt.Sprintf("%s - %s.%ss", filepath, elapsed[0], elapsed[1][0:1]))
 	s.logger.Info(fmt.Sprintf("[web: %s, bundler: %s]\n", stats.WebVersion, stats.Bundler))

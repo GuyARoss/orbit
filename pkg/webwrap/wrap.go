@@ -19,9 +19,9 @@ import (
 	"strings"
 
 	"github.com/GuyARoss/orbit/pkg/embedutils"
+	"github.com/GuyARoss/orbit/pkg/experiments"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/log"
-	"github.com/spf13/viper"
 )
 
 type JSWebWrapper interface {
@@ -58,22 +58,13 @@ func NewActiveMap(bundler *BaseBundler) JSWebWrapperList {
 	sourcedoc := jsparse.NewEmptyDocument()
 	initdoc := jsparse.NewEmptyDocument()
 
-	experimentalFeatures := viper.GetStringSlice("experimental")
-	ssrExperiment := false
-
-	for _, e := range experimentalFeatures {
-		if e == "ssr" {
-			ssrExperiment = true
-		}
-	}
-
 	baseList := []JSWebWrapper{
 		&JavascriptWrapper{
 			BaseBundler: bundler,
 		},
 	}
 
-	if ssrExperiment {
+	if experiments.GlobalExperimentalFeatures.PreferSSR {
 		baseList = append(baseList, NewReactSSR(&NewReactSSROpts{
 			Bundler:      bundler,
 			SourceMapDoc: sourcedoc,
@@ -114,8 +105,7 @@ const (
 )
 
 type BaseBundler struct {
-	Mode BundlerMode
-
+	Mode           BundlerMode
 	WebDir         string
 	PageOutputDir  string
 	NodeModulesDir string

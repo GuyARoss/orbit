@@ -47,7 +47,7 @@ type concPack struct {
 	cachedBundleKeys CachedEnvKeys
 }
 
-// packs the provided file paths into the orbit root directory
+// PackMany packs the provided file paths into the orbit root directory
 func (s *JSPacker) PackMany(pages []string) (PackedComponentList, error) {
 	cp := &concPack{
 		JSPacker:         s,

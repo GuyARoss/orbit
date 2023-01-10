@@ -15,6 +15,7 @@ import (
 
 	"github.com/GuyARoss/orbit/internal"
 	"github.com/GuyARoss/orbit/internal/srcpack"
+	"github.com/GuyARoss/orbit/pkg/experiments"
 	"github.com/GuyARoss/orbit/pkg/hotreload"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/log"
@@ -29,6 +30,11 @@ var devCMD = &cobra.Command{
 	Short: "hot-reload bundle data given the specified pages in dev mode",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger := log.NewDefaultLogger()
+
+		err := experiments.LoadSingleton(logger, viper.GetStringSlice("experimental"))
+		if err != nil {
+			logger.Warn(err.Error())
+		}
 
 		s, err := internal.New(context.Background(), &internal.SessionOpts{
 			WebDir:        viper.GetString("webdir"),
