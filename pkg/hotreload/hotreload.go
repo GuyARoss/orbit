@@ -6,6 +6,7 @@ package hotreload
 
 import (
 	"net/http"
+	"strconv"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -58,6 +59,7 @@ type HotReload struct {
 
 	currentBundleKeys BundleKeyList
 	Redirected        chan RedirectionEvent
+	skipUpgrade       bool
 }
 
 type SocketRequest struct {
@@ -101,7 +103,32 @@ func (s *HotReload) CurrentBundleKeys() []string {
 }
 
 func (s *HotReload) upgraderSocket(w http.ResponseWriter, r *http.Request) (socket, error) {
+	if s.skipUpgrade {
+		return s.socket, nil
+	}
+
 	return s.upgrader.Upgrade(w, r, nil)
+}
+
+type LogLevel int32
+
+const (
+	Info LogLevel = iota
+	Warning
+	Error
+)
+
+// EmitLog emits a log to the current hot reload socket if one is available
+func (s *HotReload) EmitLog(level LogLevel, message string) error {
+	if !s.IsActive() {
+		return nil
+	}
+
+	r := &SocketRequest{
+		Operation: "logger",
+		Value:     []string{strconv.Itoa(int(level)), message},
+	}
+	return s.socket.WriteJSON(r)
 }
 
 func (s *HotReload) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
@@ -150,5 +177,6 @@ func New() *HotReload {
 		upgrader:          u,
 		Redirected:        make(chan RedirectionEvent),
 		currentBundleKeys: make([]string, 0),
+		skipUpgrade:       false,
 	}
 }

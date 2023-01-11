@@ -5,7 +5,9 @@
 package hotreload
 
 import (
+	"net/http"
 	"testing"
+	"time"
 
 	"github.com/GuyARoss/orbit/pkg/hotreload/mock"
 	"github.com/gorilla/websocket"
@@ -22,7 +24,7 @@ func TestBundleKeyListDiff(t *testing.T) {
 	}
 }
 
-func TestHotReloadReloadSingal(t *testing.T) {
+func TestHotReloadReloadSingle(t *testing.T) {
 	t.Run("active socket", func(t *testing.T) {
 		s := &mock.MockSocket{}
 
@@ -99,4 +101,91 @@ func TestHotReloadActiveBundle(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestEmitLog_SocketNotAvailable(t *testing.T) {
+	hr := &HotReload{
+		currentBundleKeys: []string{
+			"thing", "cat",
+		},
+		socket: nil,
+	}
+
+	resp := hr.EmitLog(Warning, "should not work")
+	if resp != nil {
+		t.Errorf("socket not available")
+	}
+}
+
+func TestEmitLog(t *testing.T) {
+	ms := &mock.MockSocket{}
+
+	hr := &HotReload{
+		currentBundleKeys: []string{
+			"thing", "cat",
+		},
+		socket: ms,
+	}
+
+	err := hr.EmitLog(Warning, "warning text")
+	if err != nil {
+		t.Errorf("error was not expected '%s'", err)
+		return
+	}
+
+	if !ms.DidWrite {
+		t.Error("did not write to socket")
+		return
+	}
+}
+
+func TestCurrentBundles(t *testing.T) {
+	bundleKeys := []string{"test", "test2"}
+
+	hr := &HotReload{
+		currentBundleKeys: bundleKeys,
+	}
+	keys := hr.CurrentBundleKeys()
+	if len(keys) != len(bundleKeys) {
+		t.Errorf("bundle keys not equal got '%s'", keys)
+	}
+}
+
+func TestNewSocket(t *testing.T) {
+	redirectionKeys := []string{"apple", "orange"}
+
+	n := New()
+	type localSession struct {
+		didRedirect bool
+	}
+
+	s := &localSession{
+		didRedirect: false,
+	}
+	go func(r *localSession) {
+		resp := <-n.Redirected
+		if len(resp.BundleKeys) == len(redirectionKeys) {
+			r.didRedirect = true
+		}
+
+		r.didRedirect = true
+	}(s)
+
+	n.skipUpgrade = true
+	n.socket = &mock.MockSocket{
+		ReadData: &SocketRequest{
+			Operation: "pages",
+			Value:     redirectionKeys,
+		},
+	}
+	n.HandleWebSocket(&mock.MockResponseWriter{}, &http.Request{})
+
+	time.Sleep(100 * time.Millisecond) // ensure that the channel has enough time to sync.
+	if !s.didRedirect {
+		t.Error("expected redirect on socket init\n")
+	}
+
+	if len(n.currentBundleKeys) != len(redirectionKeys) {
+		t.Errorf("expected updated bundle keys got '%s'", n.currentBundleKeys)
+	}
 }

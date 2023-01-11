@@ -76,19 +76,22 @@ func (s *devSession) DoBundleKeyChangeRequest(bundleKey string, opts *ChangeRequ
 
 // ProcessChangeRequest will determine which type of change request is required for computation of the request file
 func (s *devSession) DoFileChangeRequest(filePath string, opts *ChangeRequestOpts) error {
-	// if this file has been recently processed (specificed by the timeout flag), do not process it.
+	// if this file has been recently processed (specified by the timeout flag), do not process it.
 	if !s.ChangeRequest.IsWithinRage(filePath, opts.SafeFileTimeout) {
 		return parseerror.FromError(ErrFileTooRecentlyProcessed, filePath)
 	}
 
-	// file detected in the orbit output, we don't want to process any of these
+	// file detected in the orbit output, we don't want to process any of these EVER
 	if strings.Contains(filePath, ".orbit") {
 		return nil
 	}
 
+	// root components aka "pages" are searched, if it is not
+	// null we can assume that the bundle is not a before identified page
 	root := s.RootComponents[filePath]
-	// if components' bundle is the current bundle that is open in the browser
-	// recompute bundle and send refresh signal back to browser
+
+	// determine if the bundle is currently active in the browser
+	// if so recompute the bundle and send refresh signal back to browser
 	if root != nil && opts.HotReload.IsActiveBundle(root.BundleKey()) {
 		err := s.DirectFileChangeRequest(filePath, root, opts)
 		if err != nil {
@@ -104,8 +107,8 @@ func (s *devSession) DoFileChangeRequest(filePath string, opts *ChangeRequestOpt
 		return nil
 	}
 
-	// if we assume that this is a new page, attempt to build it and add it to preexisting context
-	// @@todo(guy) magic string : "pages" allow support for this keyword from a flag
+	// determine if the change request is a new page, and attempt to build it
+	// TODO(guy) magic string : "pages" allow support for this keyword from a flag
 	if strings.Contains(filePath, "pages/") {
 		err := s.NewPageFileChangeRequest(context.Background(), filePath)
 
@@ -114,7 +117,7 @@ func (s *devSession) DoFileChangeRequest(filePath string, opts *ChangeRequestOpt
 		}
 	}
 
-	// component may exist as a page dependency, if so, recompute and send refresh signal
+	// determine if the source exists as a page dependency, if so, recompute and send refresh signal
 	sources := s.SourceMap.FindRoot(filePath)
 	if len(sources) > 0 {
 		// component is not root, we need to find in which tree(s) the component exists & execute

@@ -54,7 +54,7 @@ var devCMD = &cobra.Command{
 		watcher, _ := fsnotify.NewWatcher()
 		defer watcher.Close()
 
-		hotReload := hotreload.New()
+		reloader := hotreload.New()
 
 		if err := filepath.Walk(viper.GetString("webdir"), WatchDir(watcher)); err != nil {
 			panic("invalid walk on watchDir")
@@ -65,7 +65,7 @@ var devCMD = &cobra.Command{
 		fileChangeOpts := &internal.ChangeRequestOpts{
 			SafeFileTimeout: time.Duration(viper.GetInt("samefiletimeout")) * time.Millisecond,
 			Hook:            srcpack.NewSyncHook(log.NewEmptyLogger()),
-			HotReload:       hotReload,
+			HotReload:       reloader,
 			Parser:          &jsparse.JSFileParser{},
 		}
 
@@ -73,57 +73,12 @@ var devCMD = &cobra.Command{
 			return
 		}
 
-		go func() {
-			for {
-				time.Sleep(timeout)
+		devServer := internal.NewDevServer(reloader, logger, s, fileChangeOpts)
 
-				select {
-				case e := <-watcher.Events:
-					if IsBlacklistedDirectory(e.Name) {
-						continue
-					}
+		go devServer.FileWatcherBundler(timeout, watcher)
+		go devServer.RedirectionBundler()
 
-					err := s.DoFileChangeRequest(e.Name, fileChangeOpts)
-
-					switch err {
-					case nil, internal.ErrFileTooRecentlyProcessed:
-						//
-					default:
-						logger.Error(err.Error())
-					}
-
-					if err == nil && len(viper.GetString("depout")) > 0 {
-						s.SourceMap.Write(viper.GetString("depout"))
-					}
-				case err := <-watcher.Errors:
-					panic(fmt.Sprintf("watcher failed %s", err.Error()))
-				}
-			}
-		}()
-
-		go func() {
-			for {
-				// during dev mode when the browser redirects, we want to process
-				// the file only if the bundle has not already been processed
-				event := <-hotReload.Redirected
-
-				for _, r := range event.BundleKeys.Diff(event.PreviousBundleKeys) {
-					// the change request maintains a cache of recently bundled pages
-					// if it exists on the cache, then we don't care to process it
-					if !s.ChangeRequest.ExistsInCache(r) {
-						go func(change string) {
-							err := s.DoBundleKeyChangeRequest(change, fileChangeOpts)
-
-							if err != nil {
-								fmt.Println(err)
-							}
-						}(r)
-					}
-				}
-			}
-		}()
-
-		http.HandleFunc("/ws", hotReload.HandleWebSocket)
+		http.HandleFunc("/ws", reloader.HandleWebSocket)
 
 		logger.Info(fmt.Sprintf("Hot reload server started on port '%d'", viper.GetInt("hotreloadport")))
 		logger.Info("You will still need to run your application")
@@ -149,19 +104,6 @@ func WatchDir(watcher *fsnotify.Watcher) func(path string, fi os.FileInfo, err e
 
 		return nil
 	}
-}
-
-var blacklistedDirectories = []string{
-	".orbit/",
-}
-
-func IsBlacklistedDirectory(dir string) bool {
-	for _, b := range blacklistedDirectories {
-		if strings.Contains(dir, b) {
-			return true
-		}
-	}
-	return false
 }
 
 func init() {
