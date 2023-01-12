@@ -31,7 +31,7 @@ var devCMD = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		logger := log.NewDefaultLogger()
 
-		err := experiments.LoadSingleton(logger, viper.GetStringSlice("experimental"))
+		err := experiments.Load(logger, viper.GetStringSlice("experimental"))
 		if err != nil {
 			logger.Warn(err.Error())
 		}

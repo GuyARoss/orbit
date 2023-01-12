@@ -23,15 +23,14 @@ type PackComponent interface {
 	Name() string
 	WebWrapper() webwrap.JSWebWrapper
 	IsStaticResource() bool
+	JsDocument() jsparse.JSDocument
 }
 
 // component that has been successfully ran, and output from a packing method.
 // a component represents a source file that has a valid parser
 type Component struct {
-	WebDir string
-
-	JsParser jsparse.JSParser
-
+	WebDir           string
+	JsParser         jsparse.JSParser
 	webWrapper       webwrap.JSWebWrapper
 	bundleKey        string
 	dependencies     []*jsparse.ImportDependency
@@ -39,6 +38,7 @@ type Component struct {
 	name             string
 	m                *sync.Mutex
 	isStaticResource bool
+	document         jsparse.JSDocument
 }
 
 // NewComponentOpts options for creating a new component
@@ -58,6 +58,8 @@ var ErrComponentNotExported = errors.New("component not exported")
 // NewComponent creates a new component that represents a packaged & bundled web component
 func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, error) {
 	page, err := opts.JSParser.Parse(opts.FilePath, opts.WebDir)
+	initialPage := &page
+
 	if err != nil {
 		return nil, err
 	}
@@ -139,8 +141,11 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, e
 		JsParser:         opts.JSParser,
 		WebDir:           opts.WebDir,
 		isStaticResource: isStaticResource,
+		document:         *initialPage,
 	}, nil
 }
+
+func (s *Component) JsDocument() jsparse.JSDocument { return s.document }
 
 func (s *Component) IsStaticResource() bool { return s.isStaticResource }
 

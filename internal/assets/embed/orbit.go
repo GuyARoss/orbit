@@ -1,13 +1,16 @@
 package orbit
 
 import (
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 )
 
 // Request is the standard request payload for the orbit page handler
@@ -271,10 +274,54 @@ func (s *Serve) HandlePage(path string, dp DefaultPage) {
 	s.HandleFunc(path, dp.Handle)
 }
 
+type gzipResponseWriter struct {
+	io.Writer
+	http.ResponseWriter
+}
+
+func (w *gzipResponseWriter) WriteHeader(status int) {
+	w.Header().Del("Content-Length")
+	w.ResponseWriter.WriteHeader(status)
+}
+
+func (w *gzipResponseWriter) Write(b []byte) (int, error) {
+	return w.Writer.Write(b)
+}
+
 // setupMuxRequirements creates the required mux handlers for orbit, these include
 // - fileserver for the bundle directory bound to the "/p/" directory
 func (s *Serve) setupMuxRequirements() *Serve {
-	s.mux.Handle("/p/", http.StripPrefix("/p/", http.FileServer(http.Dir(bundleDir))))
+	pool := sync.Pool{
+		New: func() interface{} {
+			w := gzip.NewWriter(ioutil.Discard)
+			return w
+		},
+	}
+
+	s.mux.HandleFunc("/p/", func(w http.ResponseWriter, r *http.Request) {
+		// TODO(guy): allow these cache policies to be overwritten
+		switch CurrentDevMode {
+		case DevBundleMode:
+			w.Header().Set("Cache-Control", "no-cache, no-store, max-age=0, must-revalidate")
+		case ProdBundleMode:
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		}
+
+		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+			w.Header().Set("Content-Encoding", "gzip")
+
+			gz := pool.Get().(*gzip.Writer)
+			defer pool.Put(gz)
+
+			gz.Reset(w)
+			defer gz.Close()
+
+			http.StripPrefix("/p/", http.FileServer(http.Dir(bundleDir))).ServeHTTP(&gzipResponseWriter{ResponseWriter: w, Writer: gz}, r)
+			return
+		}
+
+		http.StripPrefix("/p/", http.FileServer(http.Dir(bundleDir))).ServeHTTP(w, r)
+	})
 
 	return s
 }

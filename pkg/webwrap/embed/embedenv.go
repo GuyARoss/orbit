@@ -16,9 +16,9 @@ func innerHTML(str string, start string, end string) string {
 }
 
 func DocFromFile(path string) *htmlDoc {
-	data, _ := ioutil.ReadFile(path)
+	data, err := ioutil.ReadFile(path)
 
-	if len(data) == 0 {
+	if len(data) == 0 || err != nil {
 		return &htmlDoc{}
 	}
 

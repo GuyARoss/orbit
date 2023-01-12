@@ -153,7 +153,7 @@ func (l *BundleGroup) AcceptComponents(ctx context.Context, comps []srcpack.Pack
 			l.componentBodyMap[v] = c.WebWrapper().RequiredBodyDOMElements(ctx, cacheOpts)
 		}
 
-		// @@todo: to provide support for other langauge and/or frameworks, we will need to do analysis on the
+		// @@todo: to provide support for other language and/or frameworks, we will need to do analysis on the
 		// requested language and pass it to the web wrapper.
 		if l.wrapDocRender[v] == nil {
 			l.wrapDocRender[v] = c.WebWrapper().HydrationFile()

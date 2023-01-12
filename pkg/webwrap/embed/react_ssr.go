@@ -80,6 +80,8 @@ func startNodeServer() error {
 		return nil
 	}
 
+	// TODO(stab) verify that babel node & grpc are both installed.
+
 	cmd := exec.Command("./node_modules/.bin/babel-node", ".orbit/base/pages/react_ssr.js", "--presets", "@babel/react,@babel/preset-env")
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
