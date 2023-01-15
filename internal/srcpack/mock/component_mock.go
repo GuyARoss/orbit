@@ -33,3 +33,6 @@ func (m *MockPackedComponent) Dependencies() []*jsparse.ImportDependency { retur
 func (m *MockPackedComponent) BundleKey() string                         { return m.Key }
 func (m *MockPackedComponent) Name() string                              { return "" }
 func (m *MockPackedComponent) WebWrapper() webwrap.JSWebWrapper          { return &mock.MockWrapper{} }
+func (m *MockPackedComponent) JsDocument() jsparse.JSDocument {
+	return jsparse.NewEmptyDocument()
+}

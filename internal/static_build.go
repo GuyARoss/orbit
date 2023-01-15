@@ -111,10 +111,10 @@ func (opts *StaticBuild) Build(components srcpack.PackedComponentList) error {
 	}
 	fmt.Println(staticCtx.StaticMap)
 
-	// doc := ewrap.DocFromFile(opts.buildOpts.OutDir)
+	doc := ewrap.DocFromFile(opts.buildOpts.OutDir)
 
-	// defer ewrap.Close()
-	// ewrap.StartupTaskReactSSR(opts.staticBuildOut, staticCtx.Pages, staticCtx.StaticMap, staticCtx.BundlePaths, *doc)()
+	defer ewrap.Close()
+	ewrap.StartupTaskReactSSR(opts.staticBuildOut, staticCtx.Pages, staticCtx.StaticMap, staticCtx.BundlePaths, *doc)()
 
 	return nil
 }

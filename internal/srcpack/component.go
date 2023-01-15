@@ -7,6 +7,7 @@ package srcpack
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"sync"
 
@@ -58,7 +59,9 @@ var ErrComponentNotExported = errors.New("component not exported")
 // NewComponent creates a new component that represents a packaged & bundled web component
 func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, error) {
 	page, err := opts.JSParser.Parse(opts.FilePath, opts.WebDir)
-	initialPage := &page
+	initialPage := page.Clone()
+
+	fmt.Println(&initialPage, &page)
 
 	if err != nil {
 		return nil, err
@@ -124,7 +127,6 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, e
 	}
 
 	isStaticResource := false
-
 	if page.DefaultExport() != nil {
 		if len(page.DefaultExport().Args) == 0 {
 			isStaticResource = true
@@ -141,7 +143,7 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, e
 		JsParser:         opts.JSParser,
 		WebDir:           opts.WebDir,
 		isStaticResource: isStaticResource,
-		document:         *initialPage,
+		document:         initialPage,
 	}, nil
 }
 

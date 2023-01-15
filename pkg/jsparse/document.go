@@ -27,6 +27,7 @@ type JSDocument interface {
 	AddSerializable(s JSSerialize)
 	Name() string
 	DefaultExport() *JsDocumentScope
+	Clone() JSDocument
 }
 
 // DefaultJSDocument is a struct that implements the JSDocument interface
@@ -95,6 +96,21 @@ func removeCenterOfToken(line string, token string) (string, int) {
 	}
 
 	return parsedLine, foundCount
+}
+
+func (p *DefaultJSDocument) Clone() JSDocument {
+	return &DefaultJSDocument{
+		imports:       p.imports,
+		other:         p.other,
+		serializable:  p.serializable,
+		webDir:        p.webDir,
+		pageDir:       p.pageDir,
+		extension:     p.extension,
+		scope:         p.scope,
+		defaultExport: p.defaultExport,
+		name:          p.name,
+		inDeadBlock:   p.inDeadBlock,
+	}
 }
 
 // tokenizeLine tokenizes each line and serializes it to the provided JSDocument
