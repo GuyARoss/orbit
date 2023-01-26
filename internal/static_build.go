@@ -109,7 +109,6 @@ func (opts *StaticBuild) Build(components srcpack.PackedComponentList) error {
 	if len(staticCtx.StaticMap) == 0 {
 		return nil
 	}
-	fmt.Println(staticCtx.StaticMap)
 
 	doc := ewrap.DocFromFile(opts.buildOpts.OutDir)
 

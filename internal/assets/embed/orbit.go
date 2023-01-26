@@ -122,7 +122,7 @@ func defaultHTMLDoc(override string) *htmlDoc {
 	base := &htmlDoc{Head: []string{`<meta charset="utf-8" />`}, Body: []string{}}
 
 	// we allow some special operations on the dom for debugging, currently supporting:
-	// - geting the contents of orbit manifest with the function "getManifest"
+	// - getting the contents of orbit manifest with the function "getManifest"
 	if CurrentDevMode == DevBundleMode {
 		base.Body = append(base.Body, `<script class="debug"> const getManifest = () => JSON.parse(document.getElementById("orbit_manifest").textContent) </script>`)
 		base.Body = append(base.Body, `<script class="debug" src="/p/hotreload.js"> </script>`)

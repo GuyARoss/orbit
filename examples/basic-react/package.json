@@ -4,6 +4,9 @@
   "author": "Project orbit",
   "license": "MIT",
   "description": "basic react example",
+  "scripts": {
+    "build": "./orbit build --pacname=orbitgen"
+  },
   "dependencies": {
     "@babel/plugin-proposal-export-default-from": "^7.12.13",
     "@babel/polyfill": "^7.12.1",

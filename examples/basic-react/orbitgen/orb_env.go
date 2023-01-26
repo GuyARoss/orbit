@@ -35,8 +35,8 @@ type DocumentRenderer struct {
 	version string
 }
 var reactManifestFallback_bodywrap = []string{
-`<script src="/p/02bab3977c197c77b270370f110270b1.js"></script>`,
-`<script src="/p/8cfc2b31824016492ec09fc306264efd.js"></script>`,
+`<script src="/p/fc38086145547d465be97fec2e412a16.js"></script>`,
+`<script src="/p/a63649d90703a7b09f22aed8d310be5b.js"></script>`,
 }
 
 var bundleDir string = ".orbit/dist"
@@ -71,4 +71,4 @@ const (
 	ProdBundleMode BundleMode = 1
 )
 
-var CurrentDevMode BundleMode = DevBundleMode
+var CurrentDevMode BundleMode = ProdBundleMode

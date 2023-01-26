@@ -7,7 +7,6 @@ package srcpack
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"sync"
 
@@ -55,17 +54,19 @@ type NewComponentOpts struct {
 var ErrInvalidComponentType = errors.New("invalid component type")
 var ErrInvalidPageName = errors.New("invalid page name")
 var ErrComponentNotExported = errors.New("component not exported")
+var ErrParserError = errors.New("page can not be parsed")
 
 // NewComponent creates a new component that represents a packaged & bundled web component
 func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, error) {
 	page, err := opts.JSParser.Parse(opts.FilePath, opts.WebDir)
-	initialPage := page.Clone()
-
-	fmt.Println(&initialPage, &page)
+	if page == nil {
+		return nil, ErrParserError
+	}
 
 	if err != nil {
 		return nil, err
 	}
+	initialPage := page.Clone()
 
 	if page == nil || page.DefaultExport() == nil || page.DefaultExport().Name == "" {
 		return nil, ErrComponentNotExported

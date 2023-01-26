@@ -5,8 +5,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/GuyARoss/orbit/internal"
 	"github.com/GuyARoss/orbit/internal/srcpack"
 	"github.com/GuyARoss/orbit/pkg/experiments"
@@ -32,7 +30,7 @@ var buildCMD = &cobra.Command{
 			Packname:       viper.GetString("pacname"),
 			OutDir:         viper.GetString("out"),
 			WebDir:         viper.GetString("webdir"),
-			Mode:           viper.GetString("mode"),
+			Mode:           "production",
 			NodeModulePath: viper.GetString("nodemod"),
 			PublicDir:      viper.GetString("publicdir"),
 		}
@@ -41,17 +39,6 @@ var buildCMD = &cobra.Command{
 		if err != nil {
 			logger.Error(err.Error())
 			return
-		}
-
-		// this part of the compilation process includes precomputing
-		// the first paint of the page components, we only do this for "build"
-		staticBuild := internal.NewStaticBuild(buildOpts, viper.GetString("staticout"))
-		staticBuild.SkipResourceCheck = true
-
-		err = staticBuild.Build(components)
-
-		if err != nil {
-			logger.Warn(fmt.Sprintf("unable to precompute first-paint files '%s'", err.Error()))
 		}
 
 		if viper.GetString("auditpage") != "" {

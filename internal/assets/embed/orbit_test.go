@@ -164,11 +164,15 @@ func TestSetupMuxRequirements(t *testing.T) {
 		mux: &mockHandle{
 			requestPath:   "/test",
 			requestMethod: "get",
-			writer:        nil,
+			writer: &mockResponseWriter{
+				mockWriteHeader: func(statusCode int) {},
+				mockWrite:       func(b []byte) (int, error) { return 0, nil },
+				mockHeader:      func() http.Header { return make(http.Header) },
+			},
 			checkPath: func(s string) {
 				reg = true
 
-				// our bundler fileserver requires the /p/ path
+				// bundler fileserver requires the /p/ path
 				if s != "/p/" {
 					t.Error("invalid path")
 				}
