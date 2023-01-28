@@ -1,3 +1,5 @@
+import AnotherOne from "../components/anotherone"
+
 const Example = ({day, month, year}) => {
     return (
         <div className="orbit-integration-applied">
@@ -6,6 +8,8 @@ const Example = ({day, month, year}) => {
             <p>
                 Today is {day}/{month}/{year}
             </p>
+
+            <AnotherOne />
         </div>        
     )
 }

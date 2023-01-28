@@ -40,10 +40,18 @@ func TestFormatImportLine(t *testing.T) {
 }
 
 func TestFormatImportLine_Index(t *testing.T) {
-	dir := t.TempDir() + "/thing/"
-	os.Mkdir(dir, 0666)
+	dir := t.TempDir() + "/thing"
+	err := os.Mkdir(dir+"/", 0777)
+	if err != nil {
+		t.Error("mkdir failed", err)
+		return
+	}
 
-	f, _ := os.Create(dir + "index.js")
+	f, err := os.Create(dir + "/index.js")
+	if err != nil {
+		t.Error("create file failed", err)
+		return
+	}
 	f.Close()
 
 	p := DefaultJSDocument{webDir: "", pageDir: "./thing/apple.js"}
@@ -268,7 +276,6 @@ func TestJsDocSwitchSerialize(t *testing.T) {
 	d.Add(JSNumber, "12", "break;")
 
 	got := d.Serialize()
-	fmt.Println(got)
 	expected := "switch (thing) {case 'apple': { break; }case 'banana': { break; }case 'orange': { break; }case 12: { break; }}"
 
 	if got != expected {

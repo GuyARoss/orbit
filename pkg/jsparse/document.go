@@ -239,6 +239,24 @@ func (p *DefaultJSDocument) parseInformalExportDefault(line string) (bool, error
 	return true, nil
 }
 
+func isIndexPath(finalPath string) bool {
+	// first we check if it can be found locally
+	stat, err := os.Stat("./" + finalPath)
+	if err == nil && stat.IsDir() {
+		return true
+	}
+
+	if err != nil {
+		// next, if try to find it absolutely
+		stat, err := os.Stat(finalPath)
+		if err == nil && stat.IsDir() {
+			return true
+		}
+	}
+
+	return false
+}
+
 // formatImportLine parses an import line to create an import dependency
 func (p *DefaultJSDocument) formatImportLine(line string) *ImportDependency {
 	importType := lineImportType(line)
@@ -293,11 +311,9 @@ func (p *DefaultJSDocument) formatImportLine(line string) *ImportDependency {
 
 	finalPath := strings.Join(cleanWebDirPaths, "/")
 
-	// possible that the path is referencing a index
-	// we can validate this but checking if the import path is a dir
-	stat, err := os.Stat(finalPath)
-	if err == nil && stat.IsDir() {
-		// check for index
+	// possible that the path is referencing an index
+	// we can validate this by checking if the import path is a dir
+	if isIndexPath(finalPath) {
 		finalPath += "/index"
 		cleanWebDirPaths = append(cleanWebDirPaths, "/index")
 	}

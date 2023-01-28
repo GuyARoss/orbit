@@ -59,4 +59,4 @@ def test_lighthouse_important_heuristics(lighthouse_audits):
     ]
 
     for key, score in important_heuristics:
-        assert lighthouse_audits[key]["score"] >= score
+        assert lighthouse_audits[key]["score"] >= score, key
