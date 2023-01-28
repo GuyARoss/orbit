@@ -21,19 +21,20 @@ var buildCMD = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		logger := log.NewDefaultLogger()
 
-		err := experiments.LoadSingleton(logger, viper.GetStringSlice("experimental"))
+		err := experiments.Load(logger, viper.GetStringSlice("experimental"))
 		if err != nil {
 			logger.Warn(err.Error())
 		}
 
-		components, err := internal.Build(&internal.BuildOpts{
+		buildOpts := &internal.BuildOpts{
 			Packname:       viper.GetString("pacname"),
 			OutDir:         viper.GetString("out"),
 			WebDir:         viper.GetString("webdir"),
-			Mode:           viper.GetString("mode"),
+			Mode:           "production",
 			NodeModulePath: viper.GetString("nodemod"),
 			PublicDir:      viper.GetString("publicdir"),
-		})
+		}
+		components, err := internal.Build(buildOpts)
 
 		if err != nil {
 			logger.Error(err.Error())

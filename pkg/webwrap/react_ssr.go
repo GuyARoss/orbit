@@ -143,6 +143,7 @@ func (r *ReactSSR) Setup(ctx context.Context, settings *BundleOpts) (*BundledRes
 			},
 		}}, nil
 }
+
 func (r *ReactSSR) Apply(doc jsparse.JSDocument) (jsparse.JSDocument, error) {
 	doc.AddImport(&jsparse.ImportDependency{
 		FinalStatement: "import React from 'react'",

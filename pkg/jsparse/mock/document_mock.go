@@ -12,6 +12,9 @@ type MockJsDocument struct {
 	defaultExport string
 }
 
+func (m *MockJsDocument) Clone() jsparse.JSDocument {
+	return nil
+}
 func (m *MockJsDocument) WriteFile(string) error { return nil }
 func (m *MockJsDocument) Key() string            { return "" }
 func (m *MockJsDocument) Name() string           { return m.name }

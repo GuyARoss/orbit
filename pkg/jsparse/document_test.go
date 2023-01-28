@@ -247,3 +247,31 @@ func TestRemoveCenterOfToken(t *testing.T) {
 		}
 	}
 }
+
+func TestDefaultJSDocumentClone(t *testing.T) {
+	d := NewDocument("somedir", "thing.jsx")
+	newThing := d.Clone().(*DefaultJSDocument)
+
+	if d.pageDir != newThing.pageDir {
+		t.Errorf("clone page dir does not match")
+	}
+	if d.webDir != newThing.webDir {
+		t.Errorf("clone webdir does not match")
+	}
+}
+
+func TestJsDocSwitchSerialize(t *testing.T) {
+	d := NewSwitch("thing")
+	d.Add(JSString, "apple", "break;")
+	d.Add(JSString, "banana", "break;")
+	d.Add(JSString, "orange", "break;")
+	d.Add(JSNumber, "12", "break;")
+
+	got := d.Serialize()
+	fmt.Println(got)
+	expected := "switch (thing) {case 'apple': { break; }case 'banana': { break; }case 'orange': { break; }case 12: { break; }}"
+
+	if got != expected {
+		t.Errorf("expected '%s' got '%s'", expected, got)
+	}
+}

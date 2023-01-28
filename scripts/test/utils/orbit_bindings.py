@@ -1,0 +1,35 @@
+from typing import Dict
+import subprocess
+import time
+
+
+def e2e_measure_build_cmd(samples=3) -> Dict[str, int]:
+    # TODO if .orbit exists, delete it
+    try:
+        subprocess.check_output([f"npm i"], shell=True)
+    except:
+        raise Exception("npm install failed, does node exist on the host machine?")
+
+    sum_of_times = 0
+    failure_rate = 0
+    for _ in range(samples):
+        start_time = time.time()
+        try:
+            subprocess.check_output([f"./orbit build --pacname=orbitgen"], shell=True)
+        except:
+            failure_rate += 1
+
+        end_time = time.time()
+        sum_of_times += end_time - start_time
+
+    return {
+        "failure_rate": failure_rate,
+        "avg_build_time": sum_of_times / samples,
+    }
+
+def link_examples():
+    try:
+        subprocess.check_output([f"go build -o ./orbit"], shell=True)
+        subprocess.check_output([f"./scripts/link_examples.sh"], shell=True)
+    except:
+        raise Exception("make example failed")

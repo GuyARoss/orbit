@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/GuyARoss/orbit/pkg/embedutils"
-	"github.com/GuyARoss/orbit/pkg/webwrap"
 )
 
 // GOLibFile is an implementation of the libout.LiboutFile
@@ -318,10 +317,8 @@ type DocumentRenderer struct {
 		out.WriteString("\n")
 	}
 
-	if bg.BundleMode == string(webwrap.DevelopmentBundle) {
-		out.WriteString(fmt.Sprintf(`var hotReloadPort int = %d`, bg.HotReloadPort))
-		out.WriteString("\n")
-	}
+	out.WriteString(fmt.Sprintf(`var hotReloadPort int = %d`, bg.HotReloadPort))
+	out.WriteString("\n")
 
 	out.WriteString("type PageRender string\n\n")
 
@@ -330,7 +327,7 @@ type DocumentRenderer struct {
 			out.WriteString("const ( \n")
 		}
 
-		// since all of the the valid bundle names can only be refererred to "pages"
+		// since all of the the valid bundle names can only be referred to "pages"
 		// we ensure that page does not already exist on the string
 		if !strings.Contains(p.name, "Page") {
 			p.name = fmt.Sprintf("%sPage", p.name)

@@ -14,3 +14,7 @@ todo
 c.out
 
 build-times.png
+
+# python
+__pycache__
+.pytest_cache

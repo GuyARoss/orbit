@@ -83,3 +83,10 @@ func TestNewComponent_Failures(t *testing.T) {
 		}
 	}
 }
+
+func TestParsePath(t *testing.T) {
+	expected := "thing/something"
+	if got := parsePath("./thing/something"); got != expected {
+		t.Errorf("expected '%s' got '%s'", expected, got)
+	}
+}

@@ -9,7 +9,7 @@ type Features struct {
 
 var GlobalExperimentalFeatures *Features = &Features{}
 
-func LoadSingleton(logger log.Logger, features []string) error {
+func Load(logger log.Logger, features []string) error {
 	for _, e := range features {
 		switch e {
 		case "ssr":

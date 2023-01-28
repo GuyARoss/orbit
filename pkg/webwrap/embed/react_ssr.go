@@ -48,26 +48,26 @@ func StartupTaskReactSSR(
 			panic(err)
 		}
 
-		for b, r := range pages {
-			if r.version != "reactSSR" || !staticMap[b] {
+		for renderKey := range pages {
+			if !staticMap[renderKey] {
 				continue
 			}
 
-			sr, _ := reactSSR(context.Background(), string(b), []byte("{}"), doc)
+			sr, _ := reactSSR(context.Background(), string(renderKey), []byte("{}"), doc)
 
-			pathName := string(b)
-			if nameMap[b] != "" {
-				pathName = nameMap[b]
+			pathName := string(renderKey)
+			if nameMap[renderKey] != "" {
+				pathName = nameMap[renderKey]
 			}
 
 			path := fmt.Sprintf("%s%c%s", http.Dir(outDir), os.PathSeparator, pathName)
-			body := append(pageDependencies[b], sr.Body...)
+			body := append(pageDependencies[renderKey], sr.Body...)
 
 			so := fmt.Sprintf(`<!doctype html><head>%s</head><body>%s</body></html>`, strings.Join(sr.Head, ""), strings.Join(body, ""))
 
 			err := ioutil.WriteFile(path, []byte(so), 0644)
 			if err != nil {
-				fmt.Printf("error creating static resource for bundle %s => %s\n", b, err)
+				fmt.Printf("error creating static resource for bundle %s => %s\n", renderKey, err)
 				continue
 			}
 		}
@@ -79,6 +79,8 @@ func startNodeServer() error {
 		// TODO: already started
 		return nil
 	}
+
+	// TODO(stab) verify that babel node & grpc are both installed.
 
 	cmd := exec.Command("./node_modules/.bin/babel-node", ".orbit/base/pages/react_ssr.js", "--presets", "@babel/react,@babel/preset-env")
 	stdout, err := cmd.StdoutPipe()
@@ -100,12 +102,10 @@ func startNodeServer() error {
 			line := scanner.Text()
 
 			if strings.Contains(line, "boot success") {
-				fmt.Println(line)
 				booted <- true
 			}
 
 			if strings.Contains(line, "boot fail") {
-				fmt.Println(line)
 				booted <- false
 			}
 		}
