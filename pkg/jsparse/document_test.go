@@ -40,10 +40,18 @@ func TestFormatImportLine(t *testing.T) {
 }
 
 func TestFormatImportLine_Index(t *testing.T) {
-	dir := t.TempDir() + "/thing/"
-	os.Mkdir(dir, 0666)
+	dir := t.TempDir() + "/thing"
+	err := os.Mkdir(dir+"/", 0777)
+	if err != nil {
+		t.Error("mkdir failed", err)
+		return
+	}
 
-	f, _ := os.Create(dir + "index.js")
+	f, err := os.Create(dir + "/index.js")
+	if err != nil {
+		t.Error("create file failed", err)
+		return
+	}
 	f.Close()
 
 	p := DefaultJSDocument{webDir: "", pageDir: "./thing/apple.js"}
@@ -59,6 +67,20 @@ func TestWriteFile(t *testing.T) {
 	path := t.TempDir() + "/thing"
 
 	d := NewEmptyDocument()
+	d.imports = append(d.imports, &ImportDependency{
+		FinalStatement: "import { useMemo } from 'react'",
+	}, &ImportDependency{
+		FinalStatement: "import Thing from 'thing'",
+	})
+
+	d.AddOther("function working() {}")
+
+	jsSwitch := NewSwitch("thing")
+	jsSwitch.Add(JSString, "apple", "break;")
+	jsSwitch.Add(JSString, "banana", "break;")
+
+	d.AddSerializable(jsSwitch)
+
 	err := d.WriteFile(path)
 	if err != nil {
 		t.Errorf("should successfully create a file without errors")
@@ -268,7 +290,6 @@ func TestJsDocSwitchSerialize(t *testing.T) {
 	d.Add(JSNumber, "12", "break;")
 
 	got := d.Serialize()
-	fmt.Println(got)
 	expected := "switch (thing) {case 'apple': { break; }case 'banana': { break; }case 'orange': { break; }case 12: { break; }}"
 
 	if got != expected {
