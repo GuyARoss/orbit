@@ -433,9 +433,12 @@ type jsSwitchValue struct {
 }
 
 type JsDocSwitch struct {
-	varname      string
-	valueBodyMap map[string]jsSwitchValue
-	m            sync.Mutex
+	varname string
+
+	varChecker map[string]bool
+	valueBody  []jsSwitchValue
+
+	m sync.Mutex
 }
 
 func (s *JsDocSwitch) Serialize() string {
@@ -443,7 +446,7 @@ func (s *JsDocSwitch) Serialize() string {
 
 	w.WriteString(fmt.Sprintf("switch (%s) {", s.varname))
 
-	for _, v := range s.valueBodyMap {
+	for _, v := range s.valueBody {
 		var e string
 
 		switch v.JSType {
@@ -463,9 +466,10 @@ func (s *JsDocSwitch) Serialize() string {
 
 func NewSwitch(varname string) *JsDocSwitch {
 	return &JsDocSwitch{
-		varname:      varname,
-		valueBodyMap: make(map[string]jsSwitchValue),
-		m:            sync.Mutex{},
+		varname:    varname,
+		valueBody:  make([]jsSwitchValue, 0),
+		varChecker: make(map[string]bool),
+		m:          sync.Mutex{},
 	}
 }
 
@@ -479,10 +483,13 @@ const (
 func (s *JsDocSwitch) Add(t JSType, value string, body string) {
 	s.m.Lock()
 
-	s.valueBodyMap[value] = jsSwitchValue{
-		Value:  value,
-		JSType: t,
-		Body:   body,
+	if !s.varChecker[value] {
+		s.varChecker[value] = true
+		s.valueBody = append(s.valueBody, jsSwitchValue{
+			Value:  value,
+			JSType: t,
+			Body:   body,
+		})
 	}
 
 	s.m.Unlock()

@@ -117,6 +117,7 @@ type mockHandle struct {
 	checkPath     func(string)
 	requestPath   string
 	requestMethod string
+	headers       map[string][]string
 }
 func (m *mockHandle) HandleFunc(path string, handler func(rw http.ResponseWriter, r *http.Request)) {
 	m.checkPath(path)
@@ -124,6 +125,7 @@ func (m *mockHandle) HandleFunc(path string, handler func(rw http.ResponseWriter
 		return
 	}
 	r, _ := http.NewRequest(m.requestMethod, m.requestPath, nil)
+	r.Header = m.headers
 	handler(m.writer, r)
 }
 func (m *mockHandle) Handle(path string, handler http.Handler)     { m.checkPath(path) }
@@ -132,6 +134,9 @@ func TestSetupMuxRequirements(t *testing.T) {
 	reg := false
 	s := &Serve{
 		mux: &mockHandle{
+			headers: map[string][]string{
+				"Accept-Encoding": {"gzip"},
+			},
 			requestPath:   "/test",
 			requestMethod: "get",
 			writer: &mockResponseWriter{
@@ -149,9 +154,12 @@ func TestSetupMuxRequirements(t *testing.T) {
 		},
 		doc: &htmlDoc{[]string{}, []string{}},
 	}
-	s.setupMuxRequirements()
+	newServe := s.setupMuxRequirements()
 	if !reg {
 		t.Error("test routine did not resolve")
+	}
+	if newServe == nil {
+		t.Error("mux setup should not return nil")
 	}
 }
 type mockPage struct {
@@ -270,6 +278,41 @@ func TestHandleFunc(t *testing.T) {
 		}
 	}
 }
+func TestSetupMuxRequirements_BundleModes(t *testing.T) {
+	header := make(http.Header)
+	w := &mockResponseWriter{
+		mockWriteHeader: func(statusCode int) {},
+		mockWrite:       func(b []byte) (int, error) { return 0, nil },
+		mockHeader:      func() http.Header { return header },
+	}
+	s := &Serve{
+		mux: &mockHandle{
+			headers:       map[string][]string{},
+			requestPath:   "/test",
+			requestMethod: "get",
+			writer:        w,
+			checkPath:     func(s string) {},
+		},
+		doc: &htmlDoc{[]string{}, []string{}},
+	}
+	bundleModes := []struct {
+		mode   BundleMode
+		policy string
+	}{
+		{DevBundleMode, "no-cache, no-store, max-age=0, must-revalidate"},
+		{ProdBundleMode, "public, max-age=31536000, immutable"},
+	}
+	startingDevMode := CurrentDevMode
+	for _, m := range bundleModes {
+		CurrentDevMode = m.mode
+		s.setupMuxRequirements()
+		if w.Header().Get("Cache-Control") != m.policy {
+			t.Errorf("policy mismatch '%d' got '%s'", m.mode, w.Header().Get("Cache-Control"))
+			return
+		}
+	}
+	CurrentDevMode = startingDevMode
+}
 func TestHandleFuncs(t *testing.T) {
 	writer := &mockResponseWriter{
 		mockWriteHeader: func(statusCode int) {},
@@ -337,6 +380,19 @@ func TestHandleFuncs(t *testing.T) {
 				c.RenderPages(nil, "")
 			},
 			"/test/{cat}/{dog}", "/test/",
+		},
+		// status ok, standard multi-page render
+		{
+			func(code int) {
+				reg = true
+				if code != http.StatusOK {
+					t.Errorf("expected status 200 upon correct multi-page request%d", code)
+				}
+			},
+			func(c *Request) {
+				c.RenderPages(nil, "", "something_2")
+			},
+			"/test", "/test",
 		},
 	}
 	for _, d := range tt {
