@@ -67,6 +67,20 @@ func TestWriteFile(t *testing.T) {
 	path := t.TempDir() + "/thing"
 
 	d := NewEmptyDocument()
+	d.imports = append(d.imports, &ImportDependency{
+		FinalStatement: "import { useMemo } from 'react'",
+	}, &ImportDependency{
+		FinalStatement: "import Thing from 'thing'",
+	})
+
+	d.AddOther("function working() {}")
+
+	jsSwitch := NewSwitch("thing")
+	jsSwitch.Add(JSString, "apple", "break;")
+	jsSwitch.Add(JSString, "banana", "break;")
+
+	d.AddSerializable(jsSwitch)
+
 	err := d.WriteFile(path)
 	if err != nil {
 		t.Errorf("should successfully create a file without errors")
