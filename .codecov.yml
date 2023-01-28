@@ -1,0 +1,3 @@
+coverage:
+  status:
+    patch: off # TODO(version): version 1 enable.
