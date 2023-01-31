@@ -117,9 +117,9 @@ func (r *ReactSSR) VerifyRequirements() error {
 }
 
 func (r *ReactSSR) Setup(ctx context.Context, settings *BundleOpts) (*BundledResource, error) {
-	bundleFilePath := fmt.Sprintf("%s/%s.js", r.PageOutputDir, settings.BundleKey)
+	bundleFilePath := fmt.Sprintf("%s/%s.ssr.js", r.PageOutputDir, settings.BundleKey)
 	r.sourceMapDoc.AddImport(&jsparse.ImportDependency{
-		FinalStatement: fmt.Sprintf("import %s from '%s'", settings.Name, fmt.Sprintf("./%s", settings.BundleKey)),
+		FinalStatement: fmt.Sprintf("import %s from '%s'", settings.Name, fmt.Sprintf("./%s.ssr.js", settings.BundleKey)),
 		Type:           jsparse.LocalImportType,
 	})
 
@@ -156,10 +156,6 @@ func (r *ReactSSR) Apply(doc jsparse.JSDocument) (jsparse.JSDocument, error) {
 	)
 
 	return doc, nil
-}
-
-func (r *ReactSSR) DoesSatisfyConstraints(fileExtension string) bool {
-	return strings.Contains(fileExtension, reactExtension)
 }
 
 func (r *ReactSSR) Version() string {

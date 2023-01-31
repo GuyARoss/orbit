@@ -28,7 +28,6 @@ type JSWebWrapper interface {
 	RequiredBodyDOMElements(context.Context, *CacheDOMOpts) []string
 	Setup(context.Context, *BundleOpts) (*BundledResource, error)
 	Apply(jsparse.JSDocument) (jsparse.JSDocument, error)
-	DoesSatisfyConstraints(string) bool
 	Version() string
 	Stats() *WrapStats
 	Bundle(configuratorFile string, originalFilePath string) error
@@ -41,37 +40,60 @@ type WrapStats struct {
 	Bundler    string
 }
 
-type JSWebWrapperList []JSWebWrapper
+type JSWrapGroup struct {
+	Wrappers []JSWebWrapper
+	Stats    *WrapStats
+}
 
-// FirstMatch finds the first js web wrapper in the currently list that satisfies the file extension constraints
-func (j *JSWebWrapperList) FirstMatch(fileExtension string) JSWebWrapper {
-	for _, f := range *j {
-		if f.DoesSatisfyConstraints(fileExtension) {
-			return f
+func NewJSWrapGroup(wrappers []JSWebWrapper, stats *WrapStats) *JSWrapGroup {
+	return &JSWrapGroup{
+		Wrappers: wrappers,
+		Stats:    stats,
+	}
+}
+
+type JSWebWrapperList map[string]JSWebWrapper
+
+func (j JSWebWrapperList) FindAll(page jsparse.JSDocument) *JSWrapGroup {
+	if page.Extension() == "jsx" && page.DefaultExport() != nil {
+		if experiments.GlobalExperimentalFeatures.PreferSSR {
+			return NewJSWrapGroup([]JSWebWrapper{j["react_ssr"], j["react_hydrate"]}, &WrapStats{
+				WebVersion: "react",
+				Bundler:    fmt.Sprintf("ssr + %s", j["react_hydrate"].Stats().Bundler),
+			})
+			// return NewJSWrapGroup([]JSWebWrapper{j["react_hydrate"]}, &WrapStats{
+			// 	WebVersion: "react",
+			// 	Bundler:    fmt.Sprintf("blaah"),
+			// })
+		} else {
+			return NewJSWrapGroup([]JSWebWrapper{j["react_csr"]}, &WrapStats{
+				WebVersion: "react",
+				Bundler:    "webpack",
+			})
 		}
 	}
 
-	return nil
+	return NewJSWrapGroup([]JSWebWrapper{j["javascript"]}, &WrapStats{
+		WebVersion: "javascript",
+		Bundler:    "webpack",
+	})
 }
 
 func NewActiveMap(bundler *BaseBundler) JSWebWrapperList {
 	sourcedoc := jsparse.NewEmptyDocument()
 	initdoc := jsparse.NewEmptyDocument()
 
-	baseList := []JSWebWrapper{
-		&JavascriptWrapper{
+	baseList := map[string]JSWebWrapper{
+		"javascript": &JavascriptWrapper{
 			BaseBundler: bundler,
 		},
-	}
-
-	if experiments.GlobalExperimentalFeatures.PreferSSR {
-		baseList = append(baseList, NewReactSSR(&NewReactSSROpts{
+		"react_ssr": NewReactSSR(&NewReactSSROpts{
 			Bundler:      bundler,
 			SourceMapDoc: sourcedoc,
 			InitDoc:      initdoc,
-		}))
-	} else {
-		baseList = append(baseList, NewReactWebWrap(bundler))
+		}),
+		"react_csr":     NewReactCSR(bundler),
+		"react_hydrate": NewReactHydrate(bundler),
 	}
 
 	return baseList

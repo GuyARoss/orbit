@@ -12,7 +12,7 @@ import (
 
 var experiementalCMD = &cobra.Command{
 	Use:   "experimental",
-	Long:  "shows the list of available expiremental options",
+	Long:  "shows the list of available experimental options",
 	Short: "list of experimental options",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println(`

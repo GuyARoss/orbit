@@ -265,45 +265,55 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 	out.WriteString("}\n")
 
 	out.WriteString("var serverStartupTasks = []func(){}\n")
+	out.WriteString("type RenderFunction func(context.Context, string, []byte, *htmlDoc) (*htmlDoc, context.Context)\n")
 
 	out.WriteString("var wrapDocRender = map[PageRender]*DocumentRenderer{\n")
 	for _, p := range bg.pages {
-		// not every wrapper "needs" a method of processing, so we omit it in the case it doesnt
-		if bg.wrapDocRender[p.wrapVersion] == nil || len(bg.wrapDocRender[p.wrapVersion]) == 0 {
-			continue
+
+		renderVersions := []string{}
+		for _, w := range p.wrapVersions {
+			// not every wrapper uses a method of processing, so we omit it in the case it that it does not.
+			if bg.wrapDocRender[w] == nil || len(bg.wrapDocRender[w]) == 0 {
+				continue
+			}
+
+			renderVersions = append(renderVersions, w)
 		}
 
-		// since all of the the valid bundle names can only be refererred to "pages"
-		// we ensure that page does not already exist on the string
-		if !strings.Contains(p.name, "Page") {
-			p.name = fmt.Sprintf("%sPage", p.name)
+		if len(renderVersions) > 0 {
+			// since all of the the valid bundle names can only be refereed to "pages"
+			// we ensure that page does not already exist on the string
+			if !strings.Contains(p.name, "Page") {
+				p.name = fmt.Sprintf("%sPage", p.name)
+			}
+
+			versionsStr := strings.Join(renderVersions, ",")
+
+			out.WriteString(fmt.Sprintf(`	%s: {fn: []RenderFunction{%s}, version: []string{"%s"}},`, p.name, versionsStr, versionsStr))
+			out.WriteString("\n")
 		}
-
-		out.WriteString(fmt.Sprintf(`	%s: {fn: %s, version: "%s"},`, p.name, p.wrapVersion, p.wrapVersion))
-		out.WriteString("\n")
-
 	}
 	out.WriteString("}\n")
 
 	out.WriteString(`
 type DocumentRenderer struct {
-	fn func(context.Context, string, []byte, *htmlDoc) (*htmlDoc, context.Context)
-	version string
+	fn []RenderFunction
+	version []string
 }`)
 
-	for rd, v := range bg.componentBodyMap {
-		out.WriteString("\n")
-		out.WriteString(fmt.Sprintf(`var %s_bodywrap = []string{`, rd))
-		out.WriteString("\n")
+	// for rd, v := range bg.componentBodyMap {
+	// 	out.WriteString("\n")
+	// 	out.WriteString(fmt.Sprintf(`var %s_bodywrap = []string{`, rd))
+	// 	out.WriteString("\n")
 
-		for _, b := range v {
-			out.WriteString(fmt.Sprintf("`%s`,", b))
-			out.WriteString("\n")
-		}
+	// 	for _, b := range v {
+	// 		out.WriteString(fmt.Sprintf("`%s`,", b))
+	// 		out.WriteString("\n")
+	// 	}
 
-		out.WriteString("}")
-		out.WriteString("\n")
-	}
+	// 	out.WriteString("}")
+	// 	out.WriteString("\n")
+	// }
 
 	if len(bg.BaseBundleOut) > 0 {
 		out.WriteString("\n")
@@ -344,12 +354,18 @@ type DocumentRenderer struct {
 	out.WriteString("\nvar pageDependencies = map[PageRender][]string{\n")
 
 	for _, p := range bg.pages {
-		out.WriteString(fmt.Sprintf(`	%s: %s_bodywrap,`, p.name, p.wrapVersion))
+		out.WriteString(fmt.Sprintf(`	%s: []string{`, p.name))
+		for _, version := range p.wrapVersions {
+			for _, s := range bg.componentBodyMap[version] {
+				out.WriteString(fmt.Sprintf("`%s`,", s))
+				out.WriteString("\n")
+			}
+		}
+		out.WriteString("},")
 		out.WriteString("\n")
 	}
 
 	out.WriteString("}")
-
 	out.WriteString("\n")
 
 	out.WriteString(`

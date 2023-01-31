@@ -86,11 +86,13 @@ func buildHTMLPages(data []byte, pages ...PageRender) *htmlDoc {
 		// wrapping page content should only happen once as it just creates
 		// the requirements for the specific web wrapper to work correctly
 		pv := wrapDocRender[p]
-		if pv != nil && !isWrapped[pv.version] {
-			isWrapped[pv.version] = true
+		for _, version := range pv.version {
+			if pv != nil && !isWrapped[version] {
+				isWrapped[version] = true
 
-			for _, b := range pageDependencies[p] {
-				head = append(head, b)
+				for _, b := range pageDependencies[p] {
+					head = append(head, b)
+				}
 			}
 		}
 	}
@@ -103,7 +105,9 @@ func buildHTMLPages(data []byte, pages ...PageRender) *htmlDoc {
 	ctx := context.Background()
 	for _, p := range pages {
 		if op := wrapDocRender[p]; op != nil {
-			html, ctx = op.fn(ctx, string(p), data, html)
+			for _, fn := range op.fn {
+				html, ctx = fn(ctx, string(p), data, html)
+			}
 		}
 	}
 

@@ -72,23 +72,23 @@ func (opts *StaticBuild) createStaticContext(components srcpack.PackedComponentL
 				}
 			}
 
-			pages[ewrap.PageRender(c.BundleKey())+"_ssr"] = ewrap.NewEmptyDocumentRenderer(c.WebWrapper().Version())
-			bundlePaths[ewrap.PageRender(c.BundleKey())+"_ssr"] = fsutils.LastPathIndex(c.OriginalFilePath()) + ".html"
+			pages[ewrap.PageRender(c.BundleKey())] = ewrap.NewEmptyDocumentRenderer(c.WebWrapper().Stats.Bundler)
+			bundlePaths[ewrap.PageRender(c.BundleKey())] = fsutils.LastPathIndex(c.OriginalFilePath()) + ".html"
 
-			switch c.WebWrapper().Version() {
-			case "reactSSR", "reactManifestFallback":
-				staticMap[ewrap.PageRender(c.BundleKey()+"_ssr")] = true
+			switch c.WebWrapper().Stats.WebVersion {
+			case "react":
+				staticMap[ewrap.PageRender(c.BundleKey())] = true
 			}
 		}
 	}
 
 	for _, c := range components {
-		pages[ewrap.PageRender(c.BundleKey())] = ewrap.NewEmptyDocumentRenderer(c.WebWrapper().Version())
+		pages[ewrap.PageRender(c.BundleKey())] = ewrap.NewEmptyDocumentRenderer(c.WebWrapper().Stats.WebVersion)
 		bundlePaths[ewrap.PageRender(c.BundleKey())] = fsutils.LastPathIndex(c.OriginalFilePath()) + ".html"
 
 		if c.IsStaticResource() {
-			switch c.WebWrapper().Version() {
-			case "reactSSR":
+			switch c.WebWrapper().Stats.WebVersion {
+			case "react":
 				staticMap[ewrap.PageRender(c.BundleKey())] = true
 			}
 		}

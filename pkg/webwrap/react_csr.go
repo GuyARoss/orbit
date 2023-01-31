@@ -19,7 +19,7 @@ import (
 	parseerror "github.com/GuyARoss/orbit/pkg/parse_error"
 )
 
-type ReactWebWrapper struct {
+type ReactCSR struct {
 	*BaseWebWrapper
 	*BaseBundler
 }
@@ -27,13 +27,7 @@ type ReactWebWrapper struct {
 var ErrComponentExport = errors.New("prefer capitalization for jsx components")
 var ErrInvalidComponent = errors.New("invalid jsx component")
 
-const reactExtension string = "jsx"
-
-func (s *ReactWebWrapper) Apply(page jsparse.JSDocument) (jsparse.JSDocument, error) {
-	if page.Extension() != reactExtension { // @@todo bad pattern fix this
-		return nil, ErrInvalidComponent
-	}
-
+func (s *ReactCSR) Apply(page jsparse.JSDocument) (jsparse.JSDocument, error) {
 	// react components should always be capitalized.
 	if string(page.Name()[0]) != strings.ToUpper(string(page.Name()[0])) {
 		return nil, ErrComponentExport
@@ -52,7 +46,7 @@ func (s *ReactWebWrapper) Apply(page jsparse.JSDocument) (jsparse.JSDocument, er
 	return page, nil
 }
 
-func (r *ReactWebWrapper) VerifyRequirements() error {
+func (r *ReactCSR) VerifyRequirements() error {
 	webpackPath := fmt.Sprintf("%s%c%s%c%s", r.NodeModulesDir, os.PathSeparator, ".bin", os.PathSeparator, "webpack")
 
 	// due to a "bug" with windows, it has an issue with shebang cmds, so we prefer the webpack.js file instead.
@@ -68,22 +62,25 @@ func (r *ReactWebWrapper) VerifyRequirements() error {
 	return nil
 }
 
-func (s *ReactWebWrapper) DoesSatisfyConstraints(fileExtension string) bool {
-	return fileExtension == reactExtension
+func (s *ReactCSR) Version() string {
+	return "reactCSR"
 }
 
-func (s *ReactWebWrapper) Version() string {
-	return "reactManifestFallback"
-}
+func (s *ReactCSR) Stats() *WrapStats {
+	if experiments.GlobalExperimentalFeatures.PreferSWCCompiler {
+		return &WrapStats{
+			WebVersion: "React CSR",
+			Bundler:    "swc",
+		}
+	}
 
-func (s *ReactWebWrapper) Stats() *WrapStats {
 	return &WrapStats{
-		WebVersion: "react",
+		WebVersion: "React CSR",
 		Bundler:    "webpack",
 	}
 }
 
-func (s *ReactWebWrapper) RequiredBodyDOMElements(ctx context.Context, cache *CacheDOMOpts) []string {
+func (s *ReactCSR) RequiredBodyDOMElements(ctx context.Context, cache *CacheDOMOpts) []string {
 	mode := ctx.Value(BundlerID).(string)
 
 	uris := make([]string, 0)
@@ -107,7 +104,7 @@ func (s *ReactWebWrapper) RequiredBodyDOMElements(ctx context.Context, cache *Ca
 	return files
 }
 
-func (b *ReactWebWrapper) Setup(ctx context.Context, settings *BundleOpts) (*BundledResource, error) {
+func (b *ReactCSR) Setup(ctx context.Context, settings *BundleOpts) (*BundledResource, error) {
 	page := jsparse.NewEmptyDocument()
 
 	page.AddImport(&jsparse.ImportDependency{
@@ -149,7 +146,7 @@ func (b *ReactWebWrapper) Setup(ctx context.Context, settings *BundleOpts) (*Bun
 	}, nil
 }
 
-func (b *ReactWebWrapper) Bundle(configuratorFilePath string, filePath string) error {
+func (b *ReactCSR) Bundle(configuratorFilePath string, filePath string) error {
 	webpackPath := fmt.Sprintf("%s%c%s%c%s", b.NodeModulesDir, os.PathSeparator, ".bin", os.PathSeparator, "webpack")
 
 	// due to a "bug" with windows, it has an issue with shebang cmds, so we prefer the webpack.js file instead.
@@ -168,22 +165,22 @@ func (b *ReactWebWrapper) Bundle(configuratorFilePath string, filePath string) e
 	return nil
 }
 
-func (b *ReactWebWrapper) HydrationFile() []embedutils.FileReader {
+func (b *ReactCSR) HydrationFile() []embedutils.FileReader {
 	files, err := embedFiles.ReadDir("embed")
 	if err != nil {
 		return nil
 	}
 
 	for _, file := range files {
-		if strings.Contains(file.Name(), "react_hydrate.go") {
+		if strings.Contains(file.Name(), "react_csr.go") {
 			return []embedutils.FileReader{&embedFileReader{fileName: file.Name()}}
 		}
 	}
 	return nil
 }
 
-func NewReactWebWrap(bundler *BaseBundler) *ReactWebWrapper {
-	return &ReactWebWrapper{
+func NewReactCSR(bundler *BaseBundler) *ReactCSR {
+	return &ReactCSR{
 		BaseBundler: bundler,
 	}
 }
