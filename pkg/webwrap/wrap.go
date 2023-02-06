@@ -91,6 +91,7 @@ func (j JSWebWrapperList) FindFirst(page jsparse.JSDocument) JSWebWrapper {
 }
 
 func NewActiveMap(bundler *BaseBundler) JSWebWrapperList {
+
 	baseList := map[string]JSWebWrapper{
 		"react": NewReactHydrate(bundler),
 	}

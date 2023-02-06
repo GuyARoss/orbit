@@ -297,7 +297,7 @@ func serverRenderInnerHTML(bundleKey string, data []byte) string {
 	}
 	conn, err := grpc.Dial("0.0.0.0:3024", opts...)
 	if err != nil {
-		panic(err)
+		return ""
 	}
 	defer conn.Close()
 	client := NewReactRendererClient(conn)
@@ -447,13 +447,13 @@ var staticResourceMap = map[PageRender]bool{
 var serverStartupTasks = []func(){}
 type RenderFunction func(context.Context, string, []byte, *htmlDoc) (*htmlDoc, context.Context)
 var wrapDocRender = map[PageRender]*DocumentRenderer{
-	ExampleTwoPage: {fn: reactHydrate, version: []string{"reactHydrate"}},
-	ExamplePage: {fn: reactHydrate, version: []string{"reactHydrate"}},
+	ExampleTwoPage: {fn: reactHydrate, version: "reactHydrate"},
+	ExamplePage: {fn: reactHydrate, version: "reactHydrate"},
 }
 
 type DocumentRenderer struct {
 	fn RenderFunction
-	version []string
+	version string
 }
 var bundleDir string = ".orbit/dist"
 

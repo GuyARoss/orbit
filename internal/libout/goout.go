@@ -275,7 +275,7 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 			p.name = fmt.Sprintf("%sPage", p.name)
 		}
 
-		out.WriteString(fmt.Sprintf(`	%s: {fn: %s, version: []string{"%s"}},`, p.name, p.wrapVersion, p.wrapVersion))
+		out.WriteString(fmt.Sprintf(`	%s: {fn: %s, version: "%s"},`, p.name, p.wrapVersion, p.wrapVersion))
 		out.WriteString("\n")
 	}
 	out.WriteString("}\n")
@@ -283,7 +283,7 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 	out.WriteString(`
 type DocumentRenderer struct {
 	fn RenderFunction
-	version []string
+	version string
 }`)
 
 	// for rd, v := range bg.componentBodyMap {

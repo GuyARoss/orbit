@@ -36,8 +36,8 @@ var hotReloadPort = 1000
 var serverStartupTasks = []func(){}
 
 type DocumentRenderer struct {
-	fn      []func(context.Context, string, []byte, *htmlDoc) (*htmlDoc, context.Context)
-	version []string
+	fn      func(context.Context, string, []byte, *htmlDoc) (*htmlDoc, context.Context)
+	version string
 }
 
 var wrapDocRender = map[PageRender]*DocumentRenderer{}

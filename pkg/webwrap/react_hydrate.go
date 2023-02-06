@@ -28,7 +28,7 @@ func (s *ReactHydrate) Apply(page jsparse.JSDocument) (map[string]jsparse.JSDocu
 		Type:           jsparse.ModuleImportType,
 	})
 
-	csrHydratePage.AddOther(fmt.Sprintf(
+	csrHydratePage.AddOther("// testing", fmt.Sprintf(
 		"ReactDOM.hydrate(React.createElement(%s, JSON.parse(document.getElementById('orbit_manifest').textContent)), document.getElementById('%s_react_frame'))",
 		page.Name(), page.Key()),
 	)
@@ -38,10 +38,12 @@ func (s *ReactHydrate) Apply(page jsparse.JSDocument) (map[string]jsparse.JSDocu
 		return nil, err
 	}
 
-	return map[string]jsparse.JSDocument{
+	response := map[string]jsparse.JSDocument{
 		"csr": csrHydratePage,
 		"ssr": ssrPage,
-	}, nil
+	}
+
+	return response, nil
 }
 
 func (r *ReactHydrate) VerifyRequirements() error {
@@ -100,6 +102,19 @@ func (b *ReactHydrate) Setup(ctx context.Context, settings *BundleOpts) (*Bundle
 			filename: '%s'
 		},
 	})`, clientBundleFilePath, string(b.csr.Mode), outputFileName))
+
+	b.ssr.sourceMapDoc.AddImport(&jsparse.ImportDependency{
+		FinalStatement: fmt.Sprintf("import %s from '%s'", settings.Name, fmt.Sprintf("./%s.ssr.js", settings.BundleKey)),
+		Type:           jsparse.LocalImportType,
+	})
+
+	b.ssr.sourceMapDoc.AddOther(fmt.Sprintf(`export const %s = (d) => ReactDOMServer.renderToString(<%s {...d}/>)`, strings.ToLower(settings.Name), settings.Name))
+	b.ssr.initDoc.AddImport(&jsparse.ImportDependency{
+		FinalStatement: fmt.Sprintf("import { %s } from '%s'", strings.ToLower(settings.Name), fmt.Sprintf("./%s", "react_ssr.map.js")),
+		Type:           jsparse.LocalImportType,
+	})
+
+	b.ssr.jsSwitch.Add(jsparse.JSString, settings.BundleKey, fmt.Sprintf(`return %s(JSON.parse(JSONData))`, strings.ToLower(settings.Name)))
 
 	return &BundledResource{
 		BundleOpFileDescriptor: map[string]string{

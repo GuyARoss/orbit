@@ -84,11 +84,6 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, e
 		return nil, err
 	}
 
-	wrapAppliedPages, err := wrapMethod.Apply(initPage)
-	if err != nil {
-		return nil, err
-	}
-
 	bundleKey := opts.DefaultKey
 	if bundleKey == "" {
 		bundleKey = initPage.Key()
@@ -100,6 +95,11 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, e
 		Name:      initPage.Name(),
 	})
 
+	if err != nil {
+		return nil, err
+	}
+
+	wrapAppliedPages, err := wrapMethod.Apply(initPage)
 	if err != nil {
 		return nil, err
 	}
