@@ -24,7 +24,7 @@ type BundleGroupOpts struct {
 type page struct {
 	name             string
 	bundleKey        string
-	wrapVersions     []string
+	wrapVersion      string
 	filePath         string
 	isStaticResource bool
 }
@@ -118,29 +118,23 @@ func parseVersionKey(k string) string {
 
 // AcceptComponent collects the required DOM elements and applies it to the component body map
 func (l *BundleGroup) AcceptComponent(ctx context.Context, c srcpack.PackComponent, cacheOpts *webwrap.CacheDOMOpts) error {
-	wrappers := c.WebWrapper().Wrappers
+	wrapper := c.WebWrapper()
+	if err := wrapper.VerifyRequirements(); err != nil {
+		return err
+	}
 
-	wrapVersions := make([]string, len(wrappers))
-	for idx, webwrap := range wrappers {
-		if err := webwrap.VerifyRequirements(); err != nil {
-			return err
-		}
+	v := parseVersionKey(wrapper.Version())
 
-		v := parseVersionKey(webwrap.Version())
+	if l.componentBodyMap[v] == nil {
+		l.componentBodyMap[v] = wrapper.RequiredBodyDOMElements(ctx, cacheOpts)
+	}
 
-		if l.componentBodyMap[v] == nil {
-			l.componentBodyMap[v] = webwrap.RequiredBodyDOMElements(ctx, cacheOpts)
-		}
-
-		if l.wrapDocRender[v] == nil {
-			l.wrapDocRender[v] = webwrap.HydrationFile()
-		}
-
-		wrapVersions[idx] = webwrap.Version()
+	if l.wrapDocRender[v] == nil {
+		l.wrapDocRender[v] = wrapper.HydrationFile()
 	}
 
 	if !l.pageMap[c.Name()] {
-		l.pages = append(l.pages, &page{c.Name(), c.BundleKey(), wrapVersions, c.OriginalFilePath(), c.IsStaticResource()})
+		l.pages = append(l.pages, &page{c.Name(), c.BundleKey(), wrapper.Version(), c.OriginalFilePath(), c.IsStaticResource()})
 		l.pageMap[c.Name()] = true
 	}
 
@@ -150,24 +144,20 @@ func (l *BundleGroup) AcceptComponent(ctx context.Context, c srcpack.PackCompone
 // AcceptComponents collects the required DOM elements and applies it to the component body map
 func (l *BundleGroup) AcceptComponents(ctx context.Context, comps []srcpack.PackComponent, cacheOpts *webwrap.CacheDOMOpts) error {
 	for _, c := range comps {
-		wrappers := c.WebWrapper().Wrappers
+		wrap := c.WebWrapper()
 
-		wrapVersions := make([]string, len(wrappers))
-		for idx, webwrap := range wrappers {
-			v := parseVersionKey(webwrap.Version())
+		v := parseVersionKey(wrap.Version())
 
-			if l.componentBodyMap[v] == nil {
-				l.componentBodyMap[v] = webwrap.RequiredBodyDOMElements(ctx, cacheOpts)
-			}
+		if l.componentBodyMap[v] == nil {
+			l.componentBodyMap[v] = wrap.RequiredBodyDOMElements(ctx, cacheOpts)
+		}
 
-			if l.wrapDocRender[v] == nil {
-				l.wrapDocRender[v] = webwrap.HydrationFile()
-			}
-			wrapVersions[idx] = webwrap.Version()
+		if l.wrapDocRender[v] == nil {
+			l.wrapDocRender[v] = wrap.HydrationFile()
 		}
 
 		if !l.pageMap[c.Name()] {
-			l.pages = append(l.pages, &page{c.Name(), c.BundleKey(), wrapVersions, c.OriginalFilePath(), c.IsStaticResource()})
+			l.pages = append(l.pages, &page{c.Name(), c.BundleKey(), wrap.Version(), c.OriginalFilePath(), c.IsStaticResource()})
 			l.pageMap[c.Name()] = true
 		}
 	}

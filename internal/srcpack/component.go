@@ -21,7 +21,7 @@ type PackComponent interface {
 	Dependencies() []*jsparse.ImportDependency
 	BundleKey() string
 	Name() string
-	WebWrapper() *webwrap.JSWrapGroup
+	WebWrapper() webwrap.JSWebWrapper
 	IsStaticResource() bool
 	JsDocument() jsparse.JSDocument
 }
@@ -31,7 +31,7 @@ type PackComponent interface {
 type Component struct {
 	WebDir           string
 	JsParser         jsparse.JSParser
-	webWrapper       *webwrap.JSWrapGroup
+	webWrapper       webwrap.JSWebWrapper
 	bundleKey        string
 	dependencies     []*jsparse.ImportDependency
 	originalFilePath string
@@ -58,87 +58,86 @@ var ErrParserError = errors.New("page can not be parsed")
 
 // NewComponent creates a new component that represents a packaged & bundled web component
 func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, error) {
-	page, err := opts.JSParser.Parse(opts.FilePath, opts.WebDir)
-	if page == nil {
+	initPage, err := opts.JSParser.Parse(opts.FilePath, opts.WebDir)
+	if initPage == nil {
 		return nil, ErrParserError
 	}
 
 	if err != nil {
 		return nil, err
 	}
-	initialPage := page.Clone()
+	initialPage := initPage.Clone()
 
-	if page == nil || page.DefaultExport() == nil || page.DefaultExport().Name == "" {
+	if initPage == nil || initPage.DefaultExport() == nil || initPage.DefaultExport().Name == "" {
 		return nil, ErrComponentNotExported
 	}
 
 	// we attempt to find the first web wrapper that satisfies the extension requirements
 	// this same js wrapper will be used when we go to repack.
-	wrapMethods := opts.JSWebWrappers.FindAll(page)
+	wrapMethod := opts.JSWebWrappers.FindFirst(initPage)
 
-	for _, wrapMethod := range wrapMethods.Wrappers {
-		if wrapMethod == nil {
-			return nil, ErrInvalidComponentType
-		}
+	if wrapMethod == nil {
+		return nil, ErrInvalidComponentType
+	}
 
-		if err := wrapMethod.VerifyRequirements(); err != nil {
-			return nil, err
-		}
+	if err := wrapMethod.VerifyRequirements(); err != nil {
+		return nil, err
+	}
 
-		page, err = wrapMethod.Apply(page)
-		if err != nil {
-			return nil, err
-		}
+	wrapAppliedPages, err := wrapMethod.Apply(initPage)
+	if err != nil {
+		return nil, err
+	}
 
-		bundleKey := opts.DefaultKey
-		if bundleKey == "" {
-			bundleKey = page.Key()
-		}
+	bundleKey := opts.DefaultKey
+	if bundleKey == "" {
+		bundleKey = initPage.Key()
+	}
 
-		resource, err := wrapMethod.Setup(ctx, &webwrap.BundleOpts{
-			FileName:  opts.FilePath,
-			BundleKey: bundleKey,
-			Name:      page.Name(),
-		})
+	resource, err := wrapMethod.Setup(ctx, &webwrap.BundleOpts{
+		FileName:  opts.FilePath,
+		BundleKey: bundleKey,
+		Name:      initPage.Name(),
+	})
 
-		if err != nil {
-			return nil, err
-		}
+	if err != nil {
+		return nil, err
+	}
 
-		_, err = os.Stat(resource.BundleFilePath)
-
+	for bundleOp, filePath := range resource.BundleOpFileDescriptor {
+		_, err = os.Stat(filePath)
 		// this addresses a performance issue that resulted in slow startup times for bundles that already existed.
 		// this bundle process can be skipped during the initial startup of the application as long as stale bundle data exists.
 		if !opts.SkipFirstPassBundle || errors.Is(err, os.ErrNotExist) {
-			bundlePageErr := page.WriteFile(resource.BundleFilePath)
+			bundlePageErr := wrapAppliedPages[bundleOp].WriteFile(filePath)
 			if bundlePageErr != nil {
 				return nil, bundlePageErr
-			}
-
-			for _, r := range resource.Configurators {
-				configErr := r.Page.WriteFile(r.FilePath)
-				if configErr != nil {
-					return nil, configErr
-				}
-
-				bundleErr := wrapMethod.Bundle(r.FilePath, resource.BundleFilePath)
-				if bundleErr != nil {
-					return nil, bundleErr
-				}
 			}
 		}
 	}
 
+	for _, r := range resource.Configurators {
+		configErr := r.Page.WriteFile(r.FilePath)
+		if configErr != nil {
+			return nil, configErr
+		}
+
+		bundleErr := wrapMethod.Bundle(r.FilePath, opts.FilePath)
+		if bundleErr != nil {
+			return nil, bundleErr
+		}
+	}
+
 	return &Component{
-		name:             page.Name(),
+		name:             initialPage.Name(),
 		bundleKey:        opts.DefaultKey,
-		dependencies:     page.Imports(),
+		dependencies:     initialPage.Imports(),
 		originalFilePath: opts.FilePath,
 		m:                &sync.Mutex{},
-		webWrapper:       wrapMethods,
+		webWrapper:       wrapMethod,
 		JsParser:         opts.JSParser,
 		WebDir:           opts.WebDir,
-		isStaticResource: len(page.DefaultExport().Args) == 0,
+		isStaticResource: len(initialPage.DefaultExport().Args) == 0,
 		document:         initialPage,
 	}, nil
 }
@@ -163,45 +162,47 @@ func (s *Component) Repack() error {
 		return ErrInvalidPageName
 	}
 
-	for _, webWrapper := range s.webWrapper.Wrappers {
-		if err := webWrapper.VerifyRequirements(); err != nil {
-			return err
-		}
-
-		// apply the necessary requirements for the web framework to the original page
-		page, err = webWrapper.Apply(page)
-		if err != nil {
-			return err
-		}
-
-		resource, err := webWrapper.Setup(context.TODO(), &webwrap.BundleOpts{
-			FileName:  s.originalFilePath,
-			BundleKey: s.BundleKey(),
-			Name:      page.Name(),
-		})
-
-		if err != nil {
-			return err
-		}
-
-		s.m.Lock()
-		err = page.WriteFile(resource.BundleFilePath)
-		if err != nil {
-			return err
-		}
-		for _, b := range resource.Configurators {
-			err = b.Page.WriteFile(b.FilePath)
-			if err != nil {
-				return err
-			}
-
-			err = webWrapper.Bundle(b.FilePath, resource.BundleFilePath)
-			if err != nil {
-				return err
-			}
-		}
-		s.m.Unlock()
+	if err := s.webWrapper.VerifyRequirements(); err != nil {
+		return err
 	}
+
+	// apply the necessary requirements for the web framework to the original page
+	pages, err := s.webWrapper.Apply(page)
+	if err != nil {
+		return err
+	}
+
+	resource, err := s.webWrapper.Setup(context.TODO(), &webwrap.BundleOpts{
+		FileName:  s.originalFilePath,
+		BundleKey: s.BundleKey(),
+		Name:      page.Name(),
+	})
+
+	if err != nil {
+		return err
+	}
+
+	s.m.Lock()
+	for opt, filePath := range resource.BundleOpFileDescriptor {
+		err = pages[opt].WriteFile(filePath)
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, b := range resource.Configurators {
+		err = b.Page.WriteFile(b.FilePath)
+		if err != nil {
+			return err
+		}
+
+		err = s.webWrapper.Bundle(b.FilePath, s.originalFilePath)
+		if err != nil {
+			return err
+		}
+	}
+
+	s.m.Unlock()
 
 	return nil
 }
@@ -231,7 +232,7 @@ func (s *Component) BundleKey() string { return s.bundleKey }
 func (s *Component) Name() string { return s.name }
 
 // WebWrapper returns the instance of the webwrapper applied to the component
-func (s *Component) WebWrapper() *webwrap.JSWrapGroup { return s.webWrapper }
+func (s *Component) WebWrapper() webwrap.JSWebWrapper { return s.webWrapper }
 
 // parsePath is a utility that verifies that the provided path is of a valid structure
 func parsePath(p string) string {

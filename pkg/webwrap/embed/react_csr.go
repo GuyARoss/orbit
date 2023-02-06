@@ -25,7 +25,3 @@ func reactCSR(ctx context.Context, bundleKey string, data []byte, doc *htmlDoc) 
 
 	return doc, ctx
 }
-
-func reactHydrate(ctx context.Context, bundleKey string, data []byte, doc *htmlDoc) (*htmlDoc, context.Context) {
-	return reactCSR(ctx, bundleKey, data, doc)
-}

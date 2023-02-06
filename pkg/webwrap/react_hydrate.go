@@ -12,25 +12,36 @@ import (
 
 type ReactHydrate struct {
 	csr *ReactCSR
+	ssr *ReactSSR
 }
 
-func (s *ReactHydrate) Apply(page jsparse.JSDocument) (jsparse.JSDocument, error) {
+func (s *ReactHydrate) Apply(page jsparse.JSDocument) (map[string]jsparse.JSDocument, error) {
 	// react components should always be capitalized.
 	if string(page.Name()[0]) != strings.ToUpper(string(page.Name()[0])) {
 		return nil, ErrComponentExport
 	}
 
-	page.AddImport(&jsparse.ImportDependency{
+	csrHydratePage := page.Clone()
+
+	csrHydratePage.AddImport(&jsparse.ImportDependency{
 		FinalStatement: "import ReactDOM from 'react-dom'",
 		Type:           jsparse.ModuleImportType,
 	})
 
-	page.AddOther(fmt.Sprintf(
+	csrHydratePage.AddOther(fmt.Sprintf(
 		"ReactDOM.hydrate(React.createElement(%s, JSON.parse(document.getElementById('orbit_manifest').textContent)), document.getElementById('%s_react_frame'))",
 		page.Name(), page.Key()),
 	)
 
-	return page, nil
+	ssrPage, err := s.ssr.Apply(page.Clone())
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]jsparse.JSDocument{
+		"csr": csrHydratePage,
+		"ssr": ssrPage,
+	}, nil
 }
 
 func (r *ReactHydrate) VerifyRequirements() error {
@@ -60,19 +71,98 @@ func (s *ReactHydrate) RequiredBodyDOMElements(ctx context.Context, cache *Cache
 }
 
 func (b *ReactHydrate) Setup(ctx context.Context, settings *BundleOpts) (*BundledResource, error) {
-	return b.csr.Setup(ctx, settings)
+	page := jsparse.NewEmptyDocument()
+
+	page.AddImport(&jsparse.ImportDependency{
+		FinalStatement: "const {merge} = require('webpack-merge')",
+		Type:           jsparse.ModuleImportType,
+	})
+
+	if experiments.GlobalExperimentalFeatures.PreferSWCCompiler {
+		page.AddImport(&jsparse.ImportDependency{
+			FinalStatement: "const baseConfig = require('../../assets/swc-base.config.js')",
+			Type:           jsparse.ModuleImportType,
+		})
+	} else {
+		page.AddImport(&jsparse.ImportDependency{
+			FinalStatement: "const baseConfig = require('../../assets/base.config.js')",
+			Type:           jsparse.ModuleImportType,
+		})
+	}
+
+	outputFileName := fmt.Sprintf("%s.js", settings.BundleKey)
+	clientBundleFilePath := fmt.Sprintf("%s/%s.js", b.csr.PageOutputDir, settings.BundleKey)
+
+	page.AddOther(fmt.Sprintf(`module.exports = merge(baseConfig, {
+		entry: ['./%s'],
+		mode: '%s',
+		output: {
+			filename: '%s'
+		},
+	})`, clientBundleFilePath, string(b.csr.Mode), outputFileName))
+
+	return &BundledResource{
+		BundleOpFileDescriptor: map[string]string{
+			"csr": clientBundleFilePath,
+			"ssr": fmt.Sprintf("%s/%s.ssr.js", b.ssr.PageOutputDir, settings.BundleKey),
+		},
+		Configurators: []BundleConfigurator{
+			{
+				FilePath: fmt.Sprintf("%s/react_ssr.map.js", b.ssr.PageOutputDir),
+				Page:     b.ssr.sourceMapDoc,
+			}, {
+				FilePath: fmt.Sprintf("%s/react_ssr.js", b.ssr.PageOutputDir),
+				Page:     b.ssr.initDoc,
+			},
+			{
+				FilePath: fmt.Sprintf("%s/%s.config.js", b.csr.PageOutputDir, settings.BundleKey),
+				Page:     page,
+			},
+		},
+	}, nil
 }
 
 func (b *ReactHydrate) Bundle(configuratorFilePath string, filePath string) error {
+	if strings.Contains(configuratorFilePath, "ssr") { // todo: avoid doing this.
+		return nil
+	}
+
 	return b.csr.Bundle(configuratorFilePath, filePath)
 }
 
-func (b *ReactHydrate) HydrationFile() []embedutils.FileReader {
-	return b.csr.HydrationFile()
+func (b *ReactHydrate) DoesSatisfyConstraints(page jsparse.JSDocument) bool {
+	return true
 }
 
-func NewReactHydrate(bundler *BaseBundler) *ReactHydrate {
+func (b *ReactHydrate) HydrationFile() []embedutils.FileReader {
+	files, err := embedFiles.ReadDir("embed")
+	if err != nil {
+		return nil
+	}
+	u := []embedutils.FileReader{}
+	for _, file := range files {
+		if strings.Contains(file.Name(), "react_hydrate.go") {
+			u = append(u, &embedFileReader{fileName: file.Name()})
+			continue
+		}
+		if strings.Contains(file.Name(), "react_ssr.go") {
+			u = append(u, &embedFileReader{fileName: file.Name()})
+			continue
+		}
+		if strings.Contains(file.Name(), "pb.go") {
+			u = append(u, &embedFileReader{fileName: file.Name()})
+		}
+	}
+	return u
+}
+
+func NewReactHydrate(bundler *BaseBundler) JSWebWrapper {
 	return &ReactHydrate{
 		csr: NewReactCSR(bundler),
+		ssr: NewReactSSR(&NewReactSSROpts{
+			Bundler:      bundler,
+			SourceMapDoc: jsparse.NewEmptyDocument(),
+			InitDoc:      jsparse.NewEmptyDocument(),
+		}),
 	}
 }

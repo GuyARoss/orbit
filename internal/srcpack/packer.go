@@ -77,7 +77,7 @@ func (s *JSPacker) PackMany(pages []string) (PackedComponentList, error) {
 				})
 				return nil
 			}
-			return page.WebWrapper().Stats
+			return page.WebWrapper().Stats()
 		})
 	}
 
@@ -170,7 +170,7 @@ func (l *PackedComponentList) RepackMany(logger log.Logger) error {
 				})
 			}
 
-			return comp.WebWrapper().Stats
+			return comp.WebWrapper().Stats()
 		})
 	}
 

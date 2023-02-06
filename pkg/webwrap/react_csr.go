@@ -136,7 +136,7 @@ func (b *ReactCSR) Setup(ctx context.Context, settings *BundleOpts) (*BundledRes
 	})`, bundleFilePath, string(b.Mode), outputFileName))
 
 	return &BundledResource{
-		BundleFilePath: bundleFilePath,
+		BundleOpFileDescriptor: map[string]string{"normal": bundleFilePath},
 		Configurators: []BundleConfigurator{
 			{
 				FilePath: fmt.Sprintf("%s/%s.config.js", b.PageOutputDir, settings.BundleKey),

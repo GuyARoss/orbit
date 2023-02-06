@@ -19,7 +19,6 @@ import (
 	"strings"
 
 	"github.com/GuyARoss/orbit/pkg/embedutils"
-	"github.com/GuyARoss/orbit/pkg/experiments"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/log"
 )
@@ -27,12 +26,13 @@ import (
 type JSWebWrapper interface {
 	RequiredBodyDOMElements(context.Context, *CacheDOMOpts) []string
 	Setup(context.Context, *BundleOpts) (*BundledResource, error)
-	Apply(jsparse.JSDocument) (jsparse.JSDocument, error)
+	Apply(jsparse.JSDocument) (map[string]jsparse.JSDocument, error)
 	Version() string
 	Stats() *WrapStats
 	Bundle(configuratorFile string, originalFilePath string) error
 	HydrationFile() []embedutils.FileReader
 	VerifyRequirements() error
+	DoesSatisfyConstraints(jsparse.JSDocument) bool
 }
 
 type WrapStats struct {
@@ -54,46 +54,45 @@ func NewJSWrapGroup(wrappers []JSWebWrapper, stats *WrapStats) *JSWrapGroup {
 
 type JSWebWrapperList map[string]JSWebWrapper
 
-func (j JSWebWrapperList) FindAll(page jsparse.JSDocument) *JSWrapGroup {
-	if page.Extension() == "jsx" && page.DefaultExport() != nil {
-		if experiments.GlobalExperimentalFeatures.PreferSSR {
-			return NewJSWrapGroup([]JSWebWrapper{j["react_ssr"], j["react_hydrate"]}, &WrapStats{
-				WebVersion: "react",
-				Bundler:    fmt.Sprintf("ssr + %s", j["react_hydrate"].Stats().Bundler),
-			})
-			// return NewJSWrapGroup([]JSWebWrapper{j["react_hydrate"]}, &WrapStats{
-			// 	WebVersion: "react",
-			// 	Bundler:    fmt.Sprintf("blaah"),
-			// })
-		} else {
-			return NewJSWrapGroup([]JSWebWrapper{j["react_csr"]}, &WrapStats{
-				WebVersion: "react",
-				Bundler:    "webpack",
-			})
+// @@ find better name "FindAll"
+// func (j JSWebWrapperList) FindAll(page jsparse.JSDocument) *JSWrapGroup {
+// 	if page.Extension() == "jsx" && page.DefaultExport() != nil {
+// 		if experiments.GlobalExperimentalFeatures.PreferSSR {
+// 			return NewJSWrapGroup([]JSWebWrapper{j["react_ssr"], j["react_hydrate"]}, &WrapStats{
+// 				WebVersion: "react",
+// 				Bundler:    fmt.Sprintf("ssr + %s", j["react_hydrate"].Stats().Bundler),
+// 			})
+// 			// return NewJSWrapGroup([]JSWebWrapper{j["react_hydrate"]}, &WrapStats{
+// 			// 	WebVersion: "react",
+// 			// 	Bundler:    fmt.Sprintf("blaah"),
+// 			// })
+// 		} else {
+// 			return NewJSWrapGroup([]JSWebWrapper{j["react_csr"]}, &WrapStats{
+// 				WebVersion: "react",
+// 				Bundler:    "webpack",
+// 			})
+// 		}
+// 	}
+
+// 	return NewJSWrapGroup([]JSWebWrapper{j["javascript"]}, &WrapStats{
+// 		WebVersion: "javascript",
+// 		Bundler:    "webpack",
+// 	})
+// }
+
+func (j JSWebWrapperList) FindFirst(page jsparse.JSDocument) JSWebWrapper {
+	for _, r := range j {
+		if r.DoesSatisfyConstraints(page) {
+			return r
 		}
 	}
 
-	return NewJSWrapGroup([]JSWebWrapper{j["javascript"]}, &WrapStats{
-		WebVersion: "javascript",
-		Bundler:    "webpack",
-	})
+	return nil
 }
 
 func NewActiveMap(bundler *BaseBundler) JSWebWrapperList {
-	sourcedoc := jsparse.NewEmptyDocument()
-	initdoc := jsparse.NewEmptyDocument()
-
 	baseList := map[string]JSWebWrapper{
-		"javascript": &JavascriptWrapper{
-			BaseBundler: bundler,
-		},
-		"react_ssr": NewReactSSR(&NewReactSSROpts{
-			Bundler:      bundler,
-			SourceMapDoc: sourcedoc,
-			InitDoc:      initdoc,
-		}),
-		"react_csr":     NewReactCSR(bundler),
-		"react_hydrate": NewReactHydrate(bundler),
+		"react": NewReactHydrate(bundler),
 	}
 
 	return baseList
@@ -147,8 +146,8 @@ type BundleConfigurator struct {
 }
 
 type BundledResource struct {
-	Configurators  []BundleConfigurator
-	BundleFilePath string
+	Configurators          []BundleConfigurator
+	BundleOpFileDescriptor map[string]string
 }
 
 const (

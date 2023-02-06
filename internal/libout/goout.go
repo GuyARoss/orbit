@@ -269,35 +269,20 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 
 	out.WriteString("var wrapDocRender = map[PageRender]*DocumentRenderer{\n")
 	for _, p := range bg.pages {
-
-		renderVersions := []string{}
-		for _, w := range p.wrapVersions {
-			// not every wrapper uses a method of processing, so we omit it in the case it that it does not.
-			if bg.wrapDocRender[w] == nil || len(bg.wrapDocRender[w]) == 0 {
-				continue
-			}
-
-			renderVersions = append(renderVersions, w)
+		// since all of the the valid bundle names can only be refereed to "pages"
+		// we ensure that page does not already exist on the string
+		if !strings.Contains(p.name, "Page") {
+			p.name = fmt.Sprintf("%sPage", p.name)
 		}
 
-		if len(renderVersions) > 0 {
-			// since all of the the valid bundle names can only be refereed to "pages"
-			// we ensure that page does not already exist on the string
-			if !strings.Contains(p.name, "Page") {
-				p.name = fmt.Sprintf("%sPage", p.name)
-			}
-
-			versionsStr := strings.Join(renderVersions, ",")
-
-			out.WriteString(fmt.Sprintf(`	%s: {fn: []RenderFunction{%s}, version: []string{"%s"}},`, p.name, versionsStr, versionsStr))
-			out.WriteString("\n")
-		}
+		out.WriteString(fmt.Sprintf(`	%s: {fn: %s, version: []string{"%s"}},`, p.name, p.wrapVersion, p.wrapVersion))
+		out.WriteString("\n")
 	}
 	out.WriteString("}\n")
 
 	out.WriteString(`
 type DocumentRenderer struct {
-	fn []RenderFunction
+	fn RenderFunction
 	version []string
 }`)
 
@@ -354,12 +339,10 @@ type DocumentRenderer struct {
 	out.WriteString("\nvar pageDependencies = map[PageRender][]string{\n")
 
 	for _, p := range bg.pages {
-		out.WriteString(fmt.Sprintf(`	%s: []string{`, p.name))
-		for _, version := range p.wrapVersions {
-			for _, s := range bg.componentBodyMap[version] {
-				out.WriteString(fmt.Sprintf("`%s`,", s))
-				out.WriteString("\n")
-			}
+		out.WriteString(fmt.Sprintf(`	%s: {`, p.name))
+		for _, s := range bg.componentBodyMap[p.wrapVersion] {
+			out.WriteString(fmt.Sprintf("`%s`,", s))
+			out.WriteString("\n")
 		}
 		out.WriteString("},")
 		out.WriteString("\n")
