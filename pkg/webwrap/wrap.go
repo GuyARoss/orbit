@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/GuyARoss/orbit/pkg/embedutils"
+	"github.com/GuyARoss/orbit/pkg/experiments"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/log"
 )
@@ -53,8 +54,17 @@ func (j JSWebWrapperList) FindFirst(page jsparse.JSDocument) JSWebWrapper {
 }
 
 func NewActiveMap(bundler *BaseBundler) JSWebWrapperList {
+	if experiments.GlobalExperimentalFeatures.PreferSSR {
+		return []JSWebWrapper{
+			NewReactHydrate(bundler),
+			&JavascriptWrap{
+				BaseBundler: bundler,
+			},
+		}
+	}
+
 	return []JSWebWrapper{
-		NewReactHydrate(bundler),
+		NewReactCSR(bundler),
 		&JavascriptWrap{
 			BaseBundler: bundler,
 		},

@@ -27,7 +27,7 @@ type ReactCSR struct {
 var ErrComponentExport = errors.New("prefer capitalization for jsx components")
 var ErrInvalidComponent = errors.New("invalid jsx component")
 
-func (s *ReactCSR) Apply(page jsparse.JSDocument) (jsparse.JSDocument, error) {
+func (s *ReactCSR) Apply(page jsparse.JSDocument) (map[string]jsparse.JSDocument, error) {
 	if len(string(page.Name())) == 0 {
 		return nil, ErrInvalidComponent
 	}
@@ -47,7 +47,7 @@ func (s *ReactCSR) Apply(page jsparse.JSDocument) (jsparse.JSDocument, error) {
 		page.Name(), page.Key()),
 	)
 
-	return page, nil
+	return map[string]jsparse.JSDocument{"normal": page}, nil
 }
 
 func (r *ReactCSR) VerifyRequirements() error {
@@ -181,6 +181,10 @@ func (b *ReactCSR) HydrationFile() []embedutils.FileReader {
 		}
 	}
 	return nil
+}
+
+func (b *ReactCSR) DoesSatisfyConstraints(page jsparse.JSDocument) bool {
+	return page.Extension() == "jsx" && page.DefaultExport() != nil
 }
 
 func NewReactCSR(bundler *BaseBundler) *ReactCSR {
