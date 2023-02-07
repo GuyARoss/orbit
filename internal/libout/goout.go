@@ -228,7 +228,7 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 	sort.Sort(bg.pages)
 
 	for _, p := range bg.pages {
-		// since all of the the valid bundle names can only be refererred to "pages"
+		// since all of the the valid bundle names can only be referred to "pages"
 		// we ensure that page does not already exist on the string
 		if !strings.Contains(p.name, "Page") {
 			p.name = fmt.Sprintf("%sPage", p.name)
@@ -252,7 +252,6 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 	out.WriteString("var staticResourceMap = map[PageRender]bool{\n")
 
 	for _, p := range bg.pages {
-
 		staticResourceStr := "false"
 		if p.isStaticResource {
 			staticResourceStr = "true"
@@ -285,20 +284,6 @@ type DocumentRenderer struct {
 	fn RenderFunction
 	version string
 }`)
-
-	// for rd, v := range bg.componentBodyMap {
-	// 	out.WriteString("\n")
-	// 	out.WriteString(fmt.Sprintf(`var %s_bodywrap = []string{`, rd))
-	// 	out.WriteString("\n")
-
-	// 	for _, b := range v {
-	// 		out.WriteString(fmt.Sprintf("`%s`,", b))
-	// 		out.WriteString("\n")
-	// 	}
-
-	// 	out.WriteString("}")
-	// 	out.WriteString("\n")
-	// }
 
 	if len(bg.BaseBundleOut) > 0 {
 		out.WriteString("\n")

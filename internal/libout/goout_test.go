@@ -6,6 +6,8 @@ package libout
 
 import (
 	"testing"
+
+	"github.com/GuyARoss/orbit/pkg/embedutils"
 )
 
 func TestMergeImports(t *testing.T) {
@@ -113,5 +115,36 @@ func TestGoParsedFileSerialize(t *testing.T) {
 	o := p.Serialize()
 	if o != expected {
 		t.Errorf("expected '%s' got '%s'", expected, o)
+	}
+}
+
+func TestEnvFile(t *testing.T) {
+	f := &GOLibout{}
+	loboutFile, err := f.EnvFile(&BundleGroup{
+		pages: []*page{
+			{
+				name: "SomePage",
+			},
+			{
+				name: "SomeSecondPage",
+			},
+		},
+		wrapDocRender: make(map[string][]embedutils.FileReader),
+		BundleGroupOpts: &BundleGroupOpts{
+			BaseBundleOut: "SomeDirThing",
+			PackageName:   "TestPackage",
+			PublicDir:     "/directory/here",
+			HotReloadPort: 2012,
+		},
+	})
+	if err != nil {
+		t.Error("did not expect error", err)
+		return
+	}
+
+	got := len(loboutFile.(*GOLibFile).Body)
+	if got != 992 {
+		t.Errorf("got '%d', expected '%d'", got, 992)
+		return
 	}
 }
