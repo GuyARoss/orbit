@@ -9,11 +9,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GuyARoss/orbit/pkg/embedutils"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 )
 
-type ReactSSR struct {
+type PartialWrapReactSSR struct {
 	*BaseWebWrapper
 	*BaseBundler
 	bundlerProcessStarted bool
@@ -28,16 +27,12 @@ type NewReactSSROpts struct {
 	Bundler      *BaseBundler
 }
 
-func (r *ReactSSR) RequiredBodyDOMElements(context.Context, *CacheDOMOpts) []string {
-	return []string{}
-}
-
-func (r *ReactSSR) VerifyRequirements() error {
+func (r *PartialWrapReactSSR) VerifyRequirements() error {
 	// TODO: verify node is installed & node_modules path exists
 	return nil
 }
 
-func (r *ReactSSR) Setup(ctx context.Context, settings *BundleOpts) (*BundledResource, error) {
+func (r *PartialWrapReactSSR) Setup(ctx context.Context, settings *BundleOpts) (*BundledResource, error) {
 	bundleFilePath := fmt.Sprintf("%s/%s.ssr.js", r.PageOutputDir, settings.BundleKey)
 	r.sourceMapDoc.AddImport(&jsparse.ImportDependency{
 		FinalStatement: fmt.Sprintf("import %s from '%s'", settings.Name, fmt.Sprintf("./%s.ssr.js", settings.BundleKey)),
@@ -65,7 +60,7 @@ func (r *ReactSSR) Setup(ctx context.Context, settings *BundleOpts) (*BundledRes
 		}}, nil
 }
 
-func (r *ReactSSR) Apply(doc jsparse.JSDocument) (jsparse.JSDocument, error) {
+func (r *PartialWrapReactSSR) Apply(doc jsparse.JSDocument) (jsparse.JSDocument, error) {
 	doc.AddImport(&jsparse.ImportDependency{
 		FinalStatement: "import React from 'react'",
 		Type:           jsparse.ModuleImportType,
@@ -79,42 +74,7 @@ func (r *ReactSSR) Apply(doc jsparse.JSDocument) (jsparse.JSDocument, error) {
 	return doc, nil
 }
 
-func (r *ReactSSR) Version() string {
-	return "reactSSR"
-}
-
-func (s *ReactSSR) Stats() *WrapStats {
-	return &WrapStats{
-		WebVersion: "react",
-		Bundler:    "ssr",
-	}
-}
-
-func (r *ReactSSR) Bundle(configuratorFilePath string, filePath string) error {
-	return nil
-}
-
-func (r *ReactSSR) HydrationFile() []embedutils.FileReader {
-	files, err := embedFiles.ReadDir("embed")
-	if err != nil {
-		return nil
-	}
-
-	u := []embedutils.FileReader{}
-
-	for _, file := range files {
-		if strings.Contains(file.Name(), "react_ssr.go") {
-			u = append(u, &embedFileReader{fileName: file.Name()})
-			continue
-		}
-		if strings.Contains(file.Name(), "pb.go") {
-			u = append(u, &embedFileReader{fileName: file.Name()})
-		}
-	}
-	return u
-}
-
-func NewReactSSR(opts *NewReactSSROpts) *ReactSSR {
+func NewReactSSRPartial(opts *NewReactSSROpts) *PartialWrapReactSSR {
 	opts.SourceMapDoc.AddImport(&jsparse.ImportDependency{
 		FinalStatement: "import React from 'react'",
 		Type:           jsparse.ModuleImportType,
@@ -185,7 +145,7 @@ func NewReactSSR(opts *NewReactSSROpts) *ReactSSR {
 	}
 `)
 
-	return &ReactSSR{
+	return &PartialWrapReactSSR{
 		sourceMapDoc: opts.SourceMapDoc,
 		initDoc:      opts.InitDoc,
 		BaseBundler:  opts.Bundler,

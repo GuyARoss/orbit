@@ -24,12 +24,13 @@ func (m *MockWrapper) VerifyRequirements() error {
 	return nil
 }
 
-func (m *MockWrapper) Apply(doc jsparse.JSDocument) (jsparse.JSDocument, error) {
-	return &jsparsemock.MockJsDocument{}, nil
+func (m *MockWrapper) Apply(doc jsparse.JSDocument) (map[string]jsparse.JSDocument, error) {
+	f := map[string]jsparse.JSDocument{"normal": &jsparsemock.MockJsDocument{}}
+	return f, nil
 }
 
-func (m *MockWrapper) DoesSatisfyConstraints(p string) bool { return m.Satisfy }
-func (m *MockWrapper) Version() string                      { return "" }
+func (m *MockWrapper) DoesSatisfyConstraints(doc jsparse.JSDocument) bool { return m.Satisfy }
+func (m *MockWrapper) Version() string                                    { return "" }
 func (m *MockWrapper) RequiredBodyDOMElements(ctx context.Context, opts *webwrap.CacheDOMOpts) []string {
 	return nil
 }

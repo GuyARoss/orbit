@@ -12,7 +12,7 @@ import (
 
 type ReactHydrate struct {
 	csr *ReactCSR
-	ssr *ReactSSR
+	ssr *PartialWrapReactSSR
 }
 
 func (s *ReactHydrate) Apply(page jsparse.JSDocument) (map[string]jsparse.JSDocument, error) {
@@ -146,7 +146,7 @@ func (b *ReactHydrate) Bundle(configuratorFilePath string, filePath string) erro
 }
 
 func (b *ReactHydrate) DoesSatisfyConstraints(page jsparse.JSDocument) bool {
-	return true
+	return page.Extension() == "jsx" && page.DefaultExport() != nil
 }
 
 func (b *ReactHydrate) HydrationFile() []embedutils.FileReader {
@@ -174,7 +174,7 @@ func (b *ReactHydrate) HydrationFile() []embedutils.FileReader {
 func NewReactHydrate(bundler *BaseBundler) JSWebWrapper {
 	return &ReactHydrate{
 		csr: NewReactCSR(bundler),
-		ssr: NewReactSSR(&NewReactSSROpts{
+		ssr: NewReactSSRPartial(&NewReactSSROpts{
 			Bundler:      bundler,
 			SourceMapDoc: jsparse.NewEmptyDocument(),
 			InitDoc:      jsparse.NewEmptyDocument(),

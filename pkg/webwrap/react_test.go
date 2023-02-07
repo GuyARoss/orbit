@@ -20,7 +20,7 @@ func TestApplyReact_Error(t *testing.T) {
 		{mock.NewMockJSDocument("lowercaseThing", "jsx", "test"), ErrComponentExport},
 	}
 
-	r := &ReactWebWrapper{}
+	r := &ReactCSR{}
 
 	for i, d := range tt {
 		_, err := r.Apply(d.doc)
@@ -32,7 +32,7 @@ func TestApplyReact_Error(t *testing.T) {
 }
 
 func TestApplyReact(t *testing.T) {
-	r := &ReactWebWrapper{}
+	r := &ReactCSR{}
 
 	p, err := r.Apply(mock.NewMockJSDocument("Thing", "jsx", "test"))
 	if err != nil {

@@ -24,15 +24,15 @@ import (
 )
 
 type JSWebWrapper interface {
-	RequiredBodyDOMElements(context.Context, *CacheDOMOpts) []string
-	Setup(context.Context, *BundleOpts) (*BundledResource, error)
 	Apply(jsparse.JSDocument) (map[string]jsparse.JSDocument, error)
-	Version() string
-	Stats() *WrapStats
 	Bundle(configuratorFile string, originalFilePath string) error
-	HydrationFile() []embedutils.FileReader
-	VerifyRequirements() error
 	DoesSatisfyConstraints(jsparse.JSDocument) bool
+	RequiredBodyDOMElements(context.Context, *CacheDOMOpts) []string
+	HydrationFile() []embedutils.FileReader
+	Setup(context.Context, *BundleOpts) (*BundledResource, error)
+	Stats() *WrapStats
+	VerifyRequirements() error
+	Version() string
 }
 
 type WrapStats struct {
@@ -40,45 +40,7 @@ type WrapStats struct {
 	Bundler    string
 }
 
-type JSWrapGroup struct {
-	Wrappers []JSWebWrapper
-	Stats    *WrapStats
-}
-
-func NewJSWrapGroup(wrappers []JSWebWrapper, stats *WrapStats) *JSWrapGroup {
-	return &JSWrapGroup{
-		Wrappers: wrappers,
-		Stats:    stats,
-	}
-}
-
-type JSWebWrapperList map[string]JSWebWrapper
-
-// @@ find better name "FindAll"
-// func (j JSWebWrapperList) FindAll(page jsparse.JSDocument) *JSWrapGroup {
-// 	if page.Extension() == "jsx" && page.DefaultExport() != nil {
-// 		if experiments.GlobalExperimentalFeatures.PreferSSR {
-// 			return NewJSWrapGroup([]JSWebWrapper{j["react_ssr"], j["react_hydrate"]}, &WrapStats{
-// 				WebVersion: "react",
-// 				Bundler:    fmt.Sprintf("ssr + %s", j["react_hydrate"].Stats().Bundler),
-// 			})
-// 			// return NewJSWrapGroup([]JSWebWrapper{j["react_hydrate"]}, &WrapStats{
-// 			// 	WebVersion: "react",
-// 			// 	Bundler:    fmt.Sprintf("blaah"),
-// 			// })
-// 		} else {
-// 			return NewJSWrapGroup([]JSWebWrapper{j["react_csr"]}, &WrapStats{
-// 				WebVersion: "react",
-// 				Bundler:    "webpack",
-// 			})
-// 		}
-// 	}
-
-// 	return NewJSWrapGroup([]JSWebWrapper{j["javascript"]}, &WrapStats{
-// 		WebVersion: "javascript",
-// 		Bundler:    "webpack",
-// 	})
-// }
+type JSWebWrapperList []JSWebWrapper
 
 func (j JSWebWrapperList) FindFirst(page jsparse.JSDocument) JSWebWrapper {
 	for _, r := range j {
@@ -91,12 +53,12 @@ func (j JSWebWrapperList) FindFirst(page jsparse.JSDocument) JSWebWrapper {
 }
 
 func NewActiveMap(bundler *BaseBundler) JSWebWrapperList {
-
-	baseList := map[string]JSWebWrapper{
-		"react": NewReactHydrate(bundler),
+	return []JSWebWrapper{
+		NewReactHydrate(bundler),
+		&JavascriptWrap{
+			BaseBundler: bundler,
+		},
 	}
-
-	return baseList
 }
 
 func (l JSWebWrapperList) VerifyAll() error {

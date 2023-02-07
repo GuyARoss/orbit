@@ -31,7 +31,7 @@ func (opts *StaticBuild) createStaticContext(components srcpack.PackedComponentL
 	bundlePaths := make(map[ewrap.PageRender]string)
 
 	if opts.SkipResourceCheck {
-		ssrWrapMethod := webwrap.NewReactSSR(&webwrap.NewReactSSROpts{
+		ssrWrapMethod := webwrap.NewReactSSRPartial(&webwrap.NewReactSSROpts{
 			Bundler: &webwrap.BaseBundler{
 				Mode:           webwrap.DevelopmentBundle,
 				WebDir:         opts.buildOpts.WebDir,

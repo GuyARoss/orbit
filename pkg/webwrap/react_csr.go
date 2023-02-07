@@ -28,6 +28,10 @@ var ErrComponentExport = errors.New("prefer capitalization for jsx components")
 var ErrInvalidComponent = errors.New("invalid jsx component")
 
 func (s *ReactCSR) Apply(page jsparse.JSDocument) (jsparse.JSDocument, error) {
+	if len(string(page.Name())) == 0 {
+		return nil, ErrInvalidComponent
+	}
+
 	// react components should always be capitalized.
 	if string(page.Name()[0]) != strings.ToUpper(string(page.Name()[0])) {
 		return nil, ErrComponentExport

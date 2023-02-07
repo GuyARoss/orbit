@@ -9,8 +9,11 @@ example:
 license:
 	python3 ./scripts/license.py write
 
-test:
+gotest:
 	go test `go list ./... | grep -v examples`
+
+test:
+	make gotest
 
 	echo 'running integration tests'
 	make example

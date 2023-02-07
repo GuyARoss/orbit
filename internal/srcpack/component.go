@@ -66,7 +66,6 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, e
 	if err != nil {
 		return nil, err
 	}
-	initialPage := initPage.Clone()
 
 	if initPage == nil || initPage.DefaultExport() == nil || initPage.DefaultExport().Name == "" {
 		return nil, ErrComponentNotExported
@@ -99,7 +98,7 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, e
 		return nil, err
 	}
 
-	wrapAppliedPages, err := wrapMethod.Apply(initPage)
+	wrapAppliedPages, err := wrapMethod.Apply(initPage.Clone())
 	if err != nil {
 		return nil, err
 	}
@@ -129,16 +128,16 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, e
 	}
 
 	return &Component{
-		name:             initialPage.Name(),
+		name:             initPage.Name(),
 		bundleKey:        opts.DefaultKey,
-		dependencies:     initialPage.Imports(),
+		dependencies:     initPage.Imports(),
 		originalFilePath: opts.FilePath,
 		m:                &sync.Mutex{},
 		webWrapper:       wrapMethod,
 		JsParser:         opts.JSParser,
 		WebDir:           opts.WebDir,
-		isStaticResource: len(initialPage.DefaultExport().Args) == 0,
-		document:         initialPage,
+		isStaticResource: len(initPage.DefaultExport().Args) == 0,
+		document:         initPage,
 	}, nil
 }
 

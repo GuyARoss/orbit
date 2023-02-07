@@ -42,7 +42,7 @@ def test_does_application_run_successfully(request_endpoint) -> bool:
     f = requests.get(request_endpoint[0])
 
     assert f.status_code == 200
-    assert "orbit-integration-applied" not in f.text
+    assert "orbit-integration-applied" in f.text
 
 
 @pytest.fixture(scope="module")

@@ -7,6 +7,7 @@ package webwrap_test
 import (
 	"testing"
 
+	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/webwrap"
 	"github.com/GuyARoss/orbit/pkg/webwrap/mock"
 )
@@ -14,7 +15,9 @@ import (
 func TestFirstMatch(t *testing.T) {
 	l := webwrap.JSWebWrapperList([]webwrap.JSWebWrapper{&mock.MockWrapper{true, false}})
 
-	if l.FirstMatch("tst") == nil {
+	doc := jsparse.NewEmptyDocument()
+
+	if l.FindFirst(doc) == nil {
 		t.Errorf("expected match ")
 	}
 }
