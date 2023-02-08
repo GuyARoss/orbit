@@ -41,6 +41,9 @@ func (m *MockWrapper) Stats() *webwrap.WrapStats {
 
 func (b *MockWrapper) Setup(context.Context, *webwrap.BundleOpts) (*webwrap.BundledResource, error) {
 	return &webwrap.BundledResource{
+		BundleOpFileDescriptor: map[string]string{
+			"normal": "test",
+		},
 		Configurators: []webwrap.BundleConfigurator{
 			{Page: mock.NewMockJSDocument("test", "jsx", "test"), FilePath: ""},
 		},

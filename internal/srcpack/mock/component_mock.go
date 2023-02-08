@@ -17,6 +17,7 @@ type MockPackedComponent struct {
 	Depends     []*jsparse.ImportDependency
 	FilePath    string
 	Key         string
+	RealName    string
 }
 
 func (m *MockPackedComponent) Repack() error {
@@ -31,7 +32,7 @@ func (m *MockPackedComponent) RepackForWaitGroup(wg *sync.WaitGroup) error {
 func (m *MockPackedComponent) OriginalFilePath() string                  { return m.FilePath }
 func (m *MockPackedComponent) Dependencies() []*jsparse.ImportDependency { return m.Depends }
 func (m *MockPackedComponent) BundleKey() string                         { return m.Key }
-func (m *MockPackedComponent) Name() string                              { return "" }
+func (m *MockPackedComponent) Name() string                              { return m.RealName }
 func (m *MockPackedComponent) WebWrapper() webwrap.JSWebWrapper          { return &mock.MockWrapper{} }
 func (m *MockPackedComponent) JsDocument() jsparse.JSDocument {
 	return jsparse.NewEmptyDocument()

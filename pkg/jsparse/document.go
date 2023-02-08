@@ -382,7 +382,6 @@ func (p *DefaultJSDocument) Extension() string            { return p.extension }
 
 func (p *DefaultJSDocument) Key() string {
 	if p.defaultExport == nil {
-		// @@ return error that a key is not present
 		return ""
 	}
 

@@ -296,3 +296,12 @@ func TestJsDocSwitchSerialize(t *testing.T) {
 		t.Errorf("expected '%s' got '%s'", expected, got)
 	}
 }
+
+func TestNewImportantDocument(t *testing.T) {
+	d := NewImportDocument(&ImportDependency{}, &ImportDependency{})
+
+	if len(d.imports) != 2 {
+		t.Errorf("import length mismatch got '%d' expected '%d' ", len(d.imports), 2)
+		return
+	}
+}

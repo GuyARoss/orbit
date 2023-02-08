@@ -256,7 +256,6 @@ func (m PackComponentFileMap) Find(key string) PackComponent {
 
 // Find finds and returns the the first component with provided bundle key
 func (m PackComponentFileMap) FindBundleKey(key string) PackComponent {
-	// @@todo(guy): optimize this
 	for _, c := range m {
 		if c.BundleKey() == key {
 			return c
