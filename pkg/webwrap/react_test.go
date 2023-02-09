@@ -39,7 +39,7 @@ func TestApplyReact(t *testing.T) {
 		t.Error("should not expect error during valid jsx parsing")
 	}
 
-	if p.Name() != "Thing" {
-		t.Errorf("expected name 'Thing' got '%s'", p.Name())
+	if p["normal"].Name() != "Thing" {
+		t.Errorf("expected name 'Thing' got '%s'", p["normal"].Name())
 	}
 }

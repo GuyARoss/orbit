@@ -1,5 +1,6 @@
 import subprocess
 
+
 def clone_repo(clone_path: str, tag: str) -> str:
     if tag == "latest":
         subprocess.getoutputs([f"git clone {clone_path}"])
@@ -10,9 +11,7 @@ def clone_repo(clone_path: str, tag: str) -> str:
 
         subprocess.getoutput([f"git checkout {commit}"])
     else:
-        subprocess.getoutput(
-            [f"git clone --branch {tag} {clone_path}"]
-        )
+        subprocess.getoutput([f"git clone --branch {tag} {clone_path}"])
 
     path_split = clone_path.split("/")
     return path_split[len(path_split) - 1]

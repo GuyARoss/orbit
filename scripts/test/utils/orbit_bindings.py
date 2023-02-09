@@ -27,6 +27,7 @@ def e2e_measure_build_cmd(samples=3) -> Dict[str, int]:
         "avg_build_time": sum_of_times / samples,
     }
 
+
 def link_examples():
     try:
         subprocess.check_output([f"go build -o ./orbit"], shell=True)
