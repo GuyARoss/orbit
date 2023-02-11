@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 )
-func reactManifestFallback(ctx context.Context, bundleKey string, data []byte, doc *htmlDoc) (*htmlDoc, context.Context) {
+func reactCSR(ctx context.Context, bundleKey string, data []byte, doc *htmlDoc) (*htmlDoc, context.Context) {
 	if v := ctx.Value(OrbitManifest); v == nil {
 		doc.Head = append(doc.Head, fmt.Sprintf(`<script id="orbit_manifest" type="application/json">%s</script>`, data))
 		ctx = context.WithValue(ctx, OrbitManifest, true)
 	}
 	doc.Body = append(doc.Body, fmt.Sprintf(`<script class="orbit_bk" src="/p/%s.js"></script>`, bundleKey))
 	copy := doc.Body
-	// the doc body is adjusted +1 indicies to insert the react frame at the front of the list
+	// the doc body is adjusted +1 indices to insert the react frame at the front of the list
 	// this is due to react requiring the div id to exist before the necessary javascript is loaded in
 	doc.Body = make([]string, len(doc.Body)+1)
 	doc.Body[0] = fmt.Sprintf(`<div id="%s_react_frame"></div>`, bundleKey)
@@ -25,20 +25,16 @@ var staticResourceMap = map[PageRender]bool{
 	ExamplePage: false,
 }
 var serverStartupTasks = []func(){}
+type RenderFunction func(context.Context, string, []byte, *htmlDoc) (*htmlDoc, context.Context)
 var wrapDocRender = map[PageRender]*DocumentRenderer{
-	ExampleTwoPage: {fn: reactManifestFallback, version: "reactManifestFallback"},
-	ExamplePage: {fn: reactManifestFallback, version: "reactManifestFallback"},
+	ExampleTwoPage: {fn: reactCSR, version: "reactCSR"},
+	ExamplePage: {fn: reactCSR, version: "reactCSR"},
 }
 
 type DocumentRenderer struct {
-	fn func(context.Context, string, []byte, *htmlDoc) (*htmlDoc, context.Context)
+	fn RenderFunction
 	version string
 }
-var reactManifestFallback_bodywrap = []string{
-`<script src="/p/fc38086145547d465be97fec2e412a16.js"></script>`,
-`<script src="/p/a63649d90703a7b09f22aed8d310be5b.js"></script>`,
-}
-
 var bundleDir string = ".orbit/dist"
 
 var publicDir string = "./public/index.html"
@@ -53,8 +49,12 @@ const (
 )
 
 var pageDependencies = map[PageRender][]string{
-	ExampleTwoPage: reactManifestFallback_bodywrap,
-	ExamplePage: reactManifestFallback_bodywrap,
+	ExampleTwoPage: {`<script src="/p/fc38086145547d465be97fec2e412a16.js"></script>`,
+`<script src="/p/a63649d90703a7b09f22aed8d310be5b.js"></script>`,
+},
+	ExamplePage: {`<script src="/p/fc38086145547d465be97fec2e412a16.js"></script>`,
+`<script src="/p/a63649d90703a7b09f22aed8d310be5b.js"></script>`,
+},
 }
 
 	

@@ -16,14 +16,14 @@ import (
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 )
 
-type JavascriptWrapper struct {
+type JavascriptWrap struct {
 	*BaseWebWrapper
 	*BaseBundler
 }
 
 const javascriptExtension string = "js"
 
-func (s *JavascriptWrapper) Apply(page jsparse.JSDocument) (jsparse.JSDocument, error) {
+func (s *JavascriptWrap) Apply(page jsparse.JSDocument) (map[string]jsparse.JSDocument, error) {
 	if page.Extension() != javascriptExtension { // @@todo bad pattern fix this
 		return nil, fmt.Errorf("invalid extension %s", page.Extension())
 	}
@@ -35,10 +35,10 @@ func (s *JavascriptWrapper) Apply(page jsparse.JSDocument) (jsparse.JSDocument, 
 		page.Name()),
 	)
 
-	return page, nil
+	return map[string]jsparse.JSDocument{"normal": page}, nil
 }
 
-func (b *JavascriptWrapper) VerifyRequirements() error {
+func (b *JavascriptWrap) VerifyRequirements() error {
 	webpackPath := fmt.Sprintf("%s%c%s%c%s", b.NodeModulesDir, os.PathSeparator, ".bin", os.PathSeparator, "webpack")
 
 	// due to a "bug" with windows, it has an issue with shebang cmds, so we prefer the webpack.js file instead.
@@ -54,28 +54,28 @@ func (b *JavascriptWrapper) VerifyRequirements() error {
 	return nil
 }
 
-func (s *JavascriptWrapper) DoesSatisfyConstraints(fileExtension string) bool {
-	return fileExtension == javascriptExtension
+func (s *JavascriptWrap) DoesSatisfyConstraints(page jsparse.JSDocument) bool {
+	return page.Extension() == javascriptExtension
 }
 
-func (s *JavascriptWrapper) Version() string {
+func (s *JavascriptWrap) Version() string {
 	return "javascriptWebpack"
 }
 
-func (s *JavascriptWrapper) Stats() *WrapStats {
+func (s *JavascriptWrap) Stats() *WrapStats {
 	return &WrapStats{
 		WebVersion: "javascript",
 		Bundler:    "webpack",
 	}
 }
 
-func (s *JavascriptWrapper) RequiredBodyDOMElements(ctx context.Context, cache *CacheDOMOpts) []string {
+func (s *JavascriptWrap) RequiredBodyDOMElements(ctx context.Context, cache *CacheDOMOpts) []string {
 	return []string{
 		`<script> const onLoadTasks = []; window.onload = (e) => { onLoadTasks.forEach(t => t(e))} </script>`,
 	}
 }
 
-func (b *JavascriptWrapper) Setup(ctx context.Context, settings *BundleOpts) (*BundledResource, error) {
+func (b *JavascriptWrap) Setup(ctx context.Context, settings *BundleOpts) (*BundledResource, error) {
 	page := jsparse.NewEmptyDocument()
 
 	page.AddImport(&jsparse.ImportDependency{
@@ -100,7 +100,7 @@ func (b *JavascriptWrapper) Setup(ctx context.Context, settings *BundleOpts) (*B
 	})`, bundleFilePath, string(b.Mode), outputFileName))
 
 	return &BundledResource{
-		BundleFilePath: bundleFilePath,
+		BundleOpFileDescriptor: map[string]string{"normal": bundleFilePath},
 		Configurators: []BundleConfigurator{
 			{
 				FilePath: fmt.Sprintf("%s/%s.config.js", b.PageOutputDir, settings.BundleKey),
@@ -110,7 +110,7 @@ func (b *JavascriptWrapper) Setup(ctx context.Context, settings *BundleOpts) (*B
 	}, nil
 }
 
-func (b *JavascriptWrapper) Bundle(configuratorFilePath string, filePath string) error {
+func (b *JavascriptWrap) Bundle(configuratorFilePath string, filePath string) error {
 	webpackPath := fmt.Sprintf("%s%c%s%c%s", b.NodeModulesDir, os.PathSeparator, ".bin", os.PathSeparator, "webpack")
 
 	// due to a "bug" with windows, it has an issue with shebang cmds, so we prefer the webpack.js file instead.
@@ -128,7 +128,7 @@ func (b *JavascriptWrapper) Bundle(configuratorFilePath string, filePath string)
 	return err
 }
 
-func (b *JavascriptWrapper) HydrationFile() []embedutils.FileReader {
+func (b *JavascriptWrap) HydrationFile() []embedutils.FileReader {
 	files, err := embedFiles.ReadDir("embed")
 	if err != nil {
 		return nil

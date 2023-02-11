@@ -90,3 +90,43 @@ func TestParsePath(t *testing.T) {
 		t.Errorf("expected '%s' got '%s'", expected, got)
 	}
 }
+
+func TestFindBundleKey(t *testing.T) {
+	m := PackComponentFileMap{
+		"test":    &Component{bundleKey: "something", name: "Working"},
+		"test123": &Component{bundleKey: "notsomething", name: "Broken"},
+	}
+
+	if m.FindBundleKey("something").Name() != "Working" {
+		t.Errorf("did not return correct component got '%s'", m.FindBundleKey("something").Name())
+		return
+	}
+
+	if m.FindBundleKey("do_not_exist") != nil {
+		t.Errorf("did not return correct component")
+		return
+	}
+}
+
+func TestRepack(t *testing.T) {
+	comp, err := NewComponent(context.TODO(), &NewComponentOpts{
+		FilePath:   "something.test",
+		WebDir:     "./webDir",
+		DefaultKey: "thing",
+		JSParser: &mock.MockJSParser{
+			Err:           nil,
+			ParseDocument: mock.NewMockJSDocument("test", "jsx", "test"),
+		},
+		JSWebWrappers: []webwrap.JSWebWrapper{&webwrapmock.MockWrapper{Satisfy: true, FailBundle: false}},
+	})
+	if err != nil {
+		t.Errorf("error should not be thrown '%s'", err)
+		return
+	}
+
+	err = comp.Repack()
+	if err != nil {
+		t.Errorf("error should not be thrown during repack '%s'", err)
+		return
+	}
+}

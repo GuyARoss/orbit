@@ -2,6 +2,7 @@ import signal
 import subprocess
 import os
 
+
 def terminate_pid_by_port(port: int) -> str:
     netstat = subprocess.getoutput(f"netstat -nlp | grep {port}")
 

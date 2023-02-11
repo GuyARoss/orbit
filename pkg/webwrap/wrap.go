@@ -25,15 +25,15 @@ import (
 )
 
 type JSWebWrapper interface {
-	RequiredBodyDOMElements(context.Context, *CacheDOMOpts) []string
-	Setup(context.Context, *BundleOpts) (*BundledResource, error)
-	Apply(jsparse.JSDocument) (jsparse.JSDocument, error)
-	DoesSatisfyConstraints(string) bool
-	Version() string
-	Stats() *WrapStats
+	Apply(jsparse.JSDocument) (map[string]jsparse.JSDocument, error)
 	Bundle(configuratorFile string, originalFilePath string) error
+	DoesSatisfyConstraints(jsparse.JSDocument) bool
+	RequiredBodyDOMElements(context.Context, *CacheDOMOpts) []string
 	HydrationFile() []embedutils.FileReader
+	Setup(context.Context, *BundleOpts) (*BundledResource, error)
+	Stats() *WrapStats
 	VerifyRequirements() error
+	Version() string
 }
 
 type WrapStats struct {
@@ -43,11 +43,10 @@ type WrapStats struct {
 
 type JSWebWrapperList []JSWebWrapper
 
-// FirstMatch finds the first js web wrapper in the currently list that satisfies the file extension constraints
-func (j *JSWebWrapperList) FirstMatch(fileExtension string) JSWebWrapper {
-	for _, f := range *j {
-		if f.DoesSatisfyConstraints(fileExtension) {
-			return f
+func (j JSWebWrapperList) FindFirst(page jsparse.JSDocument) JSWebWrapper {
+	for _, r := range j {
+		if r.DoesSatisfyConstraints(page) {
+			return r
 		}
 	}
 
@@ -55,26 +54,21 @@ func (j *JSWebWrapperList) FirstMatch(fileExtension string) JSWebWrapper {
 }
 
 func NewActiveMap(bundler *BaseBundler) JSWebWrapperList {
-	sourcedoc := jsparse.NewEmptyDocument()
-	initdoc := jsparse.NewEmptyDocument()
+	if experiments.GlobalExperimentalFeatures.PreferSSR {
+		return []JSWebWrapper{
+			NewReactHydrate(bundler),
+			&JavascriptWrap{
+				BaseBundler: bundler,
+			},
+		}
+	}
 
-	baseList := []JSWebWrapper{
-		&JavascriptWrapper{
+	return []JSWebWrapper{
+		NewReactCSR(bundler),
+		&JavascriptWrap{
 			BaseBundler: bundler,
 		},
 	}
-
-	if experiments.GlobalExperimentalFeatures.PreferSSR {
-		baseList = append(baseList, NewReactSSR(&NewReactSSROpts{
-			Bundler:      bundler,
-			SourceMapDoc: sourcedoc,
-			InitDoc:      initdoc,
-		}))
-	} else {
-		baseList = append(baseList, NewReactWebWrap(bundler))
-	}
-
-	return baseList
 }
 
 func (l JSWebWrapperList) VerifyAll() error {
@@ -125,8 +119,8 @@ type BundleConfigurator struct {
 }
 
 type BundledResource struct {
-	Configurators  []BundleConfigurator
-	BundleFilePath string
+	Configurators          []BundleConfigurator
+	BundleOpFileDescriptor map[string]string
 }
 
 const (

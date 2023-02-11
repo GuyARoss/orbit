@@ -228,7 +228,7 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 	sort.Sort(bg.pages)
 
 	for _, p := range bg.pages {
-		// since all of the the valid bundle names can only be refererred to "pages"
+		// since all of the the valid bundle names can only be referred to "pages"
 		// we ensure that page does not already exist on the string
 		if !strings.Contains(p.name, "Page") {
 			p.name = fmt.Sprintf("%sPage", p.name)
@@ -252,7 +252,6 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 	out.WriteString("var staticResourceMap = map[PageRender]bool{\n")
 
 	for _, p := range bg.pages {
-
 		staticResourceStr := "false"
 		if p.isStaticResource {
 			staticResourceStr = "true"
@@ -265,15 +264,11 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 	out.WriteString("}\n")
 
 	out.WriteString("var serverStartupTasks = []func(){}\n")
+	out.WriteString("type RenderFunction func(context.Context, string, []byte, *htmlDoc) (*htmlDoc, context.Context)\n")
 
 	out.WriteString("var wrapDocRender = map[PageRender]*DocumentRenderer{\n")
 	for _, p := range bg.pages {
-		// not every wrapper "needs" a method of processing, so we omit it in the case it doesnt
-		if bg.wrapDocRender[p.wrapVersion] == nil || len(bg.wrapDocRender[p.wrapVersion]) == 0 {
-			continue
-		}
-
-		// since all of the the valid bundle names can only be refererred to "pages"
+		// since all of the the valid bundle names can only be refereed to "pages"
 		// we ensure that page does not already exist on the string
 		if !strings.Contains(p.name, "Page") {
 			p.name = fmt.Sprintf("%sPage", p.name)
@@ -281,29 +276,14 @@ func (l *GOLibout) EnvFile(bg *BundleGroup) (LiboutFile, error) {
 
 		out.WriteString(fmt.Sprintf(`	%s: {fn: %s, version: "%s"},`, p.name, p.wrapVersion, p.wrapVersion))
 		out.WriteString("\n")
-
 	}
 	out.WriteString("}\n")
 
 	out.WriteString(`
 type DocumentRenderer struct {
-	fn func(context.Context, string, []byte, *htmlDoc) (*htmlDoc, context.Context)
+	fn RenderFunction
 	version string
 }`)
-
-	for rd, v := range bg.componentBodyMap {
-		out.WriteString("\n")
-		out.WriteString(fmt.Sprintf(`var %s_bodywrap = []string{`, rd))
-		out.WriteString("\n")
-
-		for _, b := range v {
-			out.WriteString(fmt.Sprintf("`%s`,", b))
-			out.WriteString("\n")
-		}
-
-		out.WriteString("}")
-		out.WriteString("\n")
-	}
 
 	if len(bg.BaseBundleOut) > 0 {
 		out.WriteString("\n")
@@ -344,12 +324,16 @@ type DocumentRenderer struct {
 	out.WriteString("\nvar pageDependencies = map[PageRender][]string{\n")
 
 	for _, p := range bg.pages {
-		out.WriteString(fmt.Sprintf(`	%s: %s_bodywrap,`, p.name, p.wrapVersion))
+		out.WriteString(fmt.Sprintf(`	%s: {`, p.name))
+		for _, s := range bg.componentBodyMap[p.wrapVersion] {
+			out.WriteString(fmt.Sprintf("`%s`,", s))
+			out.WriteString("\n")
+		}
+		out.WriteString("},")
 		out.WriteString("\n")
 	}
 
 	out.WriteString("}")
-
 	out.WriteString("\n")
 
 	out.WriteString(`

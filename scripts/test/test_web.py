@@ -38,11 +38,13 @@ def application(path, request_endpoint):
     terminate_pid_by_port(request_endpoint[1])
 
 
-def test_does_application_run_successfully(request_endpoint) -> bool:
+def test_does_csr_application_run_successfully(request_endpoint) -> bool:
     f = requests.get(request_endpoint[0])
 
     assert f.status_code == 200
-    assert "orbit-integration-applied" not in f.text
+
+    assert 'class="orbit_bk"' in f.text
+    assert 'id="orbit_manifest"' in f.text
 
 
 @pytest.fixture(scope="module")

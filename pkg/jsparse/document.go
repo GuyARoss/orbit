@@ -22,7 +22,8 @@ type JSDocument interface {
 	Imports() []*ImportDependency
 	AddImport(*ImportDependency) []*ImportDependency
 	Other() []string
-	AddOther(string) []string
+	// AddOther(string) []string
+	AddOther(...string)
 	Extension() string
 	AddSerializable(s JSSerialize)
 	Name() string
@@ -47,7 +48,7 @@ type DefaultJSDocument struct {
 	inDeadBlock   bool
 }
 
-// JSToken is some keyword(s) found in javascript used to tokenize js documents.
+// JSToken is some tokens found in javascript used to tokenize js statements.
 type JSToken string
 
 const (
@@ -136,7 +137,7 @@ func (p *DefaultJSDocument) tokenizeLine(ctx context.Context, line string) (cont
 	}
 
 	if strings.Contains(parsedLine, string(CommentToken)) {
-		// the only part of the comment line that is vaild would be everything before the comment
+		// the only part of the comment line that is valid would be everything before the comment
 		commentDelimited := strings.Split(line, string(CommentToken))
 		return p.tokenizeLine(ctx, commentDelimited[0])
 	}
@@ -340,7 +341,7 @@ func (p *DefaultJSDocument) WriteFile(dir string) error {
 		out.WriteString(fmt.Sprintf("%s\n", imp.FinalStatement))
 	}
 
-	for _, other := range p.Other() {
+	for _, other := range p.other {
 		out.WriteString(fmt.Sprintf("%s\n", other))
 	}
 
@@ -381,7 +382,6 @@ func (p *DefaultJSDocument) Extension() string            { return p.extension }
 
 func (p *DefaultJSDocument) Key() string {
 	if p.defaultExport == nil {
-		// @@ return error that a key is not present
 		return ""
 	}
 
@@ -396,10 +396,10 @@ func (p *DefaultJSDocument) AddImport(dependency *ImportDependency) []*ImportDep
 	return p.imports
 }
 
-func (p *DefaultJSDocument) AddOther(new string) []string {
-	p.other = append(p.other, new)
-
-	return p.other
+func (p *DefaultJSDocument) AddOther(new ...string) {
+	for _, n := range new {
+		p.other = append(p.other, n)
+	}
 }
 
 func (p *DefaultJSDocument) AddSerializable(s JSSerialize) {
