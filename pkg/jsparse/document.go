@@ -400,8 +400,6 @@ func (p *DefaultJSDocument) AddOther(new ...string) {
 	for _, n := range new {
 		p.other = append(p.other, n)
 	}
-
-	// return p.other
 }
 
 func (p *DefaultJSDocument) AddSerializable(s JSSerialize) {
