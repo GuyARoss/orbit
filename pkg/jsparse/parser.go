@@ -50,7 +50,7 @@ func (p *JSFileParser) Parse(pageDir string, webDir string) (JSDocument, error) 
 
 	ctx := context.Background()
 	for scanner.Scan() {
-		ctx, err = page.tokenizeLine(ctx, scanner.Text())
+		ctx, err = page.tokenizeLine(ctx, pageDir, scanner.Text())
 		if err != nil {
 			return nil, err
 		}

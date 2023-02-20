@@ -23,12 +23,14 @@ func reactCSR(ctx context.Context, bundleKey string, data []byte, doc *htmlDoc) 
 var staticResourceMap = map[PageRender]bool{
 	ExampleTwoPage: true,
 	ExamplePage: false,
+	CoolthingPage: true,
 }
 var serverStartupTasks = []func(){}
 type RenderFunction func(context.Context, string, []byte, *htmlDoc) (*htmlDoc, context.Context)
 var wrapDocRender = map[PageRender]*DocumentRenderer{
 	ExampleTwoPage: {fn: reactCSR, version: "reactCSR"},
 	ExamplePage: {fn: reactCSR, version: "reactCSR"},
+	CoolthingPage: {fn: reactCSR, version: "reactCSR"},
 }
 
 type DocumentRenderer struct {
@@ -46,6 +48,8 @@ const (
 	ExampleTwoPage PageRender = "fe9faa2750e8559c8c213c2c25c4ce73"
 	// orbit:page .//pages/example.jsx
 	ExamplePage PageRender = "496a05464c3f5aa89e1d8bed7afe59d4"
+	// orbit:page .//pages/coolthing.jsx
+	CoolthingPage PageRender = ""
 )
 
 var pageDependencies = map[PageRender][]string{
@@ -53,6 +57,9 @@ var pageDependencies = map[PageRender][]string{
 `<script src="/p/a63649d90703a7b09f22aed8d310be5b.js"></script>`,
 },
 	ExamplePage: {`<script src="/p/fc38086145547d465be97fec2e412a16.js"></script>`,
+`<script src="/p/a63649d90703a7b09f22aed8d310be5b.js"></script>`,
+},
+	CoolthingPage: {`<script src="/p/fc38086145547d465be97fec2e412a16.js"></script>`,
 `<script src="/p/a63649d90703a7b09f22aed8d310be5b.js"></script>`,
 },
 }
