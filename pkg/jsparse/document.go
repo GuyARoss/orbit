@@ -115,7 +115,7 @@ func (p *DefaultJSDocument) Clone() JSDocument {
 }
 
 // tokenizeLine tokenizes each line and serializes it to the provided JSDocument
-func (p *DefaultJSDocument) tokenizeLine(ctx context.Context, line string) (context.Context, error) {
+func (p *DefaultJSDocument) tokenizeLine(ctx context.Context, pageDir string, line string) (context.Context, error) {
 	if len(line) == 0 {
 		return ctx, nil
 	}
@@ -139,7 +139,7 @@ func (p *DefaultJSDocument) tokenizeLine(ctx context.Context, line string) (cont
 	if strings.Contains(parsedLine, string(CommentToken)) {
 		// the only part of the comment line that is valid would be everything before the comment
 		commentDelimited := strings.Split(line, string(CommentToken))
-		return p.tokenizeLine(ctx, commentDelimited[0])
+		return p.tokenizeLine(ctx, pageDir, commentDelimited[0])
 	}
 
 	for _, decToken := range declarationTokens {
@@ -162,7 +162,7 @@ func (p *DefaultJSDocument) tokenizeLine(ctx context.Context, line string) (cont
 					}
 					return ctx, nil
 				} else {
-					v, err := p.parseInformalExportDefault(line)
+					v, err := p.parseInformalExportDefault(pageDir, line)
 					if err != nil || v {
 						return ctx, err
 					}
@@ -217,7 +217,27 @@ func (p *DefaultJSDocument) tokenizeLine(ctx context.Context, line string) (cont
 	return ctx, nil
 }
 
-func (p *DefaultJSDocument) parseInformalExportDefault(line string) (bool, error) {
+func formatPathToPageName(path string) string {
+	splitPath := strings.Split(path, string(os.PathSeparator))
+	pageName := strings.Split(splitPath[len(splitPath)-1], ".")[0]
+
+	caseTypes := []string{"_", "-", " "} // snake case, kebab case, monster case
+	for _, c := range caseTypes {
+		if strings.Contains(pageName, c) {
+			final := ""
+			for _, splitPageName := range strings.Split(pageName, c) {
+				final += strings.ToUpper(splitPageName[:1]) + strings.ReplaceAll(splitPageName[1:], c, "")
+			}
+			return final
+		}
+	}
+
+	pageName = strings.ToUpper(pageName[:1]) + pageName[1:]
+
+	return pageName
+}
+
+func (p *DefaultJSDocument) parseInformalExportDefault(pageDir string, line string) (bool, error) {
 	exportData := strings.TrimSpace(strings.Split(line, string(ExportDefaultToken))[1])
 	if len(exportData) == 0 {
 		return false, nil
@@ -226,16 +246,18 @@ func (p *DefaultJSDocument) parseInformalExportDefault(line string) (bool, error
 		return false, nil
 	}
 
-	p.AddOther(fmt.Sprintf("const DefaultExportedUnnamedComponent = %s", exportData))
-	p.scope["DefaultExportedUnnamedComponent"] = &JsDocumentScope{
-		Name:      "DefaultExportedUnnamedComponent",
+	pageName := formatPathToPageName(pageDir)
+
+	p.AddOther(fmt.Sprintf("const %s = %s", pageName, exportData))
+	p.scope[pageName] = &JsDocumentScope{
+		Name:      pageName,
 		Export:    ExportDefault,
 		TokenType: ConstToken,
 		Args:      make(JSDocArgList, 0),
 	}
 
-	p.defaultExport = p.scope["DefaultExportedUnnamedComponent"]
-	p.name = "DefaultExportedUnnamedComponent"
+	p.defaultExport = p.scope[pageName]
+	p.name = pageName
 
 	return true, nil
 }

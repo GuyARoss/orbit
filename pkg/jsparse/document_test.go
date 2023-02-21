@@ -126,7 +126,7 @@ func TestParseInformalExportDefault(t *testing.T) {
 		other: []string{},
 		scope: map[string]*JsDocumentScope{},
 	}
-	p.parseInformalExportDefault("export default Thing(Thing2)")
+	p.parseInformalExportDefault("file_path", "export default Thing(Thing2)")
 }
 
 func TestTokenizeCommentString(t *testing.T) {
@@ -143,7 +143,7 @@ func TestTokenizeCommentString(t *testing.T) {
 
 	for _, d := range tt {
 		cdoc := NewEmptyDocument()
-		_, err := cdoc.tokenizeLine(context.TODO(), d.i)
+		_, err := cdoc.tokenizeLine(context.TODO(), "", d.i)
 
 		if err != nil {
 			t.Errorf("error not expected %s", err)
@@ -159,49 +159,50 @@ func TestTokenizeLine(t *testing.T) {
 	var tt = []struct {
 		i          string
 		o          DefaultJSDocument
+		path       string
 		exportName string
 	}{
 		{"import Thing from 'thing'", DefaultJSDocument{
 			imports: []*ImportDependency{
 				{"import Thing from 'thing'", "", ModuleImportType},
 			},
-		}, ""},
+		}, "", ""},
 		{"// some random text", DefaultJSDocument{
 			extension: "jsx",
 			other:     []string{},
-		}, ""},
+		}, "", ""},
 		{"// import thing from 'thing'", DefaultJSDocument{
 			extension: "jsx",
 			other:     []string{},
-		}, ""},
+		}, "", ""},
 		{"some random text // import thing from 'thing'", DefaultJSDocument{
 			extension: "jsx",
 			other:     []string{"some random text"},
-		}, ""},
+		}, "", ""},
 		{"export default Thing", DefaultJSDocument{
 			extension: "jsx",
-		}, "Thing"},
+		}, "", "Thing"},
 		{"export default HOCSomething(Component)", DefaultJSDocument{
 			extension: "jsx",
-			other:     []string{"const DefaultExportedUnnamedComponent = HOCSomething(Component)"},
-		}, "DefaultExportedUnnamedComponent"},
+			other:     []string{"const ThisThing = HOCSomething(Component)"},
+		}, "this-thing", "ThisThing"},
 		{"", DefaultJSDocument{
 			other:     []string{},
 			extension: "jsx",
-		}, ""},
+		}, "", ""},
 		{"export default () => (<> </>)", DefaultJSDocument{
 			extension: "jsx",
-			other:     []string{"const DefaultExportedUnnamedComponent = () => (<> </>)"},
-		}, "DefaultExportedUnnamedComponent"},
+			other:     []string{"const SomethingEasy = () => (<> </>)"},
+		}, "something_easy", "SomethingEasy"},
 		{"const thing = `//cat", DefaultJSDocument{
 			extension: "jsx",
 			other:     []string{"const thing = `//cat"},
-		}, ""},
+		}, "", ""},
 	}
 
 	for i, d := range tt {
 		cdoc := NewEmptyDocument()
-		_, got := cdoc.tokenizeLine(context.TODO(), d.i)
+		_, got := cdoc.tokenizeLine(context.TODO(), d.path, d.i)
 
 		if got != nil {
 			t.Error("did not expect error during line tokenization")
@@ -230,13 +231,13 @@ func TestTokenizeLine(t *testing.T) {
 
 func TestTokenizeLine_DetectExport(t *testing.T) {
 	cdoc := NewEmptyDocument()
-	_, err := cdoc.tokenizeLine(context.TODO(), "function Thing() {}")
+	_, err := cdoc.tokenizeLine(context.TODO(), "", "function Thing() {}")
 	if err != nil {
 		t.Errorf("error occurred %s", err)
 		return
 	}
 
-	_, err = cdoc.tokenizeLine(context.TODO(), "export default Thing")
+	_, err = cdoc.tokenizeLine(context.TODO(), "", "export default Thing")
 	if err != nil {
 		t.Errorf("error occurred %s", err)
 		return
@@ -302,6 +303,17 @@ func TestNewImportantDocument(t *testing.T) {
 
 	if len(d.imports) != 2 {
 		t.Errorf("import length mismatch got '%d' expected '%d' ", len(d.imports), 2)
+		return
+	}
+}
+
+func TestJSDocArgListToString(t *testing.T) {
+	argList := make(JSDocArgList, 2)
+	argList[0] = "arg_sauce"
+	argList[1] = "arg_juice"
+
+	if argList.ToString() != "arg_sauce,arg_juice" {
+		t.Errorf("expected 'arg_sauce,arg_juice' got '%s'", argList.ToString())
 		return
 	}
 }
