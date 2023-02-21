@@ -129,7 +129,7 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, e
 
 	return &Component{
 		name:             initPage.Name(),
-		bundleKey:        opts.DefaultKey,
+		bundleKey:        bundleKey,
 		dependencies:     initPage.Imports(),
 		originalFilePath: opts.FilePath,
 		m:                &sync.Mutex{},

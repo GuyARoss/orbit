@@ -49,7 +49,7 @@ const (
 	// orbit:page .//pages/example.jsx
 	ExamplePage PageRender = "496a05464c3f5aa89e1d8bed7afe59d4"
 	// orbit:page .//pages/coolthing.jsx
-	CoolthingPage PageRender = ""
+	CoolthingPage PageRender = "3022c2c89af15d76a7cb30d415ea112e"
 )
 
 var pageDependencies = map[PageRender][]string{
