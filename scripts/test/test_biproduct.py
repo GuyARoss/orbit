@@ -28,7 +28,7 @@ def test_can_compile_autogen(path):
 
 def test_is_orbit_dist_valid(path):
     f = open("./page.audit", "r")
-    lines = f.readlines()    
+    lines = f.readlines()
 
     assert lines[0] == "audit: components\n", "audit file should be component audit"
 
