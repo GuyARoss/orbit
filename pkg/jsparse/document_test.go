@@ -306,3 +306,14 @@ func TestNewImportantDocument(t *testing.T) {
 		return
 	}
 }
+
+func TestJSDocArgListToString(t *testing.T) {
+	argList := make(JSDocArgList, 2)
+	argList[0] = "arg_sauce"
+	argList[1] = "arg_juice"
+
+	if argList.ToString() != "arg_sauce,arg_juice" {
+		t.Errorf("expected 'arg_sauce,arg_juice' got '%s'", argList.ToString())
+		return
+	}
+}
