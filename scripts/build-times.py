@@ -9,15 +9,15 @@ import os
 import time
 import tempfile
 import subprocess
-from typing import List
+from typing import List, Tuple
 import matplotlib.pyplot as plt
 
 
-def main(tags: List[str]) -> None:
+def main(tags: List[Tuple[str, str]]) -> None:
     init_dir = os.getcwd()
     tag_stats = []
     
-    for tag in tags:
+    for tag, alias in tags:
         tmpdir = tempfile.mkdtemp()
         print('new tempdir', tmpdir)
         os.chdir(tmpdir)            
@@ -25,6 +25,8 @@ def main(tags: List[str]) -> None:
         os.chdir(repo_dir)
         print(os.getcwd())
         stats = profile_build_cmd(tag)
+        stats.set_alias(alias)
+
         tag_stats.append(stats)
     
     os.chdir(init_dir)    
@@ -33,10 +35,15 @@ def main(tags: List[str]) -> None:
 class ProfilerStats:
     tag: str
     runtime_duration: int
+    alias: str
 
     def __init__(self, tag: str, duration: int) -> None:
         self.tag = tag
         self.runtime_duration = duration        
+
+    def set_alias(self, alias: str):
+        self.alias = alias
+        return self
 
 def plot_from_stats(path: str, stats: List[ProfilerStats]):
     points = []
@@ -64,7 +71,7 @@ def profile_build_cmd(tag: str) -> ProfilerStats:
         start_time = time.time()    
 
         try:
-            subprocess.check_output([f'./orbit build --pacname=orbitgen'], shell=True)
+            subprocess.check_output([f'./orbit build --pacname=orbitgen --mode=development'], shell=True)
         except:
             raise Exception('build command failed')
 
@@ -101,18 +108,13 @@ def setup_repo(dir: str, tag: str) -> str:
     return dir + "/orbit/examples/basic-react"
 
 if __name__ == "__main__":
-    tags = ['v0.2.0', 'v0.3.0', 'v0.3.2', 'v0.3.6', 'v0.7.0', 'v0.7.1', 'latest']
+    tags = [
+        ('v0.16.0', 'v.16'),
+        ('commit@affdd1742be19697ae9f0c693312e118ea33a766',  'Error_Prop'),
+        ('commit@a77c1c4a79268acc6e443a7682a7ad156f79fda4',  'lighthouse'),
+        ('latest', 'main'),
+    ]
 
-    # tags = [
-    #     'latest',
-    #     'commit@6a131ded2e281846a1ca71d87a41ee14c30bcdfa',
-    #     'commit@9184fce235309eb26a0451d4facbecd1aa3566bb',
-    #     'commit@e5f0835c519cf400c2fd4bbd41f8e5a30fb1b09a',
-    #     'commit@4cbfbbb0b4deaf770274b65591bd310f418791d9',
-    #     'commit@571d3ced6cec838c622a47201be5420d3ff0ee16',
-    #     'commit@1cbf8146637b88c37e8e93338051325ea2077f00',
-    #     'commit@4e52e3ce9cd5b0689d00d395caa182afe983debd']
-    # tags.reverse()
     main(
         tags
     )

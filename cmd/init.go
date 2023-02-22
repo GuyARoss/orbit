@@ -88,7 +88,3 @@ var initCMD = &cobra.Command{
 		}
 	},
 }
-
-func init() {
-	RootCMD.AddCommand(initCMD)
-}

@@ -5,6 +5,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/GuyARoss/orbit/internal"
 	"github.com/GuyARoss/orbit/internal/srcpack"
 	"github.com/GuyARoss/orbit/pkg/experiments"
@@ -26,11 +28,15 @@ var buildCMD = &cobra.Command{
 			logger.Warn(err.Error())
 		}
 
+		if viper.GetString("build_bundle_mode") != "production" {
+			logger.Warn(fmt.Sprintf("bundling mode '%s'\n", viper.GetString("build_bundle_mode")))
+		}
+
 		buildOpts := &internal.BuildOpts{
 			Packname:       viper.GetString("pacname"),
 			OutDir:         viper.GetString("out"),
 			WebDir:         viper.GetString("webdir"),
-			Mode:           "production",
+			Mode:           viper.GetString("build_bundle_mode"),
 			NodeModulePath: viper.GetString("nodemod"),
 			PublicDir:      viper.GetString("publicdir"),
 		}
@@ -64,7 +70,11 @@ var buildCMD = &cobra.Command{
 
 func init() {
 	var pageaudit string
+	var mode string
 
 	buildCMD.PersistentFlags().StringVar(&pageaudit, "auditpage", "", "file path used to output an audit file for the pages")
 	viper.BindPFlag("auditpage", buildCMD.PersistentFlags().Lookup("auditpage"))
+
+	buildCMD.PersistentFlags().StringVar(&mode, "mode", "production", "specifies the underlying bundler mode to run in")
+	viper.BindPFlag("build_bundle_mode", buildCMD.PersistentFlags().Lookup("mode"))
 }

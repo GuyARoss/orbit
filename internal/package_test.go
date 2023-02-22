@@ -5,6 +5,8 @@ import (
 	"io/fs"
 	"os"
 	"testing"
+
+	"github.com/GuyARoss/orbit/internal/assets"
 )
 
 func TestPackageJSONTemplateWrite(t *testing.T) {
@@ -60,5 +62,31 @@ func TestMakeDeleteFileStructure(t *testing.T) {
 	_, err = os.Stat(mdir)
 	if !os.IsNotExist(err) {
 		t.Error("Cleanup failure")
+	}
+}
+
+func BenchmarkMakeFileStructure(b *testing.B) {
+	ats, err := assets.AssetKeys()
+	if err != nil {
+		b.Errorf("unexpected error '%s'", err)
+		return
+	}
+
+	tDir := b.TempDir()
+	s := &FileStructure{
+		PackageName: "thing",
+		OutDir:      tDir,
+		Assets: []fs.DirEntry{
+			ats.AssetEntry(assets.WebPackConfig),
+			ats.AssetEntry(assets.SSRProtoFile),
+			ats.AssetEntry(assets.JsWebPackConfig),
+			ats.AssetEntry(assets.WebPackSWCConfig),
+		},
+		Mkdirs: []string{},
+	}
+
+	if err = s.Make(); err != nil {
+		b.Errorf("unexpected error '%s'", err)
+		return
 	}
 }
