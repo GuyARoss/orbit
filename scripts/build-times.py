@@ -51,9 +51,12 @@ def plot_from_stats(path: str, stats: List[ProfilerStats]):
 
     for s in stats:
         points.append(s.runtime_duration)
-        lbls.append(s.tag)
+        if s.alias:
+            lbls.append(s.alias)
+        else:
+            lbls.append(s.tag.replace('commit@', '')[:6] )
 
-    plt.xticks(range(len(points)), [lbl.replace('commit@', '')[:6] for lbl in lbls])
+    plt.xticks(range(len(points)), lbls)
     plt.ylabel('Duration')
     plt.xlabel('Version No.')
     plt.title('Runtime duration (orbit build cmd)')
@@ -113,6 +116,7 @@ if __name__ == "__main__":
         ('commit@affdd1742be19697ae9f0c693312e118ea33a766',  'Error_Prop'),
         ('commit@a77c1c4a79268acc6e443a7682a7ad156f79fda4',  'lighthouse'),
         ('latest', 'main'),
+        ('regression/feb-21', 'WIP')
     ]
 
     main(

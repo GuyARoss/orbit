@@ -1,3 +1,7 @@
+// Copyright (c) 2021 Guy A. Ross
+// This source code is licensed under the GNU GPLv3 found in the
+// license file in the root directory of this source tree.
+
 package experiments
 
 import "github.com/GuyARoss/orbit/pkg/log"
@@ -14,10 +18,10 @@ func Load(logger log.Logger, features []string) error {
 		switch e {
 		case "ssr":
 			GlobalExperimentalFeatures.PreferSSR = true
-			logger.Info("experimental feature 'prefer ssr' enabled\n")
+			logger.Warn("experimental feature 'prefer ssr' enabled\n")
 		case "swc":
 			GlobalExperimentalFeatures.PreferSWCCompiler = true
-			logger.Info("experimental feature 'prefer swc compiler' enabled\n")
+			logger.Warn("experimental feature 'prefer swc compiler' enabled\n")
 		}
 	}
 
