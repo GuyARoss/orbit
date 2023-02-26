@@ -7,6 +7,7 @@ package internal
 import (
 	"fmt"
 	"io/fs"
+	"io/ioutil"
 	"os"
 	"testing"
 
@@ -92,5 +93,34 @@ func BenchmarkMakeFileStructure(b *testing.B) {
 	if err = s.Make(); err != nil {
 		b.Errorf("unexpected error '%s'", err)
 		return
+	}
+}
+
+func TestCachedEnvFromFile(t *testing.T) {
+	path := t.TempDir() + "/thing.go"
+
+	err := ioutil.WriteFile(path, []byte(`const ( 
+		// orbit:page .//pages/example2.jsx
+		ExampleTwoPage PageRender = "fe9faa2750e8559c8c213c2c25c4ce73"
+		// orbit:page .//pages/example.jsx
+		ExamplePage PageRender = "496a05464c3f5aa89e1d8bed7afe59d4"
+	)`), 0777)
+	if err != nil {
+		t.Errorf("err occurred in test: cannot make file '%s'", err)
+		return
+	}
+
+	env, err := CachedEnvFromFile(path)
+	if err != nil {
+		t.Errorf("'%s'", err)
+		return
+	}
+
+	if env[".//pages/example2.jsx"] != "fe9faa2750e8559c8c213c2c25c4ce73" {
+		t.Errorf("expected bundle key to exist (0)")
+	}
+
+	if env[".//pages/example.jsx"] != "496a05464c3f5aa89e1d8bed7afe59d4" {
+		t.Errorf("expected bundle key to exist (1)")
 	}
 }
