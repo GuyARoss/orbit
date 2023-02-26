@@ -4,16 +4,15 @@
 
 import os
 
-files = os.listdir('./docs')
+files = os.listdir("./docs")
 
 for f in files:
     if ".html" in f:
-        with open("./docs/" + f, 'r+') as file:
+        with open("./docs/" + f, "r+") as file:
             text = file.read()
-            
+
             text = text.replace("$title", "Orbit - " + f.replace(".html", ""))
 
             file.seek(0)
             file.write(text)
             file.truncate()
-        
