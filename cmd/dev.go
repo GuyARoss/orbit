@@ -38,7 +38,7 @@ var devCMD = &cobra.Command{
 
 		s, err := internal.New(context.Background(), &internal.SessionOpts{
 			WebDir:        viper.GetString("webdir"),
-			Mode:          viper.GetString("mode"),
+			Mode:          viper.GetString("dev_bundle_mode"),
 			Pacname:       viper.GetString("pacname"),
 			OutDir:        viper.GetString("out"),
 			NodeModDir:    viper.GetString("nodemod"),
@@ -111,6 +111,7 @@ func init() {
 	var samefileTimeout int
 	var port int
 	var terminateStartup bool
+	var mode string
 
 	devCMD.PersistentFlags().IntVar(&timeoutDuration, "timeout", 2000, "specifies the timeout duration in milliseconds until a change will be detected")
 	viper.BindPFlag("timeout", devCMD.PersistentFlags().Lookup("timeout"))
@@ -123,4 +124,7 @@ func init() {
 
 	devCMD.PersistentFlags().BoolVar(&terminateStartup, "terminateonstartup", false, "flag used for terminating the dev command after startup")
 	viper.BindPFlag("terminateonstartup", devCMD.PersistentFlags().Lookup("terminateonstartup"))
+
+	devCMD.PersistentFlags().StringVar(&mode, "mode", "development", "specifies the underlying bundler mode to run in")
+	viper.BindPFlag("dev_bundle_mode", devCMD.PersistentFlags().Lookup("mode"))
 }

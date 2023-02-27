@@ -123,10 +123,10 @@ func CachedEnvFromFile(path string) (srcpack.CachedEnvKeys, error) {
 	// TODO(language-support): if we plan to add support for another output langauge, this
 	// function needs to validate the extension to determine parsing method.
 	file, err := os.Open(path)
-
 	if err != nil {
 		return nil, err
 	}
+
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)

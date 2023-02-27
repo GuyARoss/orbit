@@ -1,3 +1,7 @@
+// Copyright (c) 2021 Guy A. Ross
+// This source code is licensed under the GNU GPLv3 found in the
+// license file in the root directory of this source tree.
+
 package internal
 
 import (
@@ -89,10 +93,7 @@ func (opts *StaticBuild) createStaticContext(components srcpack.PackedComponentL
 		bundlePaths[ewrap.PageRender(c.BundleKey())] = fsutils.LastPathIndex(c.OriginalFilePath()) + ".html"
 
 		if c.IsStaticResource() {
-			switch c.WebWrapper().Stats().WebVersion {
-			case "react":
-				staticMap[ewrap.PageRender(c.BundleKey())] = true
-			}
+			staticMap[ewrap.PageRender(c.BundleKey())] = true
 		}
 	}
 
@@ -112,7 +113,7 @@ func (opts *StaticBuild) Build(components srcpack.PackedComponentList) error {
 		return nil
 	}
 
-	doc := ewrap.DocFromFile(opts.buildOpts.OutDir)
+	doc := ewrap.DocFromFile(opts.buildOpts.PublicDir)
 
 	defer ewrap.Close()
 	ewrap.StartupTaskReactSSR(opts.staticBuildOut, staticCtx.Pages, staticCtx.StaticMap, staticCtx.BundlePaths, *doc)()

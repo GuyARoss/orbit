@@ -53,7 +53,7 @@ func StartupTaskReactSSR(
 				continue
 			}
 
-			sr, _ := reactSSR(context.Background(), string(renderKey), []byte("{}"), &doc)
+			sr, _ := reactSSR(context.Background(), string(renderKey), []byte("{}"), doc)
 
 			pathName := string(renderKey)
 			if nameMap[renderKey] != "" {
@@ -64,7 +64,6 @@ func StartupTaskReactSSR(
 			body := append(pageDependencies[renderKey], sr.Body...)
 
 			so := fmt.Sprintf(`<!doctype html><head>%s</head><body>%s</body></html>`, strings.Join(sr.Head, ""), strings.Join(body, ""))
-
 			err := ioutil.WriteFile(path, []byte(so), 0644)
 			if err != nil {
 				fmt.Printf("error creating static resource for bundle %s => %s\n", renderKey, err)
@@ -80,8 +79,8 @@ func startNodeServer() error {
 		return nil
 	}
 
-	// TODO(stab) verify that babel node & grpc are both installed.
-
+	// TODO(stability) verify that babel node & grpc are both installed.
+	// TODO(swc): replace babel node for swc
 	cmd := exec.Command("./node_modules/.bin/babel-node", ".orbit/base/pages/react_ssr.js", "--presets", "@babel/react,@babel/preset-env")
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -127,7 +126,7 @@ func startNodeServer() error {
 	return nil
 }
 
-func reactSSR(ctx context.Context, bundleKey string, data []byte, doc *htmlDoc) (*htmlDoc, context.Context) {
+func reactSSR(ctx context.Context, bundleKey string, data []byte, doc htmlDoc) (htmlDoc, context.Context) {
 	if nodeProcess == nil {
 		fmt.Println("react ssr process has not yet boot")
 		return doc, ctx

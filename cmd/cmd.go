@@ -16,7 +16,6 @@ var RootCMD = &cobra.Command{
 }
 
 func init() {
-	var mode string
 	var webdir string
 	var outDir string
 	var pacname string
@@ -30,14 +29,6 @@ func init() {
 	}
 
 	for _, cmd := range buildCmds {
-		if cmd.Use == "build" {
-			cmd.PersistentFlags().StringVar(&mode, "mode", "production", "specifies the underlying bundler mode to run in")
-		} else {
-			cmd.PersistentFlags().StringVar(&mode, "mode", "development", "specifies the underlying bundler mode to run in")
-		}
-
-		viper.BindPFlag("mode", cmd.PersistentFlags().Lookup("mode"))
-
 		cmd.PersistentFlags().StringVar(&webdir, "webdir", "./", "specifies the directory of the web pages, leave blank for use of the root dir")
 		viper.BindPFlag("webdir", cmd.PersistentFlags().Lookup("webdir"))
 
@@ -70,9 +61,10 @@ func Execute() {
 	RootCMD.AddCommand(devCMD)
 	RootCMD.AddCommand(buildCMD)
 	RootCMD.AddCommand(toolCMD)
-	RootCMD.AddCommand(experiementalCMD)
+	RootCMD.AddCommand(experimentalCMD)
 	RootCMD.AddCommand(deployCMD)
 	RootCMD.AddCommand(cleanCMD)
+	RootCMD.AddCommand(initCMD)
 
 	if err := RootCMD.Execute(); err != nil {
 		panic(err)

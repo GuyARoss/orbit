@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var experiementalCMD = &cobra.Command{
+var experimentalCMD = &cobra.Command{
 	Use:   "experimental",
 	Long:  "shows the list of available experimental options",
 	Short: "list of experimental options",
