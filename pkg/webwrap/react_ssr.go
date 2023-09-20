@@ -61,10 +61,19 @@ func (r *PartialWrapReactSSR) Setup(ctx context.Context, settings *BundleOpts) (
 }
 
 func (r *PartialWrapReactSSR) Apply(doc jsparse.JSDocument) (jsparse.JSDocument, error) {
-	doc.AddImport(&jsparse.ImportDependency{
-		FinalStatement: "import React from 'react'",
-		Type:           jsparse.ModuleImportType,
-	})
+	hasImport := false
+	for _, imp := range doc.Imports() {
+		if strings.Contains(imp.FinalStatement, "import React from 'react'") {
+			hasImport = true
+		}
+	}
+
+	if !hasImport {
+		doc.AddImport(&jsparse.ImportDependency{
+			FinalStatement: "import React from 'react'",
+			Type:           jsparse.ModuleImportType,
+		})
+	}
 
 	doc.AddOther(fmt.Sprintf(
 		"export default %s",
