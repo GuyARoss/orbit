@@ -78,7 +78,7 @@ func (s *devSession) DoBundleKeyChangeRequest(bundleKey string, opts *ChangeRequ
 func (s *devSession) DoFileChangeRequest(filePath string, opts *ChangeRequestOpts) error {
 	// if this file has been recently processed (specified by the timeout flag), do not process it.
 	if !s.ChangeRequest.IsWithinRage(filePath, opts.SafeFileTimeout) {
-		return parseerror.FromError(ErrFileTooRecentlyProcessed, filePath)
+		return ErrFileTooRecentlyProcessed
 	}
 
 	// file detected in the orbit output, we don't want to process any of these EVER
