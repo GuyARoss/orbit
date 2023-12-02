@@ -337,9 +337,6 @@ func (p *DefaultJSDocument) formatImportLine(line string) *ImportDependency {
 	// possible that the path is referencing an index
 	// we can validate this by checking if the import path is a dir
 	if isIndexPath(finalPath) {
-		if finalPath[len(finalPath)-1] == '/' {
-			finalPath = finalPath[:len(finalPath)-2]
-		}
 		finalPath += "/index"
 		cleanWebDirPaths = append(cleanWebDirPaths, "index")
 	}
