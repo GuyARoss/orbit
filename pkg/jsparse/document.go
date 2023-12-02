@@ -338,7 +338,7 @@ func (p *DefaultJSDocument) formatImportLine(line string) *ImportDependency {
 	// we can validate this by checking if the import path is a dir
 	if isIndexPath(finalPath) {
 		finalPath += "/index"
-		cleanWebDirPaths = append(cleanWebDirPaths, "/index")
+		cleanWebDirPaths = append(cleanWebDirPaths, "index")
 	}
 
 	extension := pageExtension(verifyPath(finalPath))
