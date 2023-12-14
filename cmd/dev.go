@@ -113,10 +113,10 @@ func init() {
 	var terminateStartup bool
 	var mode string
 
-	devCMD.PersistentFlags().IntVar(&timeoutDuration, "timeout", 2000, "specifies the timeout duration in milliseconds until a change will be detected")
+	devCMD.PersistentFlags().IntVar(&timeoutDuration, "timeout", 500, "specifies the timeout duration in milliseconds until a change will be detected")
 	viper.BindPFlag("timeout", devCMD.PersistentFlags().Lookup("timeout"))
 
-	devCMD.PersistentFlags().IntVar(&samefileTimeout, "samefiletimeout", 2000, "specifies the timeout duration in milliseconds until a change will be detected for repeating files")
+	devCMD.PersistentFlags().IntVar(&samefileTimeout, "samefiletimeout", 500, "specifies the timeout duration in milliseconds until a change will be detected for repeating files")
 	viper.BindPFlag("samefiletimeout", devCMD.PersistentFlags().Lookup("samefiletimeout"))
 
 	devCMD.PersistentFlags().IntVar(&port, "hotreloadport", 3005, "port used for hotreload")

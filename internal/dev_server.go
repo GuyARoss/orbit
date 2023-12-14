@@ -58,8 +58,15 @@ func isBlacklistedDirectory(dir string) bool {
 	return false
 }
 
+type DevServerEvent struct {
+	fsnotify.Event
+	Processed bool
+}
+
 // FileWatcherBundler watches for events given the file watcher and processes change requests as found
 func (s *DevServer) FileWatcherBundler(timeout time.Duration, watcher *fsnotify.Watcher) {
+	var recentEvent *DevServerEvent
+
 	for {
 		time.Sleep(timeout)
 
@@ -68,8 +75,13 @@ func (s *DevServer) FileWatcherBundler(timeout time.Duration, watcher *fsnotify.
 			if isBlacklistedDirectory(e.Name) {
 				continue
 			}
-
-			err := s.session.DoFileChangeRequest(e.Name, s.fileChangeOpts)
+			recentEvent = &DevServerEvent{Event: e, Processed: false}
+		default:
+			if recentEvent == nil || recentEvent.Processed {
+				continue
+			}
+			recentEvent.Processed = true
+			err := s.session.DoFileChangeRequest(recentEvent.Name, s.fileChangeOpts)
 
 			switch err {
 			case nil, ErrFileTooRecentlyProcessed:
