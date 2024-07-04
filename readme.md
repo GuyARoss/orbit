@@ -74,8 +74,8 @@ func main() {
 ### [Contributing Guide](./CONTRIBUTING.md)
 Please first read our [contributing guide](./CONTRIBUTING.md) before contributing to this project.
 
-### [Good First Issues](https://github.com/GuyARoss/orbit/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
-To gain exposure to the project you can find a list of [good first issues](https://github.com/GuyARoss/orbit/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
+### [Good First Issues](https://github.com/GuyARoss/orbit/contribute)
+To gain exposure to the project you can find a list of [good first issues](https://github.com/GuyARoss/orbit/contribute).
 
 ### License
 Orbit it licensed under [GNU GPLv3](./LICENSE) 
