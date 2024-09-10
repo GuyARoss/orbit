@@ -16,12 +16,14 @@ var RootCMD = &cobra.Command{
 }
 
 func init() {
-	var webdir string
+	var appDir string
 	var outDir string
 	var pacname string
 	var nodeModDir string
-	var publicDir string
+	var publicPath string
 	var dependout string
+	var spaEntry string
+	var spaOutDir string
 	var experimentalFeatures []string
 
 	buildCmds := [4]*cobra.Command{
@@ -29,26 +31,32 @@ func init() {
 	}
 
 	for _, cmd := range buildCmds {
-		cmd.PersistentFlags().StringVar(&webdir, "webdir", "./", "specifies the directory of the web pages, leave blank for use of the root dir")
-		viper.BindPFlag("webdir", cmd.PersistentFlags().Lookup("webdir"))
+		cmd.PersistentFlags().StringVar(&appDir, "app_dir", "./", "specifies the directory where the application lives, left blank will use the root directory")
+		viper.BindPFlag("app_dir", cmd.PersistentFlags().Lookup("app_dir"))
 
-		cmd.PersistentFlags().StringVar(&outDir, "out", "./", "specifies the out directory of the generated code files")
-		viper.BindPFlag("out", cmd.PersistentFlags().Lookup("out"))
+		cmd.PersistentFlags().StringVar(&outDir, "out_dir", "./", "specifies the out directory of the generated code files")
+		viper.BindPFlag("out_dir", cmd.PersistentFlags().Lookup("out_dir"))
 
-		cmd.PersistentFlags().StringVar(&publicDir, "publicdir", "./public/index.html", "specifies the public directory for the base html webpage")
-		viper.BindPFlag("publicdir", cmd.PersistentFlags().Lookup("publicdir"))
+		cmd.PersistentFlags().StringVar(&publicPath, "public_path", "./public/index.html", "specifies the path for the base html webpage default './public/index.html'")
+		viper.BindPFlag("public_path", cmd.PersistentFlags().Lookup("public_path"))
 
-		cmd.PersistentFlags().StringVar(&pacname, "pacname", "orbit", "specifies the package name of the generated code files")
-		viper.BindPFlag("pacname", cmd.PersistentFlags().Lookup("pacname"))
+		cmd.PersistentFlags().StringVar(&pacname, "package_name", "orbit", "specifies the package name of the generated code files")
+		viper.BindPFlag("package_name", cmd.PersistentFlags().Lookup("package_name"))
 
-		cmd.PersistentFlags().StringVar(&nodeModDir, "nodemod", "./node_modules", "specifies the directory to find node modules")
-		viper.BindPFlag("nodemod", cmd.PersistentFlags().Lookup("nodemod"))
+		cmd.PersistentFlags().StringVar(&nodeModDir, "node_modules_dir", "./node_modules", "specifies the directory to find node modules")
+		viper.BindPFlag("node_modules_dir", cmd.PersistentFlags().Lookup("node_modules_dir"))
 
-		cmd.PersistentFlags().StringVar(&dependout, "depout", "", "specifies the directory to output a dependency map")
-		viper.BindPFlag("depout", cmd.PersistentFlags().Lookup("depout"))
+		cmd.PersistentFlags().StringVar(&dependout, "dep_map_out_dir", "", "specifies the directory to output a dependency map")
+		viper.BindPFlag("depmap_out", cmd.PersistentFlags().Lookup("depmap_out"))
 
-		cmd.PersistentFlags().StringSliceVar(&experimentalFeatures, "experimental", []string{}, "comma delimated list of experimental features to turn on, to view experiemental features use the command 'experimental'")
+		cmd.PersistentFlags().StringSliceVar(&experimentalFeatures, "experimental", []string{}, "comma delimited list of experimental features to turn on, to view experiemental features use the command 'experimental'")
 		viper.BindPFlag("experimental", cmd.PersistentFlags().Lookup("experimental"))
+
+		cmd.PersistentFlags().StringVar(&spaEntry, "spa_entry_path", "", "when specified this entry should be the file name of the entrypoint file. note this command will force the application to become an SPA")
+		viper.BindPFlag("spa_entry_path", cmd.PersistentFlags().Lookup("spa_entry_path"))
+
+		cmd.PersistentFlags().StringVar(&spaOutDir, "spa_out_dir", "./dist", "output directory to write an SPA, requires 'spa_entry_path' to be set")
+		viper.BindPFlag("spa_out_dir", cmd.PersistentFlags().Lookup("spa_out_dir"))
 	}
 }
 

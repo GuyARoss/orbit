@@ -37,12 +37,7 @@ var devCMD = &cobra.Command{
 		}
 
 		s, err := internal.New(context.Background(), &internal.SessionOpts{
-			WebDir:        viper.GetString("webdir"),
-			Mode:          viper.GetString("dev_bundle_mode"),
-			Pacname:       viper.GetString("pacname"),
-			OutDir:        viper.GetString("out"),
-			NodeModDir:    viper.GetString("nodemod"),
-			PublicDir:     viper.GetString("publicdir"),
+			BuildOpts:     internal.NewBuildOptsFromViper(),
 			HotReloadPort: viper.GetInt("hotreloadport"),
 		})
 
@@ -69,7 +64,7 @@ var devCMD = &cobra.Command{
 			Parser:          &jsparse.JSFileParser{},
 		}
 
-		if viper.GetBool("terminateonstartup") {
+		if viper.GetBool("terminate_on_startup") {
 			return
 		}
 
@@ -111,20 +106,16 @@ func init() {
 	var samefileTimeout int
 	var port int
 	var terminateStartup bool
-	var mode string
 
 	devCMD.PersistentFlags().IntVar(&timeoutDuration, "timeout", 500, "specifies the timeout duration in milliseconds until a change will be detected")
 	viper.BindPFlag("timeout", devCMD.PersistentFlags().Lookup("timeout"))
 
-	devCMD.PersistentFlags().IntVar(&samefileTimeout, "samefiletimeout", 500, "specifies the timeout duration in milliseconds until a change will be detected for repeating files")
-	viper.BindPFlag("samefiletimeout", devCMD.PersistentFlags().Lookup("samefiletimeout"))
+	devCMD.PersistentFlags().IntVar(&samefileTimeout, "same_file_timeout", 500, "specifies the timeout duration in milliseconds until a change will be detected for repeating files")
+	viper.BindPFlag("samefiletimeout", devCMD.PersistentFlags().Lookup("same_file_timeout"))
 
-	devCMD.PersistentFlags().IntVar(&port, "hotreloadport", 3005, "port used for hotreload")
-	viper.BindPFlag("hotreloadport", devCMD.PersistentFlags().Lookup("hotreloadport"))
+	devCMD.PersistentFlags().IntVar(&port, "hot_reload_port", 3005, "port used for hotreload")
+	viper.BindPFlag("hotreloadport", devCMD.PersistentFlags().Lookup("hot_reload_port"))
 
-	devCMD.PersistentFlags().BoolVar(&terminateStartup, "terminateonstartup", false, "flag used for terminating the dev command after startup")
-	viper.BindPFlag("terminateonstartup", devCMD.PersistentFlags().Lookup("terminateonstartup"))
-
-	devCMD.PersistentFlags().StringVar(&mode, "mode", "development", "specifies the underlying bundler mode to run in")
-	viper.BindPFlag("dev_bundle_mode", devCMD.PersistentFlags().Lookup("mode"))
+	devCMD.PersistentFlags().BoolVar(&terminateStartup, "terminate_on_startup", false, "flag used for terminating the dev command after startup")
+	viper.BindPFlag("terminate_on_startup", devCMD.PersistentFlags().Lookup("terminate_on_startup"))
 }

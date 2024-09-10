@@ -38,7 +38,7 @@ func (opts *StaticBuild) createStaticContext(components srcpack.PackedComponentL
 		ssrWrapMethod := webwrap.NewReactSSRPartial(&webwrap.NewReactSSROpts{
 			Bundler: &webwrap.BaseBundler{
 				Mode:           webwrap.DevelopmentBundle,
-				WebDir:         opts.buildOpts.WebDir,
+				WebDir:         opts.buildOpts.ApplicationDir,
 				PageOutputDir:  ".orbit/base/pages",
 				NodeModulesDir: opts.buildOpts.NodeModulePath,
 				Logger:         nil,
@@ -53,7 +53,7 @@ func (opts *StaticBuild) createStaticContext(components srcpack.PackedComponentL
 				continue
 			}
 
-			resource, err := ssrWrapMethod.Setup(context.TODO(), &webwrap.BundleOpts{
+			resource, _ := ssrWrapMethod.Setup(context.TODO(), &webwrap.BundleOpts{
 				FileName:  c.OriginalFilePath(),
 				BundleKey: c.BundleKey() + "_ssr",
 				Name:      page.Name(),
@@ -113,7 +113,7 @@ func (opts *StaticBuild) Build(components srcpack.PackedComponentList) error {
 		return nil
 	}
 
-	doc := ewrap.DocFromFile(opts.buildOpts.PublicDir)
+	doc := ewrap.DocFromFile(opts.buildOpts.PublicPath)
 
 	defer ewrap.Close()
 	ewrap.StartupTaskReactSSR(opts.staticBuildOut, staticCtx.Pages, staticCtx.StaticMap, staticCtx.BundlePaths, *doc)()

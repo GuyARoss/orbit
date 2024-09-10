@@ -43,7 +43,8 @@ func (s *ReactCSR) Apply(page jsparse.JSDocument) (map[string]jsparse.JSDocument
 	})
 
 	page.AddOther(fmt.Sprintf(
-		"ReactDOM.render(<%s {...JSON.parse(document.getElementById('orbit_manifest').textContent)}/>, document.getElementById('%s_react_frame'))",
+		`const data = !!document.getElementById('orbit_manifest')?.textContent ? JSON.parse(document.getElementById('orbit_manifest').textContent) : {};
+ReactDOM.render(<%s {...data}/>, document.getElementById('%s_react_frame'))`,
 		page.Name(), page.Key()),
 	)
 
@@ -85,14 +86,17 @@ func (s *ReactCSR) Stats() *WrapStats {
 }
 
 func (s *ReactCSR) RequiredBodyDOMElements(ctx context.Context, cache *CacheDOMOpts) []string {
-	mode := ctx.Value(BundlerID).(string)
+	var mode string
+	if ctx.Value(BundlerID) != nil {
+		mode = ctx.Value(BundlerID).(string)
+	}
 
 	uris := make([]string, 0)
 	switch BundlerMode(mode) {
 	case DevelopmentBundle:
 		uris = append(uris, "https://unpkg.com/react/umd/react.development.js")
 		uris = append(uris, "https://unpkg.com/react-dom/umd/react-dom.development.js")
-	case ProductionBundle:
+	default:
 		uris = append(uris, "https://unpkg.com/react/umd/react.production.min.js")
 		uris = append(uris, "https://unpkg.com/react-dom/umd/react-dom.production.min.js")
 	}
