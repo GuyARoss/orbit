@@ -34,11 +34,13 @@ type JSWebWrapper interface {
 	Stats() *WrapStats
 	VerifyRequirements() error
 	Version() string
+	DocumentTag(string) string
 }
 
 type WrapStats struct {
-	WebVersion string
-	Bundler    string
+	WebVersion  string
+	Bundler     string
+	HTMLBodyTag string
 }
 
 type JSWebWrapperList []JSWebWrapper

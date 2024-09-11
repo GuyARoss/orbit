@@ -76,6 +76,9 @@ var buildCMD = &cobra.Command{
 					WebPrefix: outDir,
 					CacheDir:  "",
 				})
+				// note: altering the order of the appends will break functionality
+				htmlDoc.Body = append(htmlDoc.Body, wr.DocumentTag(spaEntryComponent.BundleKey()))
+
 				htmlDoc.Body = append(htmlDoc.Body, body...)
 				htmlDoc.Body = append(htmlDoc.Body, fmt.Sprintf(`<script src="./%s.js"></script>`, spaEntryComponent.BundleKey()))
 

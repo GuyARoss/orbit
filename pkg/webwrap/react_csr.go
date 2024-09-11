@@ -27,6 +27,10 @@ type ReactCSR struct {
 var ErrComponentExport = errors.New("prefer capitalization for jsx components")
 var ErrInvalidComponent = errors.New("invalid jsx component")
 
+func (s *ReactCSR) DocumentTag(key string) string {
+	return fmt.Sprintf(`<div id="%s_react_frame"></script>`, key)
+}
+
 func (s *ReactCSR) Apply(page jsparse.JSDocument) (map[string]jsparse.JSDocument, error) {
 	if len(string(page.Name())) == 0 {
 		return nil, ErrInvalidComponent

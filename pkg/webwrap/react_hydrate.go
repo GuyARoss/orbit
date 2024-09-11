@@ -19,6 +19,10 @@ type ReactHydrate struct {
 	ssr *PartialWrapReactSSR
 }
 
+func (s *ReactHydrate) DocumentTag(key string) string {
+	return fmt.Sprintf(`<div id="%s_react_frame"></script>`, key)
+}
+
 func (s *ReactHydrate) Apply(page jsparse.JSDocument) (map[string]jsparse.JSDocument, error) {
 	// react components should always be capitalized.
 	if string(page.Name()[0]) != strings.ToUpper(string(page.Name()[0])) {

@@ -23,6 +23,8 @@ type JavascriptWrap struct {
 
 const javascriptExtension string = "js"
 
+func (s *JavascriptWrap) DocumentTag(string) string { return "" }
+
 func (s *JavascriptWrap) Apply(page jsparse.JSDocument) (map[string]jsparse.JSDocument, error) {
 	if page.Extension() != javascriptExtension { // @@todo bad pattern fix this
 		return nil, fmt.Errorf("invalid extension %s", page.Extension())
