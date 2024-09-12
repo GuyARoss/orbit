@@ -309,15 +309,17 @@ func TestUnknownPageError(t *testing.T) {
 
 func TestNew(t *testing.T) {
 	ops := &SessionOpts{
-		WebDir:     "",
-		Mode:       "development",
-		Pacname:    "test",
-		OutDir:     t.TempDir() + "/out",
-		NodeModDir: t.TempDir() + "/node_module",
-		PublicDir:  t.TempDir() + "/publicdir",
+		BuildOpts: &BuildOpts{
+			NodeModulePath: t.TempDir() + "/node_module",
+			PackageName:    "test",
+			Mode:           "development",
+			ApplicationDir: "",
+			OutDir:         t.TempDir() + "/out",
+			PublicPath:     t.TempDir() + "/publicdir",
+		},
 	}
 
-	_, err := New(context.TODO(), ops)
+	_, err := NewDevSession(context.TODO(), ops)
 	if err == nil {
 		t.Errorf("")
 	}

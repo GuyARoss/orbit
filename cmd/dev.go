@@ -36,7 +36,7 @@ var devCMD = &cobra.Command{
 			logger.Warn(err.Error())
 		}
 
-		s, err := internal.New(context.Background(), &internal.SessionOpts{
+		devSession, err := internal.NewDevSession(context.Background(), &internal.SessionOpts{
 			BuildOpts:     internal.NewBuildOptsFromViper(),
 			HotReloadPort: viper.GetInt("hotreloadport"),
 		})
@@ -68,7 +68,7 @@ var devCMD = &cobra.Command{
 			return
 		}
 
-		devServer := internal.NewDevServer(reloader, logger, s, fileChangeOpts)
+		devServer := internal.NewDevServer(reloader, logger, devSession, fileChangeOpts)
 
 		go devServer.FileWatcherBundler(timeout, watcher)
 		go devServer.RedirectionBundler()

@@ -246,7 +246,7 @@ func (s *devSession) NewPageFileChangeRequest(ctx context.Context, file string) 
 // New creates a new active dev session with the following:
 //  1. a flat tree represented by a map of the root page in component form
 //  2. initializes the development build process
-func New(ctx context.Context, opts *SessionOpts) (*devSession, error) {
+func NewDevSession(ctx context.Context, opts *SessionOpts) (*devSession, error) {
 	ats, err := assets.AssetKeys()
 	if err != nil {
 		panic(err)

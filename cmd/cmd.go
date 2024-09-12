@@ -47,7 +47,7 @@ func init() {
 		viper.BindPFlag("node_modules_dir", cmd.PersistentFlags().Lookup("node_modules_dir"))
 
 		cmd.PersistentFlags().StringVar(&dependout, "dep_map_out_dir", "", "specifies the directory to output a dependency map")
-		viper.BindPFlag("depmap_out", cmd.PersistentFlags().Lookup("depmap_out"))
+		viper.BindPFlag("dep_map_out_dir", cmd.PersistentFlags().Lookup("dep_map_out_dir"))
 
 		cmd.PersistentFlags().StringSliceVar(&experimentalFeatures, "experimental", []string{}, "comma delimited list of experimental features to turn on, to view experiemental features use the command 'experimental'")
 		viper.BindPFlag("experimental", cmd.PersistentFlags().Lookup("experimental"))

@@ -5,18 +5,13 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
-	"os"
 
 	"github.com/GuyARoss/orbit/internal"
 	"github.com/GuyARoss/orbit/internal/srcpack"
 	"github.com/GuyARoss/orbit/pkg/experiments"
-	"github.com/GuyARoss/orbit/pkg/fsutils"
-	"github.com/GuyARoss/orbit/pkg/htmlparse"
 	"github.com/GuyARoss/orbit/pkg/jsparse"
 	"github.com/GuyARoss/orbit/pkg/log"
-	"github.com/GuyARoss/orbit/pkg/webwrap"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -46,43 +41,12 @@ var buildCMD = &cobra.Command{
 
 		if viper.GetString("spa_entry_path") != "" {
 			// if we are using the spa settings, there will only be a single bundle component
-			spaEntryComponent := components[0]
-
-			// this bundle component should get copied from the .orbit/dist to the spa_output
-			bundlePath := fmt.Sprintf(".orbit/dist/%s.js", spaEntryComponent.BundleKey())
-			outDir := viper.GetString("spa_out_dir")
-
-			if _, err := os.Stat(outDir); os.IsNotExist(err) {
-				if err := os.Mkdir(outDir, os.ModePerm); err != nil {
-					logger.Error(fmt.Sprintf("cannot setup spa out directory %s, exiting", err))
-					return
-				}
-			}
-
-			if err = fsutils.CopyFile(bundlePath, fmt.Sprintf("%s/%s.js", outDir, spaEntryComponent.BundleKey())); err != nil {
-				logger.Error(fmt.Sprintf("cannot copy file %s, exiting", err))
+			if err := internal.BuildSPA(components[0], &internal.SPABuildOpts{
+				PublicHTMLPath: viper.GetString("public_path"),
+				SpaOutDir:      viper.GetString("spa_out_dir"),
+			}); err != nil {
+				logger.Error(err.Error())
 				return
-			}
-
-			if viper.GetString("public_path") != "" {
-				// parse the html page (if exists) and add the javascript to it.
-				htmlDoc := htmlparse.DocFromFile(viper.GetString("public_path"))
-				wr := spaEntryComponent.WebWrapper()
-				if wr == nil {
-					return
-				}
-
-				body := wr.RequiredBodyDOMElements(context.TODO(), &webwrap.CacheDOMOpts{
-					WebPrefix: outDir,
-					CacheDir:  "",
-				})
-				// note: altering the order of the appends will break functionality
-				htmlDoc.Body = append(htmlDoc.Body, wr.DocumentTag(spaEntryComponent.BundleKey()))
-
-				htmlDoc.Body = append(htmlDoc.Body, body...)
-				htmlDoc.Body = append(htmlDoc.Body, fmt.Sprintf(`<script src="./%s.js"></script>`, spaEntryComponent.BundleKey()))
-
-				htmlDoc.SaveToFile(fmt.Sprintf("%s/index.html", outDir))
 			}
 		}
 
