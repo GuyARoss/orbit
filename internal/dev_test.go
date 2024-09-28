@@ -61,7 +61,9 @@ func TestDoChangeRequest_DirectFile(t *testing.T) {
 			LastFileName:    "",
 			changeRequests:  allocatedstack.New(1),
 		},
-		SessionOpts: &SessionOpts{},
+		SessionOpts: &SessionOpts{
+			BuildOpts: &BuildOpts{},
+		},
 		RootComponents: map[string]srcpack.PackComponent{
 			fn: comp,
 		},
@@ -121,7 +123,9 @@ func TestDoChangeRequest_IndirectFile(t *testing.T) {
 			LastFileName:    "",
 			changeRequests:  allocatedstack.New(1),
 		},
-		SessionOpts: &SessionOpts{},
+		SessionOpts: &SessionOpts{
+			BuildOpts: &BuildOpts{},
+		},
 		RootComponents: map[string]srcpack.PackComponent{
 			"thing2": comp,
 		},
@@ -189,7 +193,9 @@ func TestDoChangeRequest_UnknownPage(t *testing.T) {
 			LastFileName:    "",
 			changeRequests:  allocatedstack.New(1),
 		},
-		SessionOpts:    &SessionOpts{},
+		SessionOpts: &SessionOpts{
+			BuildOpts: &BuildOpts{},
+		},
 		RootComponents: map[string]srcpack.PackComponent{},
 		SourceMap:      map[string][]string{},
 		packer: &mockPacker{
@@ -239,7 +245,9 @@ func TestDoBundleChangeRequest(t *testing.T) {
 			LastFileName:    "",
 			changeRequests:  allocatedstack.New(1),
 		},
-		SessionOpts: &SessionOpts{},
+		SessionOpts: &SessionOpts{
+			BuildOpts: &BuildOpts{},
+		},
 		RootComponents: map[string]srcpack.PackComponent{
 			"test": comp,
 		},

@@ -150,6 +150,7 @@ func (s *devSession) DirectFileChangeRequest(filePath string, component srcpack.
 
 	s.ChangeRequest.Push(filePath, component.BundleKey())
 
+	fmt.Println("the struct", s)
 	sourceMap, err := srcpack.New(s.ApplicationDir, []srcpack.PackComponent{component}, &srcpack.NewSourceMapOpts{
 		Parser:     opts.Parser,
 		WebDirPath: s.ApplicationDir,

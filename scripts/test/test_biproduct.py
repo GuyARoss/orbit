@@ -21,9 +21,14 @@ def path():
 
 @pytest.fixture(autouse=True)
 def orbit_run_on_example(path):
-    subprocess.check_output(
-        [f"{path}/orbit build --pacname=orbitgen --auditpage=./page.audit"], shell=True
-    )
+    try:
+        subprocess.check_output(
+            [f"{path}/orbit build --package_name=orbitgen --audit_path=./page.audit"], shell=True
+        )
+    except:
+        subprocess.check_output(
+            [f"{path}/orbit build --pacname=orbitgen --auditpage=./page.audit"], shell=True
+        )
 
 
 def test_can_compile_autogen(path):
