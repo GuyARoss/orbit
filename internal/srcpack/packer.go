@@ -37,7 +37,7 @@ type JSPacker struct {
 	cachedBundleKeys    CachedEnvKeys
 }
 
-// concpack is a private packing mechanism embedding the packer to pack a set of files concurrently.
+// concpack is a packing mechanism embedding the packer to pack a set of files concurrently.
 type concPack struct {
 	*JSPacker
 	m sync.Mutex

@@ -29,24 +29,16 @@ type JSDocument interface {
 	Name() string
 	DefaultExport() *JsDocumentScope
 	Clone() JSDocument
+	// OrbitRoutes are http routes that are found within the source document
+	OrbitRoutePath() string
 }
 
-// DefaultJSDocument is a struct that implements the JSDocument interface
-// this struct can be used as an output for JSDocument parsing.
-type DefaultJSDocument struct {
-	imports      []*ImportDependency
-	other        []string
-	serializable []JSSerialize
+// OrbitCommentToken are comment tokens that specifically initialize orbit internals
+type OrbitCommentToken string
 
-	webDir    string
-	pageDir   string
-	extension string
-	scope     map[string]*JsDocumentScope
-
-	defaultExport *JsDocumentScope
-	name          string
-	inDeadBlock   bool
-}
+const (
+	OrbitRouteToken OrbitCommentToken = "orbit:route"
+)
 
 // JSToken is some tokens found in javascript used to tokenize js statements.
 type JSToken string
@@ -99,6 +91,26 @@ func removeCenterOfToken(line string, token string) (string, int) {
 	return parsedLine, foundCount
 }
 
+// DefaultJSDocument is a struct that implements the JSDocument interface
+// this struct can be used as an output for JSDocument parsing.
+type DefaultJSDocument struct {
+	imports      []*ImportDependency
+	other        []string
+	serializable []JSSerialize
+
+	webDir    string
+	pageDir   string
+	extension string
+	scope     map[string]*JsDocumentScope
+
+	defaultExport *JsDocumentScope
+	name          string
+	inDeadBlock   bool
+	orbitRoute    string
+}
+
+func (p *DefaultJSDocument) OrbitRoutePath() string { return p.orbitRoute }
+
 func (p *DefaultJSDocument) Clone() JSDocument {
 	return &DefaultJSDocument{
 		imports:       p.imports,
@@ -111,6 +123,22 @@ func (p *DefaultJSDocument) Clone() JSDocument {
 		defaultExport: p.defaultExport,
 		name:          p.name,
 		inDeadBlock:   p.inDeadBlock,
+	}
+}
+
+func (p *DefaultJSDocument) parseComment(line string, commentDelimitedLine []string) {
+	if len(commentDelimitedLine) < 2 {
+		return
+	}
+
+	switch {
+	case strings.Contains(commentDelimitedLine[1], string(OrbitRouteToken)):
+		t := strings.Split(line, string(OrbitRouteToken))
+		if len(t) <= 1 {
+			return
+		}
+
+		p.orbitRoute = strings.TrimSpace(t[1])
 	}
 }
 
@@ -139,6 +167,10 @@ func (p *DefaultJSDocument) tokenizeLine(ctx context.Context, pageDir string, li
 	if strings.Contains(parsedLine, string(CommentToken)) {
 		// the only part of the comment line that is valid would be everything before the comment
 		commentDelimited := strings.Split(line, string(CommentToken))
+
+		// procedure to check if the comment contains orbit specific information
+		p.parseComment(line, commentDelimited)
+
 		return p.tokenizeLine(ctx, pageDir, commentDelimited[0])
 	}
 

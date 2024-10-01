@@ -67,7 +67,7 @@ func NewComponent(ctx context.Context, opts *NewComponentOpts) (PackComponent, e
 		return nil, err
 	}
 
-	if initPage == nil || initPage.DefaultExport() == nil || initPage.DefaultExport().Name == "" {
+	if initPage.DefaultExport() == nil || initPage.DefaultExport().Name == "" {
 		return nil, ErrComponentNotExported
 	}
 
