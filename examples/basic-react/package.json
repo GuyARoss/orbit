@@ -5,7 +5,7 @@
   "license": "MIT",
   "description": "basic react example",
   "scripts": {
-    "build": "./orbit build --pacname=orbitgen"
+    "build": "./orbit build --package_name=orbitgen"
   },
   "dependencies": {
     "@babel/plugin-proposal-export-default-from": "^7.12.13",

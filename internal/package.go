@@ -15,6 +15,7 @@ import (
 
 	"github.com/GuyARoss/orbit/internal/assets"
 	"github.com/GuyARoss/orbit/internal/srcpack"
+	"github.com/GuyARoss/orbit/pkg/fsutils"
 )
 
 // PackageJSONTemplate struct for nodejs package.json file.
@@ -120,8 +121,12 @@ func (s *FileStructure) Make() error {
 // for this method, we prefer using a single pass file reader over something like
 // reflection due to the speed constraints of reflection
 func CachedEnvFromFile(path string) (srcpack.CachedEnvKeys, error) {
-	// TODO(language-support): if we plan to add support for another output langauge, this
+	// TODO(language-support): if we plan to add support for another output language, this
 	// function needs to validate the extension to determine parsing method.
+	if fsutils.CanNotReadFile(path) {
+		return make(srcpack.CachedEnvKeys, 0), nil
+	}
+
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err

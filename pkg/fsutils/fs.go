@@ -6,8 +6,10 @@ package fsutils
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 )
 
@@ -42,4 +44,33 @@ func LastPathIndex(path string) string {
 	s := strings.Split(paths[len(paths)-1], ".")
 
 	return s[0]
+}
+
+func CanNotReadFile(path string) bool {
+	_, err := os.Stat(path)
+	return err != nil
+}
+
+// CopyFile copies a file from the src to the destination.
+// this requires that the destination directory exists.
+func CopyFile(src, dst string) error {
+	sourceFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer sourceFile.Close()
+
+	destFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer destFile.Close()
+
+	_, err = io.Copy(destFile, sourceFile)
+	if err != nil {
+		return err
+	}
+
+	err = destFile.Sync()
+	return err
 }

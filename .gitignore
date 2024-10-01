@@ -18,3 +18,5 @@ build-times.png
 # python
 __pycache__
 .pytest_cache
+
+/examples/spa/dist

@@ -91,8 +91,8 @@ func (s *DevServer) FileWatcherBundler(timeout time.Duration, watcher *fsnotify.
 				s.logger.Error(err.Error())
 			}
 
-			if err == nil && len(viper.GetString("depout")) > 0 {
-				s.session.SourceMap.Write(viper.GetString("depout"))
+			if err == nil && len(viper.GetString("dep_map_out_dir")) > 0 {
+				s.session.SourceMap.Write(viper.GetString("dep_map_out_dir"))
 			}
 		case err := <-watcher.Errors:
 			panic(fmt.Sprintf("watcher failed %s", err.Error()))

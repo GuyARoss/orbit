@@ -15,13 +15,13 @@ func TestBuild_NoPaths(t *testing.T) {
 	os.Mkdir(tdir+"/pages", 0777)
 
 	opts := &BuildOpts{
-		Packname:       "",
+		PackageName:    "",
 		OutDir:         tdir,
-		WebDir:         tdir,
+		ApplicationDir: tdir,
 		Mode:           "development",
 		NodeModulePath: "",
-		PublicDir:      "./thing",
-		Dirs:           []string{},
+		PublicPath:     "./thing",
+		RequiredDirs:   []string{},
 		NoWrite:        true,
 	}
 

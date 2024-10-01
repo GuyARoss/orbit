@@ -28,12 +28,7 @@ import (
 
 // SessionOpts are options used for creating a new session
 type SessionOpts struct {
-	WebDir        string
-	Mode          string
-	Pacname       string
-	OutDir        string
-	NodeModDir    string
-	PublicDir     string
+	*BuildOpts
 	HotReloadPort int
 }
 
@@ -155,9 +150,10 @@ func (s *devSession) DirectFileChangeRequest(filePath string, component srcpack.
 
 	s.ChangeRequest.Push(filePath, component.BundleKey())
 
-	sourceMap, err := srcpack.New(s.WebDir, []srcpack.PackComponent{component}, &srcpack.NewSourceMapOpts{
+	fmt.Println("the struct", s)
+	sourceMap, err := srcpack.New(s.ApplicationDir, []srcpack.PackComponent{component}, &srcpack.NewSourceMapOpts{
 		Parser:     opts.Parser,
-		WebDirPath: s.WebDir,
+		WebDirPath: s.ApplicationDir,
 	})
 	if err != nil {
 		return err
@@ -186,9 +182,9 @@ func (s *devSession) IndirectFileChangeRequest(sources []string, indirectFile st
 
 		s.ChangeRequest.Push(indirectFile, component.BundleKey())
 
-		sourceMap, err := srcpack.New(s.WebDir, []srcpack.PackComponent{component}, &srcpack.NewSourceMapOpts{
+		sourceMap, err := srcpack.New(s.ApplicationDir, []srcpack.PackComponent{component}, &srcpack.NewSourceMapOpts{
 			Parser:     opts.Parser,
-			WebDirPath: s.WebDir,
+			WebDirPath: s.ApplicationDir,
 		})
 		if err != nil {
 			return err
@@ -225,16 +221,16 @@ func (s *devSession) NewPageFileChangeRequest(ctx context.Context, file string) 
 		ats.AssetKey(assets.Tests),
 		ats.AssetKey(assets.PrimaryPackage),
 	), &libout.FilePathOpts{
-		TestFile: fmt.Sprintf("%s/%s/orb_test.go", s.OutDir, s.Pacname),
-		EnvFile:  fmt.Sprintf("%s/%s/orb_env.go", s.OutDir, s.Pacname),
-		HTTPFile: fmt.Sprintf("%s/%s/orb_http.go", s.OutDir, s.Pacname),
+		TestFile: fmt.Sprintf("%s/%s/orb_test.go", s.OutDir, s.PackageName),
+		EnvFile:  fmt.Sprintf("%s/%s/orb_env.go", s.OutDir, s.PackageName),
+		HTTPFile: fmt.Sprintf("%s/%s/orb_http.go", s.OutDir, s.PackageName),
 	}); err != nil {
 		return err
 	}
 
-	sourceMap, err := srcpack.New(s.WebDir, []srcpack.PackComponent{component}, &srcpack.NewSourceMapOpts{
+	sourceMap, err := srcpack.New(s.ApplicationDir, []srcpack.PackComponent{component}, &srcpack.NewSourceMapOpts{
 		Parser:     &jsparse.JSFileParser{},
-		WebDirPath: s.WebDir,
+		WebDirPath: s.ApplicationDir,
 	})
 	if err != nil {
 		return err
@@ -251,14 +247,14 @@ func (s *devSession) NewPageFileChangeRequest(ctx context.Context, file string) 
 // New creates a new active dev session with the following:
 //  1. a flat tree represented by a map of the root page in component form
 //  2. initializes the development build process
-func New(ctx context.Context, opts *SessionOpts) (*devSession, error) {
+func NewDevSession(ctx context.Context, opts *SessionOpts) (*devSession, error) {
 	ats, err := assets.AssetKeys()
 	if err != nil {
 		panic(err)
 	}
 
 	err = (&FileStructure{
-		PackageName: opts.Pacname,
+		PackageName: opts.PackageName,
 		OutDir:      opts.OutDir,
 		Assets: []fs.DirEntry{
 			ats.AssetEntry(assets.WebPackConfig),
@@ -273,31 +269,31 @@ func New(ctx context.Context, opts *SessionOpts) (*devSession, error) {
 		return nil, err
 	}
 
-	c, err := CachedEnvFromFile(fmt.Sprintf("%s/%s/orb_env.go", opts.OutDir, opts.Pacname))
+	c, err := CachedEnvFromFile(fmt.Sprintf("%s/%s/orb_env.go", opts.OutDir, opts.PackageName))
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return nil, err
 	}
 
 	packer := srcpack.NewDefaultPacker(log.NewEmptyLogger(), &srcpack.DefaultPackerOpts{
-		WebDir:              opts.WebDir,
+		WebDir:              opts.ApplicationDir,
 		BundlerMode:         opts.Mode,
-		NodeModuleDir:       opts.NodeModDir,
+		NodeModuleDir:       opts.NodeModulePath,
 		CachedBundleKeys:    c,
 		SkipFirstPassBundle: true,
 	})
 
 	// @@todo(guy) magic string : "pages" allow support for this keyword from a flag
-	pageFiles := fsutils.DirFiles(fmt.Sprintf("%s/pages", opts.WebDir))
+	pageFiles := fsutils.DirFiles(fmt.Sprintf("%s/pages", opts.ApplicationDir))
 	components, err := packer.PackMany(pageFiles)
 	if err != nil {
 		return nil, err
 	}
 
 	bg := libout.New(&libout.BundleGroupOpts{
-		PackageName:   opts.Pacname,
+		PackageName:   opts.PackageName,
 		BaseBundleOut: ".orbit/dist",
 		BundleMode:    opts.Mode,
-		PublicDir:     opts.PublicDir,
+		PublicDir:     opts.PublicPath,
 		HotReloadPort: opts.HotReloadPort,
 	})
 
@@ -314,17 +310,17 @@ func New(ctx context.Context, opts *SessionOpts) (*devSession, error) {
 		ats.AssetKey(assets.Tests),
 		ats.AssetKey(assets.PrimaryPackage),
 	), &libout.FilePathOpts{
-		TestFile: fmt.Sprintf("%s/%s/orb_test.go", opts.OutDir, opts.Pacname),
-		EnvFile:  fmt.Sprintf("%s/%s/orb_env.go", opts.OutDir, opts.Pacname),
-		HTTPFile: fmt.Sprintf("%s/%s/orb_http.go", opts.OutDir, opts.Pacname),
+		TestFile: fmt.Sprintf("%s/%s/orb_test.go", opts.OutDir, opts.PackageName),
+		EnvFile:  fmt.Sprintf("%s/%s/orb_env.go", opts.OutDir, opts.PackageName),
+		HTTPFile: fmt.Sprintf("%s/%s/orb_http.go", opts.OutDir, opts.PackageName),
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	sourceMap, err := srcpack.New(opts.WebDir, components, &srcpack.NewSourceMapOpts{
+	sourceMap, err := srcpack.New(opts.ApplicationDir, components, &srcpack.NewSourceMapOpts{
 		Parser:     &jsparse.JSFileParser{},
-		WebDirPath: opts.WebDir,
+		WebDirPath: opts.ApplicationDir,
 	})
 	if err != nil {
 		return nil, err

@@ -19,8 +19,11 @@ def e2e_measure_build_cmd(samples=3) -> Dict[str, int]:
     for _ in range(samples):
         start_time = time.time()
         try:
-            subprocess.check_output([f"./orbit build --pacname=orbitgen"], shell=True)
-        except:
+            res = subprocess.check_output([f"./orbit build --package_name=orbitgen"], shell=True)
+            if b"unknown flag" in res:
+                res = subprocess.check_output([f"./orbit build --pacname=orbitgen"], shell=True)
+
+        except:            
             failure_rate += 1
 
         end_time = time.time()

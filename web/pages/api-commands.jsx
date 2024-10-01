@@ -55,7 +55,7 @@ const ApiCommands = withLayout(() => {
                 <h3>Flags</h3>
                 <p>In addition to the <a className="local" href="#base-flags">base flags</a>, the deploy command supports the following:</p>
                 <ul>
-                    <li><strong>--staticout</strong>a path that specifies the directory to output the static files to.</li>
+                    <li><strong>--static_out_dir</strong>a path that specifies the directory to output the static files to.</li>
                 </ul>
             </section>
             <section id="dev">
@@ -66,9 +66,9 @@ const ApiCommands = withLayout(() => {
                 <p>In addition to the <a className="local" href="#base-flags">base flags</a>, the dev command supports the following:</p>
                 <ul>
                     <li><strong>--timeout</strong>duration in milliseconds until a change will be detected <span>default: 2000</span></li>
-                    <li><strong>--samefiletimeout</strong>specifies the timeout duration in milliseconds until a change will be detected for repeating files <span>default: 2000</span></li>
-                    <li><strong>--hotreloadport</strong>port used for hotreloading <span>default: 3005</span></li>
-                    <li><strong>--terminateonstartup</strong>terminates the process after the startup sequence has been completed (uses for regression testing). <span>default: false</span></li>
+                    <li><strong>--same_file_timeout</strong>specifies the timeout duration in milliseconds until a change will be detected for repeating files <span>default: 2000</span></li>
+                    <li><strong>--hot_reload_port</strong>port used for hotreloading <span>default: 3005</span></li>
+                    <li><strong>--terminate_on_startup</strong>terminates the process after the startup sequence has been completed (uses for regression testing). <span>default: false</span></li>
                 </ul>
             </section>
             <section id="experimental">

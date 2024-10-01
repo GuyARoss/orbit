@@ -61,7 +61,9 @@ func TestDoChangeRequest_DirectFile(t *testing.T) {
 			LastFileName:    "",
 			changeRequests:  allocatedstack.New(1),
 		},
-		SessionOpts: &SessionOpts{},
+		SessionOpts: &SessionOpts{
+			BuildOpts: &BuildOpts{},
+		},
 		RootComponents: map[string]srcpack.PackComponent{
 			fn: comp,
 		},
@@ -121,7 +123,9 @@ func TestDoChangeRequest_IndirectFile(t *testing.T) {
 			LastFileName:    "",
 			changeRequests:  allocatedstack.New(1),
 		},
-		SessionOpts: &SessionOpts{},
+		SessionOpts: &SessionOpts{
+			BuildOpts: &BuildOpts{},
+		},
 		RootComponents: map[string]srcpack.PackComponent{
 			"thing2": comp,
 		},
@@ -189,7 +193,9 @@ func TestDoChangeRequest_UnknownPage(t *testing.T) {
 			LastFileName:    "",
 			changeRequests:  allocatedstack.New(1),
 		},
-		SessionOpts:    &SessionOpts{},
+		SessionOpts: &SessionOpts{
+			BuildOpts: &BuildOpts{},
+		},
 		RootComponents: map[string]srcpack.PackComponent{},
 		SourceMap:      map[string][]string{},
 		packer: &mockPacker{
@@ -239,7 +245,9 @@ func TestDoBundleChangeRequest(t *testing.T) {
 			LastFileName:    "",
 			changeRequests:  allocatedstack.New(1),
 		},
-		SessionOpts: &SessionOpts{},
+		SessionOpts: &SessionOpts{
+			BuildOpts: &BuildOpts{},
+		},
 		RootComponents: map[string]srcpack.PackComponent{
 			"test": comp,
 		},
@@ -309,15 +317,17 @@ func TestUnknownPageError(t *testing.T) {
 
 func TestNew(t *testing.T) {
 	ops := &SessionOpts{
-		WebDir:     "",
-		Mode:       "development",
-		Pacname:    "test",
-		OutDir:     t.TempDir() + "/out",
-		NodeModDir: t.TempDir() + "/node_module",
-		PublicDir:  t.TempDir() + "/publicdir",
+		BuildOpts: &BuildOpts{
+			NodeModulePath: t.TempDir() + "/node_module",
+			PackageName:    "test",
+			Mode:           "development",
+			ApplicationDir: "",
+			OutDir:         t.TempDir() + "/out",
+			PublicPath:     t.TempDir() + "/publicdir",
+		},
 	}
 
-	_, err := New(context.TODO(), ops)
+	_, err := NewDevSession(context.TODO(), ops)
 	if err == nil {
 		t.Errorf("")
 	}

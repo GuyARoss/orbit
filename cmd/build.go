@@ -28,39 +28,47 @@ var buildCMD = &cobra.Command{
 			logger.Warn(err.Error())
 		}
 
-		if viper.GetString("build_bundle_mode") != "production" {
+		buildOpts := internal.NewBuildOptsFromViper()
+		if buildOpts.Mode != "production" {
 			logger.Warn(fmt.Sprintf("bundling mode '%s'\n", viper.GetString("build_bundle_mode")))
 		}
 
-		buildOpts := &internal.BuildOpts{
-			Packname:       viper.GetString("pacname"),
-			OutDir:         viper.GetString("out"),
-			WebDir:         viper.GetString("webdir"),
-			Mode:           viper.GetString("build_bundle_mode"),
-			NodeModulePath: viper.GetString("nodemod"),
-			PublicDir:      viper.GetString("publicdir"),
-		}
 		components, err := internal.Build(buildOpts)
+		if len(components) < 1 {
+			logger.Warn("no components were found, exiting")
+			return
+		}
+
+		if viper.GetString("spa_entry_path") != "" {
+			// if we are using the spa settings, there will only be a single bundle component
+			if err := internal.BuildSPA(components[0], &internal.SPABuildOpts{
+				PublicHTMLPath: viper.GetString("public_path"),
+				SpaOutDir:      viper.GetString("spa_out_dir"),
+			}); err != nil {
+				logger.Error(err.Error())
+				return
+			}
+		}
 
 		if err != nil {
 			logger.Error(err.Error())
 			return
 		}
 
-		if viper.GetString("auditpage") != "" {
-			components.Write(viper.GetString("auditpage"))
+		if viper.GetString("audit_path") != "" {
+			components.Write(viper.GetString("audit_path"))
 		}
 
-		if viper.GetString("depout") != "" {
-			sourceMap, err := srcpack.New(viper.GetString("webdir"), components, &srcpack.NewSourceMapOpts{
-				WebDirPath: viper.GetString("webdir"),
+		if viper.GetString("dep_map_out_dir") != "" {
+			sourceMap, err := srcpack.New(viper.GetString("app_dir"), components, &srcpack.NewSourceMapOpts{
+				WebDirPath: buildOpts.ApplicationDir,
 				Parser:     &jsparse.JSFileParser{},
 			})
 			if err != nil {
 				panic(err)
 			}
 
-			err = sourceMap.Write(viper.GetString("depout"))
+			err = sourceMap.Write(viper.GetString("dep_map_out_dir"))
 			if err != nil {
 				panic(err)
 			}
@@ -72,9 +80,9 @@ func init() {
 	var pageaudit string
 	var mode string
 
-	buildCMD.PersistentFlags().StringVar(&pageaudit, "auditpage", "", "file path used to output an audit file for the pages")
-	viper.BindPFlag("auditpage", buildCMD.PersistentFlags().Lookup("auditpage"))
+	buildCMD.PersistentFlags().StringVar(&pageaudit, "audit_path", "", "file path used to output an audit file for the pages")
+	viper.BindPFlag("audit_path", buildCMD.PersistentFlags().Lookup("audit_path"))
 
 	buildCMD.PersistentFlags().StringVar(&mode, "mode", "production", "specifies the underlying bundler mode to run in")
-	viper.BindPFlag("build_bundle_mode", buildCMD.PersistentFlags().Lookup("mode"))
+	viper.BindPFlag("mode", buildCMD.PersistentFlags().Lookup("mode"))
 }

@@ -1,0 +1,38 @@
+{
+  "name": "basicreact",
+  "version": "0.0.1",
+  "author": "Project orbit",
+  "license": "MIT",
+  "description": "basic react example",
+  "scripts": {
+    "build": "./orbit build --spa_entry_path=./pages/app.jsx",
+    "run": ""
+  },
+  "dependencies": {
+    "@babel/plugin-proposal-export-default-from": "^7.12.13",
+    "@babel/polyfill": "^7.12.1",
+    "@babel/preset-env": "^7.11.0",
+    "@babel/preset-react": "^7.10.4",
+    "@grpc/grpc-js": "^1.8.4",
+    "@swc/cli": "^0.1.57",
+    "@swc/core": "^1.3.0",
+    "babel-loader": "^8.1.0",
+    "babel-node": "0.0.1-security",
+    "css-loader": "^4.2.2",
+    "html-loader": "^1.1.0",
+    "html-webpack-plugin": "^4.3.0",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1",
+    "react-hot-loader": "^4.12.21",
+    "react-router-dom": "^5.2.0",
+    "style-loader": "^1.2.1",
+    "swc-loader": "^0.2.3",
+    "webpack": "^4.44.1",
+    "webpack-cli": "^3.3.12",
+    "webpack-merge": "^5.8.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.12",
+    "@babel/node": "^7.20.7"
+  }
+}

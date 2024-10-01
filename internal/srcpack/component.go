@@ -146,9 +146,9 @@ func (s *Component) JsDocument() jsparse.JSDocument { return s.document }
 func (s *Component) IsStaticResource() bool { return s.isStaticResource }
 
 // Repack repacks a component following the following processes
-// 	- parses the provided filepath with the the components jsparser
-// 	- reapplies the component web wrapper
-// 	- bundles the component
+//   - parses the provided filepath with the the components jsparser
+//   - reapplies the component web wrapper
+//   - bundles the component
 func (s *Component) Repack() error {
 	// parse the original javascript page, provided our javascript parser.
 	// we later mutate this page to apply the rest of the required web wrapper

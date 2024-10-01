@@ -12,10 +12,12 @@ license:
 gotest:
 	go test `go list ./... | grep -v examples`
 
-test:
-	make gotest
-
+integrationtest:
 	echo 'running integration tests'
 	make example
 	pytest ./scripts/test
+
+test:
+	make gotest
+	make integrationtest
 

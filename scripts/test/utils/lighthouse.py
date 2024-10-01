@@ -5,8 +5,7 @@
 import subprocess
 import json
 
-
-def audits_url(endpoint):
+def audits_url(endpoint):    
     output = subprocess.getoutput(
         f'lighthouse {endpoint} --quiet --chrome-flags="--headless" --preset=desktop --output=json'
     )

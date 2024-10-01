@@ -25,17 +25,9 @@ var deployCMD = &cobra.Command{
 			logger.Warn(err.Error())
 		}
 
-		buildOpts := &internal.BuildOpts{
-			Packname:       viper.GetString("pacname"),
-			OutDir:         viper.GetString("out"),
-			WebDir:         viper.GetString("webdir"),
-			Mode:           viper.GetString("deploy_bundle_mode"),
-			NodeModulePath: viper.GetString("nodemod"),
-			PublicDir:      viper.GetString("publicdir"),
-			NoWrite:        true,
-			Dirs: []string{
-				viper.GetString("staticout"),
-			},
+		buildOpts := internal.NewBuildOptsFromViper()
+		buildOpts.RequiredDirs = []string{
+			viper.GetString("static_out_dir"),
 		}
 
 		components, err := internal.Build(buildOpts)
@@ -43,7 +35,7 @@ var deployCMD = &cobra.Command{
 			panic(err)
 		}
 
-		staticBuild := internal.NewStaticBuild(buildOpts, viper.GetString("staticout"))
+		staticBuild := internal.NewStaticBuild(buildOpts, viper.GetString("static_out_dir"))
 		err = staticBuild.Build(components)
 
 		if err != nil {
@@ -54,11 +46,7 @@ var deployCMD = &cobra.Command{
 
 func init() {
 	var staticOut string
-	var mode string
 
-	deployCMD.PersistentFlags().StringVar(&staticOut, "staticout", "./static", "path for the static file directory")
-	viper.BindPFlag("staticout", deployCMD.PersistentFlags().Lookup("staticout"))
-
-	deployCMD.PersistentFlags().StringVar(&mode, "mode", "production", "specifies the underlying bundler mode to run in")
-	viper.BindPFlag("deploy_bundle_mode", deployCMD.PersistentFlags().Lookup("mode"))
+	deployCMD.PersistentFlags().StringVar(&staticOut, "static_out_dir", "./static", "path for the static file directory")
+	viper.BindPFlag("staticout", deployCMD.PersistentFlags().Lookup("static_out_dir"))
 }

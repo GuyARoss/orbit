@@ -20,6 +20,8 @@ type MockWrapper struct {
 	FailBundle bool
 }
 
+func (m *MockWrapper) DocumentTag(string) string { return "" }
+
 func (m *MockWrapper) VerifyRequirements() error {
 	return nil
 }

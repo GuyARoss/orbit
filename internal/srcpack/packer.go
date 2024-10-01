@@ -200,11 +200,9 @@ func (l *PackedComponentList) Write(path string) error {
 
 func NewDefaultPacker(logger log.Logger, opts *DefaultPackerOpts) Packer {
 	packer := &JSPacker{
-		WebDir:   opts.WebDir,
 		JsParser: &jsparse.JSFileParser{},
 		ValidWebWrappers: webwrap.NewActiveMap(&webwrap.BaseBundler{
 			Mode:           webwrap.BundlerMode(opts.BundlerMode),
-			WebDir:         opts.WebDir,
 			PageOutputDir:  ".orbit/base/pages",
 			NodeModulesDir: opts.NodeModuleDir,
 			Logger:         logger,
