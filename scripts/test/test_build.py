@@ -2,34 +2,82 @@
 # This source code is licensed under the GNU GPLv3 found in the
 # license file in the root directory of this source tree.
 
+import pytest
 import os
-import tempfile
-import utils.git as git_util
-import utils.orbit_bindings as orbit
+import subprocess
 
+def _read_all_lines(path):
+    f = open(path, "r")
+    lines = f.readlines()
+    f.close()
 
-def test_compare_build_cmd_with_latest_version():
-    start_dir = os.getcwd()
+    return lines
 
-    example_path = "./examples/basic-react"
-    os.chdir(example_path)
+class Test_ReactOrbitServer:
+    audit_path: str = "./page.audit"
 
-    current_build_stats = orbit.e2e_measure_build_cmd()
-    latest_version = git_util.version_abbrev("0")
+    @pytest.fixture(scope="class")
+    def path(self):
+        temp_dir = os.getcwd()
 
-    tmpdir = tempfile.mkdtemp()
-    os.chdir(tmpdir)
-    clone_path = git_util.clone_repo("http://github.com/GuyARoss/orbit", latest_version)
+        example_path = "./examples/basic-react"
+        os.chdir(example_path)
 
-    os.chdir(f"./{clone_path}")
-    orbit.link_examples()
-    os.chdir(f"./examples/basic-react")
+        yield os.getcwd()
 
-    latest_version_stats = orbit.e2e_measure_build_cmd()
+        os.chdir(temp_dir)
 
-    os.chdir(start_dir)
+    @pytest.fixture(autouse=True)
+    def orbit_run_on_example(self, path):
+        try:
+            subprocess.check_output(
+                [f"{path}/orbit build --package_name=orbitgen --audit_path={self.audit_path}"], shell=True
+            )
+        except:
+            subprocess.check_output(
+                [f"{path}/orbit build --pacname=orbitgen --auditpage={self.audit_path}"], shell=True
+            )
 
-    assert round(current_build_stats["avg_build_time"] + 0.2, 1) >= round(
-        latest_version_stats["avg_build_time"], 1
-    )
-    assert current_build_stats["failure_rate"] <= latest_version_stats["failure_rate"]
+    def test_can_compile_autogen(self, path):
+        subprocess.check_output([f"go build {path}/main.go"], shell=True)
+
+    def test_is_orbit_dist_valid(self, path):
+        lines = _read_all_lines(self.audit_path)
+
+        assert lines[0] == "audit: components\n", "audit file should be component audit"
+
+        for i in lines[1:]:
+            bundle = i.split(" ")[1].strip()
+            assert os.path.isfile(
+                f"{path}/.orbit/dist/{bundle}.js"
+            ), f"bundle file was not created {path}/.orbit/dist/{bundle}.js"
+
+class Test_ReactSPA:
+    audit_path: str = './page.audit'
+    spa_out_dir: str = './dist'
+
+    @pytest.fixture(scope="class")
+    def path(self):
+        temp_dir = os.getcwd()
+
+        example_path = "./examples/spa"
+        os.chdir(example_path)
+
+        yield os.getcwd()
+
+        os.chdir(temp_dir)
+
+    @pytest.fixture(autouse=True)    
+    def orbit_run_on_example(self, path):
+        subprocess.check_output([f"{path}/orbit build --spa_entry_path=./pages/app.jsx --audit_path={self.audit_path} --spa_out_dir={self.spa_out_dir}"], shell=True)
+
+    def test_is_dist_found(self, path):
+        lines = _read_all_lines(self.audit_path)
+        assert lines[0] == "audit: components\n", "audit file should be component audit"
+
+        bundle_id = lines[1].split(" ")[1].strip()
+        res = os.listdir(self.spa_out_dir)
+
+        assert f"{bundle_id}.js" in res, "bundle not found in the dist"
+        assert "index.html" in res, "index not found in the dist"
+            

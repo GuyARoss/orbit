@@ -64,3 +64,10 @@ func DocFromFile(path string) *HTMLDoc {
 		Body: []string{innerHTML(string(data), "<body>", "</body>")},
 	}
 }
+
+func NewEmptyDoc() *HTMLDoc {
+	return &HTMLDoc{
+		Head: []string{},
+		Body: []string{},
+	}
+}
