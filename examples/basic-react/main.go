@@ -13,6 +13,17 @@ func main() {
 		panic(err)
 	}
 
+	orb.SetPageProps(orbitgen.ExampleTwoPage, func() map[string]interface{} {
+		now := time.Now()
+
+		props := make(map[string]interface{})
+		props["day"] = now.Day()
+		props["month"] = now.Month()
+		props["year"] = now.Year()
+
+		return props
+	})
+
 	orb.HandleFunc("/", func(c *orbitgen.Request) {
 		now := time.Now()
 
@@ -22,17 +33,6 @@ func main() {
 		props["year"] = now.Year()
 
 		c.RenderPage(orbitgen.ExamplePage, props)
-	})
-
-	orb.HandleFunc("/second", func(c *orbitgen.Request) {
-		now := time.Now()
-
-		props := make(map[string]interface{})
-		props["day"] = now.Day()
-		props["month"] = now.Month()
-		props["year"] = now.Year()
-
-		c.RenderPage(orbitgen.ExampleTwoPage, props)
 	})
 
 	err = http.ListenAndServe(":3030", orb.Serve())
