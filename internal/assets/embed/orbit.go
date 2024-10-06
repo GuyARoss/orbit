@@ -4,6 +4,7 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -193,8 +194,20 @@ type MuxHandler interface {
 }
 
 type Serve struct {
-	mux MuxHandler
-	doc *htmlDoc
+	mux              MuxHandler
+	doc              *htmlDoc
+	pagePropHandlers map[PageRender]func() map[string]interface{}
+}
+
+var ErrPageNotInRouteTable = errors.New("the provided page cannot be used with SetPageProps, these pages require the orbit:route prefix")
+
+func (s *Serve) SetPageProps(page PageRender, handler func() map[string]interface{}) error {
+	if routeTable[page] == "" {
+		return ErrPageNotInRouteTable
+	}
+
+	s.pagePropHandlers[page] = handler
+	return nil
 }
 
 // HandleFunc attaches a handler to the specified pattern, this handler will be
@@ -328,6 +341,18 @@ func (s *Serve) setupMuxRequirements() *Serve {
 
 // Serve returns the mux server
 func (s *Serve) Serve() MuxHandler {
+	// rebind data from the route table
+	for k, v := range routeTable {
+		s.HandleFunc(v, func(c *Request) {
+			props := make(map[string]interface{})
+			if s.pagePropHandlers[k] != nil {
+				props = s.pagePropHandlers[k]()
+			}
+
+			c.RenderPage(k, props)
+		})
+	}
+
 	return s.mux
 }
 
@@ -350,7 +375,8 @@ func New() (*Serve, error) {
 	}
 
 	return (&Serve{
-		mux: http.NewServeMux(),
-		doc: setupDoc(),
+		mux:              http.NewServeMux(),
+		doc:              setupDoc(),
+		pagePropHandlers: map[PageRender]func() map[string]interface{}{},
 	}).setupMuxRequirements(), nil
 }

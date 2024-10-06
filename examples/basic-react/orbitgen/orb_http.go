@@ -4,6 +4,7 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -12,7 +13,6 @@ import (
 	"strings"
 	"sync"
 )
-
 // Request is the standard request payload for the orbit page handler
 // this is just a fancy wrapper around the http request & response that will also assist
 // the rendering of bundled pages & incoming path slugs
@@ -23,18 +23,15 @@ type Request struct {
 	Response    http.ResponseWriter
 	Slugs       map[string]string
 }
-
 // DefaultPage defines the standard behavior for a orbit page handler
 type DefaultPage interface {
 	Handle(*Request)
 }
-
 // htmlDoc represents a basic document model that will be rendered upon build request
 type htmlDoc struct {
 	Head []string
 	Body []string
 }
-
 // render renders the document out to a single string
 func (s *htmlDoc) render() string {
 	return fmt.Sprintf(`
@@ -49,7 +46,6 @@ func (s *htmlDoc) merge(doc *htmlDoc) *htmlDoc {
 	s.Head = append(doc.Head, s.Head...)
 	return s
 }
-
 // parseStaticDocument attempts to find the specified document and return it as a string
 func parseStaticDocument(path string) (string, error) {
 	_, err := os.Stat(path)
@@ -59,7 +55,6 @@ func parseStaticDocument(path string) (string, error) {
 	}
 	return "", fmt.Errorf("static document does not exist for '%s'", publicDir)
 }
-
 // build buildHTMLPages creates the htmldocument given data for orbits manifest and the page's
 func buildHTMLPages(data []byte, pages ...PageRender) *htmlDoc {
 	body := make([]string, 0)
@@ -99,13 +94,11 @@ func buildHTMLPages(data []byte, pages ...PageRender) *htmlDoc {
 	}
 	return html
 }
-
 // innerHTML is a utility function that assists with the parsing the content of html tags
 // it does this by returning the subset of the two provided strings "subStart" & "subEnd"
 func innerHTML(str string, subStart string, subEnd string) string {
 	return strings.Split(strings.Join(strings.Split(str, subStart)[1:], ""), subEnd)[0]
 }
-
 // defaultHTMLDoc builds a standard html doc for orbit that also verifies the public directory
 // if override data exits, then it will use that as a base for the HTML document
 func defaultHTMLDoc(override string) *htmlDoc {
@@ -124,7 +117,6 @@ func defaultHTMLDoc(override string) *htmlDoc {
 	}
 	return base
 }
-
 // parseSlug will parse slugs from the incoming path provided initial slugKeys and return a map of the slugs
 // in map[string]string form where the key is the slug name & value is the value as it appears in the path
 func parseSlug(slugKeys map[int]string, path string) map[string]string {
@@ -140,7 +132,6 @@ func parseSlug(slugKeys map[int]string, path string) map[string]string {
 	}
 	return slugs
 }
-
 // parsePathSlugs will parse initial slugs found in a path, these slugs can be identified with
 // the "{" char prepended & "}" appended to the path/subpath e.g "/path/{thing}" will represent "thing" as a slug key.
 func parsePathSlugs(path string) (map[int]string, string) {
@@ -165,7 +156,6 @@ func parsePathSlugs(path string) (map[int]string, string) {
 	}
 	return slugKeys, finalPath
 }
-
 // muxHandle is used to inject the base mux handler behavior
 type MuxHandler interface {
 	HandleFunc(string, func(http.ResponseWriter, *http.Request))
@@ -173,17 +163,18 @@ type MuxHandler interface {
 	ServeHTTP(http.ResponseWriter, *http.Request)
 }
 type Serve struct {
-	mux MuxHandler
-	doc *htmlDoc
-
+	mux              MuxHandler
+	doc              *htmlDoc
 	pagePropHandlers map[PageRender]func() map[string]interface{}
 }
-
-func (s *Serve) SetPageProps(page PageRender, handler func() map[string]interface{}) {
-	// TODO: ensure that this is in the route table
+var ErrPageNotInRouteTable = errors.New("the provided page cannot be used with SetPageProps, these pages require the orbit:route prefix")
+func (s *Serve) SetPageProps(page PageRender, handler func() map[string]interface{}) error {
+	if routeTable[page] == "" {
+		return ErrPageNotInRouteTable
+	}
 	s.pagePropHandlers[page] = handler
+	return nil
 }
-
 // HandleFunc attaches a handler to the specified pattern, this handler will be
 // ran upon a match of the request path during an incoming http request.
 func (s *Serve) HandleFunc(path string, handler func(c *Request)) {
@@ -241,18 +232,15 @@ func (s *Serve) HandleFunc(path string, handler func(c *Request)) {
 		handler(ctx)
 	})
 }
-
 // HandlePage attaches an orbit page to the specified pattern, this handler will be
 // ran upon a match of the request path during an incoming http request
 func (s *Serve) HandlePage(path string, dp DefaultPage) {
 	s.HandleFunc(path, dp.Handle)
 }
-
 type gzipResponseWriter struct {
 	io.Writer
 	http.ResponseWriter
 }
-
 func (w *gzipResponseWriter) WriteHeader(status int) {
 	w.Header().Del("Content-Length")
 	w.ResponseWriter.WriteHeader(status)
@@ -260,7 +248,6 @@ func (w *gzipResponseWriter) WriteHeader(status int) {
 func (w *gzipResponseWriter) Write(b []byte) (int, error) {
 	return w.Writer.Write(b)
 }
-
 // setupMuxRequirements creates the required mux handlers for orbit, these include
 // - fileserver for the bundle directory bound to the "/p/" directory
 func (s *Serve) setupMuxRequirements() *Serve {
@@ -291,7 +278,6 @@ func (s *Serve) setupMuxRequirements() *Serve {
 	})
 	return s
 }
-
 // Serve returns the mux server
 func (s *Serve) Serve() MuxHandler {
 	// rebind data from the route table
@@ -301,11 +287,9 @@ func (s *Serve) Serve() MuxHandler {
 			if s.pagePropHandlers[k] != nil {
 				props = s.pagePropHandlers[k]()
 			}
-
 			c.RenderPage(k, props)
 		})
 	}
-
 	return s.mux
 }
 func setupDoc() *htmlDoc {

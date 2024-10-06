@@ -41,3 +41,5 @@ type DocumentRenderer struct {
 }
 
 var wrapDocRender = map[PageRender]*DocumentRenderer{}
+
+var routeTable = map[PageRender]string{}

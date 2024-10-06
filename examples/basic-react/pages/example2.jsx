@@ -1,3 +1,4 @@
+// orbit:route /second
 import Thing from '../components/thing'
 
 const ExampleTwo = () => {
