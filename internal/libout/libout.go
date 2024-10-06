@@ -6,6 +6,7 @@ package libout
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/GuyARoss/orbit/internal/srcpack"
@@ -73,6 +74,7 @@ type BundleGroup struct {
 	pageMap          map[string]bool
 	componentBodyMap map[string][]string
 	wrapDocRender    map[string][]embedutils.FileReader
+	routeTable       map[string]string
 }
 
 func (opts *BundleGroup) WriteLibout(files Libout, fOpts *FilePathOpts) error {
@@ -118,6 +120,14 @@ func parseVersionKey(k string) string {
 
 // AcceptComponent collects the required DOM elements and applies it to the component body map
 func (l *BundleGroup) AcceptComponent(ctx context.Context, c srcpack.PackComponent, cacheOpts *webwrap.CacheDOMOpts) error {
+	componentName := c.Name()
+
+	// since all of the the valid bundle names can only be referred to "pages"
+	// we ensure that page does not already exist on the string
+	if !strings.Contains(componentName, "Page") {
+		componentName = fmt.Sprintf("%sPage", componentName)
+	}
+
 	wrapper := c.WebWrapper()
 	if err := wrapper.VerifyRequirements(); err != nil {
 		return err
@@ -133,32 +143,25 @@ func (l *BundleGroup) AcceptComponent(ctx context.Context, c srcpack.PackCompone
 		l.wrapDocRender[v] = wrapper.HydrationFile()
 	}
 
-	if !l.pageMap[c.Name()] {
-		l.pages = append(l.pages, &page{c.Name(), c.BundleKey(), wrapper.Version(), c.OriginalFilePath(), c.IsStaticResource()})
-		l.pageMap[c.Name()] = true
+	if !l.pageMap[componentName] {
+		l.pages = append(l.pages, &page{componentName, c.BundleKey(), wrapper.Version(), c.OriginalFilePath(), c.IsStaticResource()})
+		l.pageMap[componentName] = true
+	}
+
+	orbitRoutePath := c.JsDocument().OrbitRoutePath()
+	if len(orbitRoutePath) > 0 {
+		l.routeTable[componentName] = orbitRoutePath
 	}
 
 	return nil
 }
 
 // AcceptComponents collects the required DOM elements and applies it to the component body map
-func (l *BundleGroup) AcceptComponents(ctx context.Context, comps []srcpack.PackComponent, cacheOpts *webwrap.CacheDOMOpts) error {
-	for _, c := range comps {
-		wrap := c.WebWrapper()
-
-		v := parseVersionKey(wrap.Version())
-
-		if l.componentBodyMap[v] == nil {
-			l.componentBodyMap[v] = wrap.RequiredBodyDOMElements(ctx, cacheOpts)
-		}
-
-		if l.wrapDocRender[v] == nil {
-			l.wrapDocRender[v] = wrap.HydrationFile()
-		}
-
-		if !l.pageMap[c.Name()] {
-			l.pages = append(l.pages, &page{c.Name(), c.BundleKey(), wrap.Version(), c.OriginalFilePath(), c.IsStaticResource()})
-			l.pageMap[c.Name()] = true
+func (l *BundleGroup) AcceptComponents(ctx context.Context, components []srcpack.PackComponent, cacheOpts *webwrap.CacheDOMOpts) error {
+	for _, component := range components {
+		err := l.AcceptComponent(ctx, component, cacheOpts)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -172,5 +175,6 @@ func New(opts *BundleGroupOpts) *BundleGroup {
 		pages:            make([]*page, 0),
 		componentBodyMap: make(map[string][]string),
 		wrapDocRender:    make(map[string][]embedutils.FileReader),
+		routeTable:       map[string]string{},
 	}
 }

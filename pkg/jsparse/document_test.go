@@ -317,3 +317,14 @@ func TestJSDocArgListToString(t *testing.T) {
 		return
 	}
 }
+
+func TestParseComment(t *testing.T) {
+	line := "// orbit:route /page/:id"
+
+	doc := &DefaultJSDocument{}
+	doc.parseComment(line, strings.Split(line, string(CommentToken)))
+
+	if doc.orbitRoute != "/page/:id" {
+		t.Errorf("incorrect orbit route '%s'", doc.orbitRoute)
+	}
+}

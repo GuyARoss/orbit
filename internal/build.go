@@ -125,10 +125,12 @@ func Build(opts *BuildOpts) (srcpack.PackedComponentList, error) {
 			return nil, err
 		}
 
-		if err = bg.WriteLibout(libout.NewGOLibout(
+		liboutFiles := libout.NewGOLibout(
 			ats.AssetKey(assets.Tests),
 			ats.AssetKey(assets.PrimaryPackage),
-		), &libout.FilePathOpts{
+		)
+
+		if err = bg.WriteLibout(liboutFiles, &libout.FilePathOpts{
 			TestFile: fmt.Sprintf("%s/%s/orb_test.go", opts.OutDir, opts.PackageName),
 			EnvFile:  fmt.Sprintf("%s/%s/orb_env.go", opts.OutDir, opts.PackageName),
 			HTTPFile: fmt.Sprintf("%s/%s/orb_http.go", opts.OutDir, opts.PackageName),

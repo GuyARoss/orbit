@@ -307,12 +307,6 @@ type DocumentRenderer struct {
 			out.WriteString("const ( \n")
 		}
 
-		// since all of the the valid bundle names can only be referred to "pages"
-		// we ensure that page does not already exist on the string
-		if !strings.Contains(p.name, "Page") {
-			p.name = fmt.Sprintf("%sPage", p.name)
-		}
-
 		out.WriteString(fmt.Sprintf("	// orbit:page %s", p.filePath) + "\n")
 		out.WriteString(fmt.Sprintf(`	%s PageRender = "%s"`, p.name, p.bundleKey) + "\n")
 
@@ -359,6 +353,14 @@ const (
 		out.WriteString("var CurrentDevMode BundleMode = ProdBundleMode")
 	} else {
 		out.WriteString("var CurrentDevMode BundleMode = DevBundleMode")
+	}
+
+	if len(bg.routeTable) > 0 {
+		out.WriteString("\nvar routeTable = map[PageRender]string{\n")
+		for k, v := range bg.routeTable {
+			out.WriteString(fmt.Sprintf(`%s: "%s",`, k, v))
+		}
+		out.WriteString("}")
 	}
 
 	return &GOLibFile{

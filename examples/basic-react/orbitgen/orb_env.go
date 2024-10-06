@@ -72,3 +72,5 @@ const (
 )
 
 var CurrentDevMode BundleMode = ProdBundleMode
+var routeTable = map[PageRender]string{
+ExampleTwoPage: "/second",}

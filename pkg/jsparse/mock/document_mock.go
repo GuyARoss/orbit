@@ -12,6 +12,8 @@ type MockJsDocument struct {
 	defaultExport string
 }
 
+func (m *MockJsDocument) OrbitRoutePath() string { return "" }
+
 func (m *MockJsDocument) Clone() jsparse.JSDocument {
 	return nil
 }
